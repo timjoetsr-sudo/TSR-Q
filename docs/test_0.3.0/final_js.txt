@@ -1,0 +1,40 @@
+
+== KICK ==
+PASS KICK: JS senza bande = ingresso identico al bit
+PASS KICK: JS catena da mix senza NaN/Inf
+PASS KICK: prototipo HTML (JS) = plugin (C++), differenza max -300 dBFS (< -90)
+PASS KICK: JS blocchi 128/100/1024 vs 512, differenza max -300 dBFS
+
+== BASS ==
+PASS BASS: JS senza bande = ingresso identico al bit
+PASS BASS: JS catena da mix senza NaN/Inf
+PASS BASS: prototipo HTML (JS) = plugin (C++), differenza max -157 dBFS (< -90)
+PASS BASS: JS blocchi 128/100/1024 vs 512, differenza max -163 dBFS
+
+== VOCAL ==
+PASS VOCAL: JS senza bande = ingresso identico al bit
+PASS VOCAL: JS catena da mix senza NaN/Inf
+PASS VOCAL: prototipo HTML (JS) = plugin (C++), differenza max -300 dBFS (< -90)
+PASS VOCAL: JS blocchi 128/100/1024 vs 512, differenza max -300 dBFS
+
+== MELODY ==
+PASS MELODY: JS senza bande = ingresso identico al bit
+PASS MELODY: JS catena da mix senza NaN/Inf
+PASS MELODY: prototipo HTML (JS) = plugin (C++), differenza max -181 dBFS (< -90)
+PASS MELODY: JS blocchi 128/100/1024 vs 512, differenza max -300 dBFS
+
+== HH ==
+PASS HH: JS senza bande = ingresso identico al bit
+PASS HH: JS catena da mix senza NaN/Inf
+PASS HH: prototipo HTML (JS) = plugin (C++), differenza max -131 dBFS (< -90)
+PASS HH: JS blocchi 128/100/1024 vs 512, differenza max -300 dBFS
+
+== CLAP-1 ==
+PASS CLAP-1: JS senza bande = ingresso identico al bit
+PASS CLAP-1: JS catena da mix senza NaN/Inf
+PASS CLAP-1: prototipo HTML (JS) = plugin (C++), differenza max -157 dBFS (< -90)
+PASS CLAP-1: JS blocchi 128/100/1024 vs 512, differenza max -265 dBFS
+PASS HH-1 (silenzio): JS uscita esattamente zero
+PASS JS INPUT +6 dB: picco -16.56 → -10.56 dBFS
+
+RISULTATO JS: 26 PASS, 0 FAIL

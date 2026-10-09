@@ -1,0 +1,15 @@
+PASS AUDIO BASS.wav suona nel worklet; picco meter primi 7 s -13.6 dBFS | picco del file nei primi 7.5 s -13.6 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+PASS AUDIO HH-1.wav suona nel worklet; picco meter primi 7 s -240 dBFS | picco del file nei primi 7.5 s -240.0 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+PASS AUDIO MELODY.wav suona nel worklet; picco meter primi 7 s -18 dBFS | picco del file nei primi 7.5 s -17.9 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+FAIL AUDIO HH.wav suona nel worklet; picco meter primi 7 s -20 dBFS | picco del file nei primi 7.5 s -20.6 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+PASS AUDIO CLAP-1.wav suona nel worklet; picco meter primi 7 s -15.8 dBFS | picco del file nei primi 7.5 s -15.9 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+PASS AUDIO KICK.wav suona nel worklet; picco meter primi 7 s -7.1 dBFS | picco del file nei primi 7.5 s -7.1 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+PASS AUDIO HH-3.wav suona nel worklet; picco meter primi 7 s -16.4 dBFS | picco del file nei primi 7.5 s -15.7 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+PASS AUDIO VOCAL.wav suona nel worklet; picco meter primi 7 s -16.9 dBFS | picco del file nei primi 7.5 s -16.6 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+PASS AUDIO CLAP-3.wav suona nel worklet; picco meter primi 7 s -22.4 dBFS | picco del file nei primi 7.5 s -22.3 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+PASS AUDIO HH-2.wav suona nel worklet; picco meter primi 7 s -27.7 dBFS | picco del file nei primi 7.5 s -23.4 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+PASS AUDIO CLAP.wav suona nel worklet; picco meter primi 7 s -24.7 dBFS | picco del file nei primi 7.5 s -24.8 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+PASS AUDIO CLAP-2.wav suona nel worklet; picco meter primi 7 s -27 dBFS | picco del file nei primi 7.5 s -26.3 dBFS (deve essere ≤, mai sopra; uguale se il picco cade nella finestra)
+VOCAL: bande create con doppio/triplo clic [{"f":14,"g":1.82,"d":0},{"f":2911,"g":4.51,"d":1},{"f":15104,"g":9.81,"d":0}]
+VOCAL: soglia dinamica -50 dB → riduzione massima vista -6 dB (RANGE -6)
+errori JS: nessuno

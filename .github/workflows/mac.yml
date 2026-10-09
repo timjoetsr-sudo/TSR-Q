@@ -1,0 +1,26 @@
+# TSR Q (TSR Audio) · build e test su macOS ad ogni push; installer .pkg scaricabile dalla pagina Actions (artefatto TSR-Q-mac)
+name: TSR Q macOS
+on: [push, workflow_dispatch]
+jobs:
+  mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: pluginval
+        run: |
+          curl -sL -o pv.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+          unzip -q pv.zip -d /Applications
+      - name: AAX SDK (solo se c'è il secret AAX_SDK_ZIP_URL)
+        env:
+          AAX_SDK_ZIP_URL: ${{ secrets.AAX_SDK_ZIP_URL }}
+        run: |
+          if [ -n "$AAX_SDK_ZIP_URL" ]; then
+            curl -sL -o aax.zip "$AAX_SDK_ZIP_URL" && mkdir -p aaxsdk && unzip -q aax.zip -d aaxsdk
+            echo "AAX_SDK_PATH=$(dirname "$(find "$PWD/aaxsdk" -path '*/Interfaces/AAX.h' | head -1)" | sed 's#/Interfaces$##')" >> "$GITHUB_ENV"
+          else echo "AAX saltato: manca il secret AAX_SDK_ZIP_URL (AAX SDK di Avid)"; fi
+      - name: Build, test, firma ad-hoc, auval, pluginval, pkg
+        run: ./scripts/build_mac.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TSR-Q-mac
+          path: dist/
