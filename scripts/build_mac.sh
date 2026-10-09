@@ -56,7 +56,7 @@ pkgbuild --root "$STG/app"  --identifier com.tsraudio.tsrq.app  --version "$VER"
 AAXPKG=()
 if [ -n "$AAX" ]; then mkdir -p "$STG/aax"; cp -R "$A/AAX/TSR Q.aaxplugin" "$STG/aax/"
   pkgbuild --root "$STG/aax" --identifier com.tsraudio.tsrq.aax --version "$VER" --install-location "/Library/Application Support/Avid/Audio/Plug-Ins" "$STG/aax.pkg"; AAXPKG=(--package "$STG/aax.pkg"); fi
-productbuild --package "$STG/au.pkg" --package "$STG/vst3.pkg" --package "$STG/app.pkg" "${AAXPKG[@]}" ${DEV_ID_INSTALLER:+--sign "$DEV_ID_INSTALLER"} "$OUT/TSR Q $VER (TSR Audio).pkg"
+productbuild --package "$STG/au.pkg" --package "$STG/vst3.pkg" --package "$STG/app.pkg" ${AAXPKG[@]+"${AAXPKG[@]}"} ${DEV_ID_INSTALLER:+--sign "$DEV_ID_INSTALLER"} "$OUT/TSR Q $VER (TSR Audio).pkg"
 if [ -n "${NOTARY_PROFILE:-}" ] && [ -n "${DEV_ID_INSTALLER:-}" ]; then
   xcrun notarytool submit "$OUT/TSR Q $VER (TSR Audio).pkg" --keychain-profile "$NOTARY_PROFILE" --wait
   xcrun stapler staple "$OUT/TSR Q $VER (TSR Audio).pkg"; fi
