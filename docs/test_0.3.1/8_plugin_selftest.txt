@@ -1,0 +1,11 @@
+PASS UI: creo banda 1 kHz +6 dB con dinamica e INPUT +3 dB (ok)
+PASS UI -> parametri: used 1, freq 1000.00, gain 6.00, dyn 1
+PASS UI -> parametro INPUT: 3.00 dB
+PASS automazione DAW -> interfaccia: gain banda 1 = {"g":-4.5,"f":1000,"d":1}
+PASS motore: 1 s di sinusoide 1 kHz -6 dBFS attraverso il plugin, uscita finita, picco -9.02 dBFS
+PASS spettro plugin -> interfaccia: 56 fotogrammi ricevuti
+PASS meter plugin -> interfaccia (picco out/in lineare, intervento dinamico dB): {"pkMax":0.390227943658829,"pinMax":0.706268787384033,"d":-1.5,"spec":56}
+PASS livello d'uscita esatto: -9.02 dBFS (atteso -6 +3 INPUT -4.5 banda -1.5 dinamica = -9.0)
+PASS UI: bypass banda -> parametro b1_byp = 1
+PASS UI: elimina banda -> parametro b1_used = 0
+RISULTATO PASS

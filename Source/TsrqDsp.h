@@ -56,8 +56,8 @@ inline void sectionsFor (const BandParams& b, double gainDb, SecSet& o) {
         case HighShelf: if (b.slope <= 6) push (o, f, A, A * A, 0, A, 1, 0); else push (o, f, A, A * sA / Q, A * A, A, sA / Q, 1); break;
         case TiltShelf: push (o, f, 1, A, 0, A, 1, 0); break;
         case Notch:     push (o, f, 1, 0, 1, 1, 1 / Q, 1); break;
-        case BandPass: {   // 6 dB/oct = una sezione passa-banda; 12…48 dB/oct = passa-alto + passa-basso Butterworth di ordine slope/6 ai bordi della banda, picco a 0 dB
-            const int N = std::clamp ((int) std::lround (b.slope / 6.0), 1, 8);
+        case BandPass: {   // 6 dB/oct = una sezione passa-banda; 12…96 dB/oct = passa-alto + passa-basso Butterworth di ordine slope/6 ai bordi della banda, picco a 0 dB
+            const int N = std::clamp ((int) std::lround (b.slope / 6.0), 1, 16);
             if (N == 1) { push (o, f, 0, 1 / Q, 0, 1, 1 / Q, 1); break; }
             const double r = std::sqrt (1 + 1 / (4 * Q * Q)), fl = f * (r - 1 / (2 * Q)), fh = f * (r + 1 / (2 * Q)); double qs[8]; const int nq = butterQs (N, qs);
             if (N % 2) { push (o, fl, 0, 1, 0, 1, 1, 0); push (o, fh, 1, 0, 0, 1, 1, 0); }

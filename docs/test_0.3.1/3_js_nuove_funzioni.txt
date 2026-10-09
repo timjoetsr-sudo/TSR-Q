@@ -1,0 +1,12 @@
+PASS BP 6: JS = C++ su VOCAL, differenza max -300 dBFS (< -90)
+PASS BP 12: JS = C++ su VOCAL, differenza max -175 dBFS (< -90)
+PASS BP 24: JS = C++ su VOCAL, differenza max -163 dBFS (< -90)
+PASS BP 48: JS = C++ su VOCAL, differenza max -181 dBFS (< -90)
+PASS BP 72: JS = C++ su VOCAL, differenza max -163 dBFS (< -90)
+PASS BP 96: JS = C++ su VOCAL, differenza max -175 dBFS (< -90)
+PASS BP 96 basso: JS = C++ su VOCAL, differenza max -300 dBFS (< -90)
+PASS LowCut Q4 (Q ignorato): JS = C++ su VOCAL, differenza max -300 dBFS (< -90)
+PASS HighCut Q8 96 dB/oct: JS = C++ su VOCAL, differenza max -187 dBFS (< -90)
+PASS Bell dinamico -1.5: JS = C++ su VOCAL, differenza max -300 dBFS (< -90)
+PASS Low Cut: Q 4 = Q 0.707 (nessuna risonanza), differenza -300 dBFS
+RISULTATO nuove funzioni: 11 PASS, 0 FAIL

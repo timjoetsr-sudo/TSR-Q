@@ -275,7 +275,7 @@ var TSRQ = (function () {
       case 'allpass': return { k: 1, s: [{ f0: f, n: [1, -1 / Q, 1], d: [1, 1 / Q, 1] }] };
       case 'notch': return { k: 1, s: [{ f0: f, n: [1, 0, 1], d: [1, 1 / Q, 1] }] };
       case 'bpass': {   // 6 dB/oct = una sezione; 12\u202648 dB/oct = passa-alto + passa-basso Butterworth di ordine slope/6 ai bordi della banda, picco a 0 dB
-        var NBP = Math.max(1, Math.min(8, Math.round((b.slope || 6) / 6)));
+        var NBP = Math.max(1, Math.min(16, Math.round((b.slope || 6) / 6)));
         if (NBP === 1) return { k: 1, s: [{ f0: f, n: [0, 1 / Q, 0], d: [1, 1 / Q, 1] }] };
         var rr2 = Math.sqrt(1 + 1 / (4 * Q * Q)), fl = f * (rr2 - 1 / (2 * Q)), fh = f * (rr2 + 1 / (2 * Q)), qb = butterQs(NBP);
         if (NBP % 2) { out.push({ f0: fl, n: [0, 1, 0], d: [1, 1, 0] }); out.push({ f0: fh, n: [1, 0, 0], d: [1, 1, 0] }); }
@@ -640,8 +640,8 @@ const DYN_MAX = 1.5;   // quando si accende la dinamica l'intervento parte al ma
 function dynCap(b) { if (b && b.dyn) b.range = Math.sign(b.range || -1) * Math.min(Math.abs(b.range), DYN_MAX); }
 const hasGain = t => t === 0 || t === 1 || t === 2 || t === 7 || t === 8;
 const canDyn = t => t === 0 || t === 1 || t === 2 || t === 7;
-const hasSlope = t => (t >= 1 && t <= 4) || t === 6;   // anche il Band Pass: 6\u202648 dB/oct
-const BP_MAXS = 6;   // indice di SLOPES = 48 dB/oct
+const hasSlope = t => (t >= 1 && t <= 4) || t === 6;   // anche il Band Pass: 6\u202696 dB/oct
+const BP_MAXS = 8;   // indice di SLOPES = 96 dB/oct
 const fmtF = f => f < 1000 ? f.toFixed(f < 100 ? 1 : 0) + ' Hz' : (f / 1000).toFixed(f < 10000 ? 2 : 1) + ' kHz';
 const fmtDb = d => (d > 0.05 ? '+' : '') + d.toFixed(1) + ' dB';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -874,7 +874,7 @@ const graph = (() => {
   window.flash = (s) => { flashS = s; flashT = performance.now(); };
 
   function columns() { const fs = fsNow(), W = Math.floor(PL.w / 2); if (cols && colsFs === fs && cols.f.length === W) return cols;
-    cols = { f: new Float64Array(W) }; for (let i = 0; i < W; i++) cols.f[i] = Fx(PL.x + PL.w * i / (W - 1)); colsFs = fs; keys.fill(''); return cols; }
+    cols = { f: new Float64Array(W) }; for (let i = 0; i < W; i++) cols.f[i] = Fx(PL.x + PL.w * i / (W - 1)); colsFs = fs; keys.fill(''); curves.fill(null); rkeys.fill(''); rcurves.fill(null); total = null; /* cambio di frequenza di campionamento: niente curve vecchie di bande gia cancellate */ return cols; }
   function magDb(c, out) { const fs = fsNow(), F = cols.f; for (let i = 0; i < F.length; i++) out[i] = 10 * Math.log10(Math.max(TSRQ.digMag2(c, F[i], fs), 1e-12)); return out; }
   function refresh() { columns(); const fs = fsNow(), sc = P.scale / 100, W = cols.f.length; let changed = false, anyDyn = false;
     for (let i = 0; i < NB; i++) { const b = P.bands[i], act = b.used && !b.byp; const k = act ? [b.type, b.freq, b.gain, b.q, b.slope, sc, fs, G.rangeDb].join('|') : '';
@@ -911,7 +911,8 @@ const graph = (() => {
 
   const nodePos = i => { const b = P.bands[i], sc = P.scale / 100; return { x: X(Math.min(b.freq, fMax())), y: Y(hasGain(b.type) ? clamp(b.gain * sc, -G.rangeDb, G.rangeDb) : 0) }; };
   G.nodePos = nodePos;
-  G.X = X; G.Fx = Fx; G.Y = Y;
+  G.X = X; G.Fx = Fx; G.Y = Y; G.Dy = Dy; G.AY = AY; G.PL = PL;
+  G.specDb = x => (N && playing && specPost) ? specY(G.showPost ? specPost : specPre, x) : null;   /* spettro (dB con inclinazione) per i picchi */
   const rangePos = i => { const b = P.bands[i], z = rcurves[i]; if (!z || !b.used || b.byp || !b.dyn || !canDyn(b.type)) return null; const x = X(Math.min(b.freq, fMax())), k = clamp(Math.round((x - PL.x) / PL.w * (z.length - 1)), 0, z.length - 1); return { x, y: Y(clamp(z[k], -G.rangeDb, G.rangeDb)) }; };
   G.rangePos = rangePos;
   const rHit = p => { for (let i = NB - 1; i >= 0; i--) { const q = rangePos(i); if (q && Math.hypot(q.x - p.x, q.y - p.y) < 10) return i; } return -1; };
@@ -945,7 +946,10 @@ const graph = (() => {
       g.beginPath(); for (let k = 0; k < W; k++) { const x = r.x + r.w * k / (W - 1), y = Y(a[k]); k ? g.lineTo(x, y) : g.moveTo(x, y); } for (let k = W - 1; k >= 0; k--) g.lineTo(r.x + r.w * k / (W - 1), Y(z[k])); g.closePath();
       g.fillStyle = rgba(dc, sl ? .30 : .18); g.fill(); path(z); g.strokeStyle = rgba(dc, sl ? .95 : .6); g.lineWidth = sl ? 1.6 : 1.1; g.stroke(); } }
     for (let i = 0; i < NB; i++) if (curves[i]) { const s = G.sel.has(i), col = bandRGB(i);
-      if (s) { path(curves[i]); g.lineTo(r.x + r.w, Y(0)); g.lineTo(r.x, Y(0)); g.closePath(); g.fillStyle = rgba(col, .16); g.fill(); }
+      if (P.bands[i].type === 3 || P.bands[i].type === 4) { /* zona tagliata dal Low/High Cut: rossa (piu intensa se la banda e selezionata o sotto il mouse) */ const hot = s || hover === i || (dragging && G.sel.has(i)), cg = g.createLinearGradient(0, Y(0), 0, r.y + r.h);
+        cg.addColorStop(0, `rgba(229,72,77,${hot ? .42 : .20})`); cg.addColorStop(1, `rgba(229,72,77,${hot ? .16 : .06})`);
+        path(curves[i]); g.lineTo(r.x + r.w, Y(0)); g.lineTo(r.x, Y(0)); g.closePath(); g.fillStyle = cg; g.fill(); }
+      else if (s) { path(curves[i]); g.lineTo(r.x + r.w, Y(0)); g.lineTo(r.x, Y(0)); g.closePath(); g.fillStyle = rgba(col, .16); g.fill(); }
       path(curves[i]); g.strokeStyle = rgba(col, s ? .9 : .45); g.lineWidth = s ? 1.4 : 1; g.stroke(); }
     if (live) { path(live); g.strokeStyle = C.dyn; g.lineWidth = 2.2; g.stroke(); }
     if (total) { path(total); g.strokeStyle = P.bypass ? C.dim : '#FFD60A'; g.lineWidth = 2.2; g.shadowColor = 'rgba(255,214,10,.45)'; g.shadowBlur = P.bypass ? 0 : 8; g.stroke(); g.shadowBlur = 0; }
@@ -997,7 +1001,7 @@ const graph = (() => {
       let t = TYPE_NAMES[b.type] + '  ' + fmtF(b.freq) + (hasGain(b.type) ? '  ' + fmtDb(b.gain) : '') + '  Q ' + b.q.toFixed(2); if (b.dyn && canDyn(b.type)) t += '  DYN ' + deltas[lb].toFixed(1) + ' dB';
       g.font = `700 11px ${FONT}`; const w = g.measureText(t).width + 16; let bx = clamp(p.x - w / 2, 2, GW - w - 2), by = p.y - 36; if (by < 2) by = p.y + 16;
       g.fillStyle = 'rgba(24,27,31,.94)'; rr(g, bx, by, w, 20, 4); g.fill(); g.strokeStyle = rgba(bandRGB(lb), 1); g.lineWidth = 1; g.stroke(); g.fillStyle = C.ink; g.textAlign = 'center'; g.fillText(t, bx + w / 2, by + 10.5); }
-    if (grabF > 0 && hover < 0 && !dragging && !rect) { const x = X(grabF); g.strokeStyle = 'rgba(255,210,63,.8)'; g.beginPath(); g.moveTo(Math.round(x) + .5, r.y); g.lineTo(Math.round(x) + .5, r.y + r.h); g.stroke();
+    if (grabF > 0 && hover < 0 && !dragging && !rect && !(window.__tsrqPeakHover && window.__tsrqPeakHover())) { const x = X(grabF); g.strokeStyle = 'rgba(255,210,63,.8)'; g.beginPath(); g.moveTo(Math.round(x) + .5, r.y); g.lineTo(Math.round(x) + .5, r.y + r.h); g.stroke();
       g.fillStyle = C.ink; g.font = `700 11px ${FONT}`; g.textAlign = 'left'; g.fillText(fmtF(grabF) + '  clic: nuova banda', x + 6, r.y + 11); }
     if (rect) { const x = Math.min(rect.x0, rect.x1), y = Math.min(rect.y0, rect.y1), w = Math.abs(rect.x1 - rect.x0), h = Math.abs(rect.y1 - rect.y0); g.fillStyle = 'rgba(90,200,250,.10)'; g.fillRect(x, y, w, h); g.strokeStyle = C.dyn; g.lineWidth = 1; g.strokeRect(x + .5, y + .5, w, h); }
     g.textAlign = 'left'; g.font = `700 10px ${FONT}`;
@@ -1044,21 +1048,29 @@ const graph = (() => {
     if (e.key === 'Escape') { closeMenus(); if (dragging) { for (const d of dragStart) { P.bands[d.i].freq = d.f; P.bands[d.i].gain = d.g; } dragging = false; dirty = true; return; } if (rect) { rect = null; G.sel = rectKeep; return; } G.selectOnly(-1); return; }
     if (e.key === 'Delete' || e.key === 'Backspace') { G.deleteSelected(); e.preventDefault(); return; }
     if (cmd && (e.key === 'a' || e.key === 'A')) { G.selectAll(); e.preventDefault(); return; }
+    if (cmd && (e.key === 'c' || e.key === 'C')) { G.copySel(); e.preventDefault(); return; }
+    if (cmd && (e.key === 'v' || e.key === 'V')) { G.paste(); e.preventDefault(); return; }
     if (cmd && (e.key === 'z' || e.key === 'Z')) { e.shiftKey ? redo() : undo(); e.preventDefault(); } });
 
   function bandMenu(band, e) { const b = P.bands[band];
     openMenu([{ header: 'BANDA ' + (band + 1) + '  ' + fmtF(b.freq) + (G.sel.size > 1 ? '  (' + G.sel.size + ' selezionate)' : '') },
       { text: 'Tipo di filtro', sub: TYPE_NAMES.map((t, i) => ({ text: t, checked: b.type === i, fn: () => G.apply('type', i) })) },
-      { text: 'Pendenza', disabled: !hasSlope(b.type), sub: SLOPES.map((s, i) => ({ text: s + ' dB/oct', checked: b.slope === i, fn: () => G.apply('slope', i) })) },
+      { text: 'Pendenza', disabled: !hasSlope(b.type), sub: ((b.type === 1 || b.type === 2) ? [[6, 0], [12, 1]] : SLOPES.map((v, i) => [v, i]).filter(([v, i]) => b.type !== 6 || i <= BP_MAXS)).map(([v, i]) => ({ text: v + ' dB/oct', checked: (b.type === 1 || b.type === 2) ? (b.slope <= 0 ? 0 : 1) === i : b.slope === i, fn: () => G.apply('slope', i) })) },
       { text: 'Lavora su', sub: PLACES.map((t, i) => ({ text: t, checked: b.place === i, fn: () => G.apply('place', i) })) },
       { sep: 1 },
       { text: 'Dinamica', disabled: !canDyn(b.type), checked: !!b.dyn, fn: () => G.apply('dyn', b.dyn ? 0 : 1) },
       { text: 'Bypass banda', checked: !!b.byp, fn: () => G.apply('byp', b.byp ? 0 : 1) },
       { text: 'Solo banda', checked: solo === band, fn: () => { solo = solo === band ? -1 : band; dirty = true; } },
+      { text: 'Inverti guadagno', disabled: !hasGain(b.type), fn: () => { txn(); for (const j of G.selection()) { const x = P.bands[j]; if (hasGain(x.type)) { x.gain = -x.gain; if (x.dyn) x.range = -x.range; } } commit(); panelSync(); } },
+      { sep: 1 }, { text: 'Copia', fn: () => G.copySel() }, { text: 'Incolla', disabled: !G.clip, fn: () => G.paste() },
       { sep: 1 }, { text: 'Elimina', fn: () => G.deleteSelected() }], e.clientX, e.clientY, 150); }
+  G.clip = null;
+  G.copySel = () => { const s = G.selection(); if (!s.length) return; G.clip = s.map(j => JSON.parse(JSON.stringify(P.bands[j]))); flash(s.length === 1 ? 'banda copiata' : s.length + ' bande copiate'); };
+  G.paste = () => { if (!G.clip) return; const free = P.bands.map((b, i) => b.used ? -1 : i).filter(i => i >= 0); if (free.length < G.clip.length) { flash('spazio per ' + free.length + ' bande, ne servono ' + G.clip.length); return; }
+    txn(); const nw = G.clip.map((c, k) => { Object.assign(P.bands[free[k]], JSON.parse(JSON.stringify(c)), { used: 1 }); return free[k]; }); commit(); G.sel = new Set(nw); G.primary = nw[0]; panelSync(); flash(nw.length === 1 ? 'banda incollata' : nw.length + ' bande incollate'); };
   function emptyMenu(p, e) { const f = Fx(p.x), gd = Dy(p.y);
     openMenu([{ header: 'NUOVA BANDA  ' + fmtF(f) }, { text: 'Crea qui', sub: TYPE_NAMES.map((t, i) => ({ text: t, fn: () => G.createBand(f, gd, i) })) },
-      { text: 'Seleziona tutte', fn: () => G.selectAll() }, { text: 'Elimina tutte', fn: () => { G.selectAll(); G.deleteSelected(); } }], e.clientX, e.clientY, 150); }
+      { text: 'Incolla', disabled: !G.clip, fn: () => G.paste() }, { text: 'Seleziona tutte', fn: () => G.selectAll() }, { text: 'Elimina tutte', fn: () => { G.selectAll(); G.deleteSelected(); } }], e.clientX, e.clientY, 150); }
 
   function loop() { flush(); updateSpectrum(); refresh(); paint(); if (localEng || node) {} requestAnimationFrame(loop); }
   G.start = () => { fftInit(); requestAnimationFrame(loop); };
@@ -1662,9 +1674,9 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
       for (let k = 0; k <= 220; k++) { const x = PLx + PLw * k / 220, fx = graph.Fx(x), d = curveDb(fx) + 10 * Math.log10(Math.max(TSRQ.digMag2(co, fx, fs), 1e-12)); pts.push([x, graph.Y(clamp(d, -graph.rangeDb * 1.05, graph.rangeDb * 1.05))]); }
       ghost = { key, pts }; } }, true);
   gw.addEventListener('pointerleave', () => { sug = null; gw.style.cursor = ''; });
-  gw.addEventListener('pointerdown', e => { if (!sug || e.button !== 0 || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return; e.preventDefault(); e.stopPropagation();
+  gw.addEventListener('pointerdown', e => { if (!sug || e.button !== 0 || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey || (window.__tsrqPeakHover && window.__tsrqPeakHover())) return; e.preventDefault(); e.stopPropagation();
     const i = graph.createBand(sug.f, 0, sug.type); if (i >= 0) flash(TYPE_NAMES[sug.type] + ' creato a ' + (sug.f < 1000 ? sug.f.toFixed(1) + ' Hz' : (sug.f / 1000).toFixed(2) + ' kHz')); sug = null; gw.style.cursor = ''; }, true);
-  (function frame() { if (sug && ghost) { g.setTransform(2, 0, 0, 2, 0, 0); g.save(); g.beginPath(); g.rect(PLx, PLy, PLw, PLh); g.clip();
+  (function frame() { if (sug && ghost && !(window.__tsrqPeakHover && window.__tsrqPeakHover())) { g.setTransform(2, 0, 0, 2, 0, 0); g.save(); g.beginPath(); g.rect(PLx, PLy, PLw, PLh); g.clip();
       g.strokeStyle = sug.type === 0 || sug.type === 1 || sug.type === 2 ? 'rgba(255,214,10,.35)' : 'rgba(255,214,10,.4)'; g.lineWidth = 1.1; g.setLineDash([3, 4]); g.beginPath(); ghost.pts.forEach(([x, y], k) => k ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); g.setLineDash([]);
       g.fillStyle = '#FFD60A'; g.beginPath(); g.arc(sug.x, sug.y, 4.5, 0, 7); g.fill();
       const t = TYPE_NAMES[sug.type] + ' \u00b7 ' + (sug.f < 1000 ? sug.f.toFixed(0) + ' Hz' : (sug.f / 1000).toFixed(2) + ' kHz') + '  \u00b7  clic';
@@ -1704,4 +1716,86 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 'use strict';
 /* ====== strato delle venature nere rialzate sotto tutto ====== */
 (() => { const v = document.createElement('div'); v.className = 'veins'; ed.insertBefore(v, ed.firstChild); })();
+
+'use strict';
+/* ====== dinamica visibile sul knob GAIN: anello azzurro = range dinamico (pieno = 1.5 dB); trascina l'anello su/giu per cambiarlo ====== */
+(() => { const base = drawKnob, RING = 1.5;
+  const geo = () => { const d = Math.min(KW, 77) - 6; return { cx: KW / 2, cy: 77 / 2, r: d / 2 + 3.8, a0: Math.PI * 1.25, a1: Math.PI * 2.75 }; };
+  const band = () => { const i = graph.primary; if (i < 0) return null; const b = P.bands[i]; return b.used && b.dyn && canDyn(b.type) && !b.byp ? b : null; };
+  drawKnob = function (k) { base(k); if (k !== KG) return; const b = band(); KG.cv.classList.toggle('ring', !!b); if (!b) return;
+    const g = k.cv.getContext('2d'), o = geo(), ang = o.a0 + k.toN(k.v) * (o.a1 - o.a0), span = Math.PI / 2 * clamp(Math.abs(b.range) / RING, 0, 1), dir = b.range < 0 ? -1 : 1;
+    const live = graph.primary >= 0 && meter.bands && meter.bands[graph.primary] ? meter.bands[graph.primary].delta : 0;
+    g.lineCap = 'round'; g.lineWidth = 2; g.strokeStyle = 'rgba(90,200,250,.22)'; g.beginPath(); g.arc(o.cx, o.cy, o.r, ang - Math.PI / 2 - Math.PI / 2, ang - Math.PI / 2 + Math.PI / 2); g.stroke();
+    g.strokeStyle = '#5ac8fa'; g.beginPath(); if (dir > 0) g.arc(o.cx, o.cy, o.r, ang - Math.PI / 2, ang - Math.PI / 2 + span); else g.arc(o.cx, o.cy, o.r, ang - Math.PI / 2 - span, ang - Math.PI / 2); g.stroke();
+    if (Math.abs(live) > .01) { const ls = Math.PI / 2 * clamp(Math.abs(live) / RING, 0, 1); g.strokeStyle = '#ffffff'; g.lineWidth = 2.6; g.beginPath(); if (live > 0) g.arc(o.cx, o.cy, o.r, ang - Math.PI / 2, ang - Math.PI / 2 + ls); else g.arc(o.cx, o.cy, o.r, ang - Math.PI / 2 - ls, ang - Math.PI / 2); g.stroke(); }
+    g.lineCap = 'butt'; };
+  /* trascinare l'anello (bordo esterno del knob) cambia il range, non il guadagno */
+  let rd = null;
+  KG.cv.addEventListener('pointerdown', e => { const b = band(); if (!b || e.button !== 0) return; const r = KG.cv.getBoundingClientRect(), x = (e.clientX - r.left) * KW / r.width, y = (e.clientY - r.top) * 77 / r.height, o = geo();
+    if (Math.hypot(x - o.cx, y - o.cy) < o.r - 6) return; e.stopImmediatePropagation(); e.preventDefault(); txn(); rd = { y: e.clientY, r: b.range, sel: graph.selection().map(j => [j, P.bands[j].range]) }; KG.cv.setPointerCapture(e.pointerId); }, true);
+  KG.cv.addEventListener('pointermove', e => { if (!rd) return; e.stopImmediatePropagation(); const dv = (rd.y - e.clientY) / scaleNow() / 120 * RING * (e.shiftKey ? .1 : 1);
+    for (const [j, r0] of rd.sel) { const x = P.bands[j]; if (x.dyn && canDyn(x.type)) x.range = Math.round(clamp(r0 + dv, -DYN_MAX, DYN_MAX) * 100) / 100; } dirty = true; panelSync(); }, true);
+  const end = e => { if (!rd) return; e.stopImmediatePropagation(); rd = null; commit(); panelSync(); };
+  KG.cv.addEventListener('pointerup', end, true); KG.cv.addEventListener('pointercancel', end, true);
+  KG.cv.addEventListener('pointermove', e => { if (rd) return; const b = band(); if (!b) { KG.cv.style.cursor = ''; return; } const r = KG.cv.getBoundingClientRect(), x = (e.clientX - r.left) * KW / r.width, y = (e.clientY - r.top) * 77 / r.height, o = geo();
+    KG.cv.style.cursor = Math.hypot(x - o.cx, y - o.cy) >= o.r - 6 ? 'ns-resize' : ''; KG.cv.title = 'Anello azzurro = range dinamica ' + fmtDb(b.range) + ' (trascina su/giu)'; });
+  /* ridisegno continuo dell'anello: segue range, guadagno e riduzione dal vivo */
+  let last = ''; (function loop() { const b = band(), i = graph.primary, live = b && meter.bands && meter.bands[i] ? meter.bands[i].delta.toFixed(2) : ''; const k = b ? [i, b.range, b.gain, live].join('|') : 'x';
+    if (k !== last) { last = k; drawKnob(KG); } requestAnimationFrame(loop); })();
+  window.__tsrq.gainRing = () => { const b = band(); return b ? { range: b.range, ring: KG.cv.classList.contains('ring') } : null; };
+})();
+
+'use strict';
+/* ====== picchi dello spettro: etichette gialle sulle risonanze; passando sopra = anteprima del Bell; clic = banda sul picco, trascina = guadagno (giu taglia) ====== */
+(() => { const gw = document.querySelector('.graph'), ov = document.querySelector('.graph .ovl'); if (!gw || !ov) throw new Error('TSRQ: griglia o overlay non trovati');
+  const GWc = 1160, GHc = 532, PL = graph.PL, MAXP = 5, PROM = 6, SEP = 46, QP = 6; const g = ov.getContext('2d');
+  const loc = e => { const r = ov.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * GWc, y: (e.clientY - r.top) / r.height * GHc }; };
+  let avg = null, peaks = [], tCalc = 0, hov = -1, drag = null;
+  function calc() { const W = Math.floor(PL.w), v = new Float32Array(W); let any = false;
+    for (let k = 0; k < W; k++) { const d = graph.specDb(PL.x + k); if (d === null) { avg = null; peaks = []; return; } v[k] = d; any = true; }
+    if (!avg || avg.length !== W) avg = Float32Array.from(v); else for (let k = 0; k < W; k++) avg[k] = v[k] > avg[k] ? avg[k] + (v[k] - avg[k]) * .5 : Math.max(v[k], avg[k] - .6); /* inviluppo: sale subito, scende 5 dB/s (le risonanze intermittenti restano segnate) */
+    const base = new Float32Array(W), R = 40; let acc = 0, n = 0; for (let k = 0; k < Math.min(W, R); k++) { acc += avg[k]; n++; }
+    for (let k = 0; k < W; k++) { if (k + R < W) { acc += avg[k + R]; n++; } if (k - R - 1 >= 0) { acc -= avg[k - R - 1]; n--; } base[k] = acc / n; }
+    const c = []; for (let k = 6; k < W - 6; k++) { const f = graph.Fx(PL.x + k); if (f < 25 || f > 16000) continue; let top = true; for (let j = -6; j <= 6; j++) if (avg[k + j] > avg[k]) { top = false; break; } if (!top) continue;
+      const pr = avg[k] - base[k]; if (pr >= PROM && avg[k] > -90) c.push({ k, x: PL.x + k, f, db: avg[k], pr }); }
+    c.sort((a, b) => b.pr - a.pr); const out = []; for (const p of c) { if (out.length >= MAXP) break; if (out.every(q => Math.abs(q.x - p.x) >= SEP)) out.push(p); }
+    peaks = out.sort((a, b) => a.x - b.x); }
+  const tag = p => { const y = clamp(graph.AY(p.db), PL.y + 30, PL.y + PL.h); return { x: p.x - 15, y: y - 22, w: 30, h: 13, py: y }; };
+  const fTxt = f => f < 1000 ? Math.round(f) + '' : (f / 1000).toFixed(f < 10000 ? 2 : 1) + 'k';
+  const blocked = p => ov.classList.contains('draw') || (window.__kbOn && p.y > PL.y + PL.h - 24) || P.bands.some((b, i) => { if (!b.used) return false; const n = graph.nodePos(i); return Math.hypot(n.x - p.x, n.y - p.y) < 16; });
+  const find = p => { if (blocked(p)) return -1; for (let i = 0; i < peaks.length; i++) { const t = tag(peaks[i]); if (p.x >= t.x - 4 && p.x <= t.x + t.w + 4 && p.y >= t.y - 6 && p.y <= t.py + 10) return i; } return -1; };
+  window.__tsrqPeakHover = () => hov >= 0 || !!drag;
+  gw.addEventListener('pointermove', e => { if (drag || e.buttons) return; hov = find(loc(e)); if (hov >= 0) gw.style.cursor = 'pointer'; }, true);
+  gw.addEventListener('pointerleave', () => { hov = -1; });
+  gw.addEventListener('pointerdown', e => { if (e.button !== 0 || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return; const p = loc(e), h = find(p); if (h < 0) return;
+    e.preventDefault(); e.stopPropagation(); const pk = peaks[h], i = graph.createBand(pk.f, 0, 0); if (i < 0) return;
+    P.bands[i].q = QP; lastSnap = snap(); /* il Q fa parte dello stesso passo di undo della creazione */ dirty = true; panelSync(); drag = { i, x0: p.x, y0: p.y, f0: pk.f, moved: false }; hov = -1; gw.setPointerCapture(e.pointerId); txn(); flash('Bell sul picco ' + fmtF(pk.f) + '  \u00b7  trascina giu per tagliare'); }, true);
+  gw.addEventListener('pointermove', e => { if (!drag) return; e.stopPropagation(); const p = loc(e), b = P.bands[drag.i]; let dx = p.x - drag.x0, dy = p.y - drag.y0; if (!drag.moved && Math.hypot(dx, dy) < 3) return; drag.moved = true;
+    if (e.shiftKey) { dx *= .1; dy *= .1; } b.freq = clamp(drag.f0 * Math.pow(graph.Fx(PL.x + PL.w) / 10, dx / PL.w), 10, 30000); b.gain = Math.round(clamp(-dy / (PL.h / 2) * graph.rangeDb / Math.max(.01, P.scale / 100), -30, 30) * 100) / 100; dirty = true; panelSync(); }, true);
+  const end = e => { if (!drag) return; e.stopPropagation(); const m = drag.moved; drag = null; if (m) commit(); panelSync(); };
+  gw.addEventListener('pointerup', end, true); gw.addEventListener('pointercancel', end, true);
+  (function frame(t) { if (t - tCalc > 120 && hov < 0 && !drag) { tCalc = t; calc(); } /* sotto il mouse le etichette restano ferme */
+    if (peaks.length) { g.setTransform(2, 0, 0, 2, 0, 0); g.save(); g.beginPath(); g.rect(PL.x, PL.y, PL.w, PL.h); g.clip(); g.font = `700 9px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      peaks.forEach((p, i) => { const tg = tag(p), on = i === hov;
+        if (on) { /* anteprima del Bell sul picco, sopra la curva EQ attuale */ const fs = fsNow(), co = TSRQ.designBand({ type: 'bell', f: p.f, q: QP, slope: 12 }, 9, fs), sc = P.scale / 100, cs = P.bands.map((b, j) => b.used && !b.byp ? TSRQ.designBand(engineBand(j), hasGain(b.type) ? b.gain * sc : 0, fs) : null).filter(Boolean);
+          g.strokeStyle = 'rgba(255,214,10,.85)'; g.lineWidth = 1.3; g.setLineDash([3, 3]); g.beginPath();
+          for (let k = 0; k <= 160; k++) { const fx = p.f * Math.pow(2, (k - 80) / 40), x = graph.X(fx); let d = 10 * Math.log10(Math.max(TSRQ.digMag2(co, fx, fs), 1e-12)); for (const c of cs) d += 10 * Math.log10(Math.max(TSRQ.digMag2(c, fx, fs), 1e-12)); const y = graph.Y(clamp(d, -graph.rangeDb, graph.rangeDb)); k ? g.lineTo(x, y) : g.moveTo(x, y); }
+          g.stroke(); g.setLineDash([]); g.strokeStyle = 'rgba(255,214,10,.5)'; g.beginPath(); g.moveTo(p.x + .5, tg.py); g.lineTo(p.x + .5, graph.Y(0)); g.stroke(); }
+        g.fillStyle = on ? '#FFE45C' : 'rgba(255,214,10,.92)'; rr(g, tg.x, tg.y, tg.w, tg.h, 3); g.fill(); g.beginPath(); g.moveTo(p.x - 3, tg.y + tg.h); g.lineTo(p.x + 3, tg.y + tg.h); g.lineTo(p.x, tg.y + tg.h + 4); g.fill();
+        g.fillStyle = '#111'; g.fillText(fTxt(p.f), p.x, tg.y + tg.h / 2 + .5); });
+      if (hov >= 0) { const p = peaks[hov], tg = tag(p), s2 = fmtF(p.f) + '  \u00b7  clic: Bell sul picco  \u00b7  trascina giu: taglia'; g.font = `700 11px ${FONT}`; const w = g.measureText(s2).width + 16, bx = clamp(p.x - w / 2, PL.x + 4, PL.x + PL.w - w - 4), by = tg.y - 26 < PL.y + 2 ? tg.py + 10 : tg.y - 26;
+        g.fillStyle = 'rgba(8,10,12,.9)'; rr(g, bx, by, w, 20, 6); g.fill(); g.strokeStyle = 'rgba(255,214,10,.55)'; g.lineWidth = 1; g.stroke(); g.fillStyle = '#FFE45C'; g.textAlign = 'left'; g.fillText(s2, bx + 8, by + 10.5); }
+      g.textBaseline = 'alphabetic'; g.restore(); }
+    requestAnimationFrame(frame); })(0);
+  window.__tsrq.peaks = () => peaks.map(p => ({ x: p.x, f: p.f, db: p.db, pr: p.pr, tag: tag(p) }));
+})();
+
+'use strict';
+/* ====== selezione multipla: nell'isola compare "N BANDE" (le manopole cambiano tutte le bande selezionate, in modo relativo) ====== */
+(() => { const inner = document.querySelector('.bisl.bp .bpi'); if (!inner) throw new Error('TSRQ: isola banda non trovata');
+  const st = document.createElement('style'); st.textContent = '.bisl .msel{position:absolute;left:44px;top:9px;height:18px;padding:0 9px;border-radius:9px;background:#FFD60A;color:#111;font:800 11px/18px "Barlow Semi Condensed",system-ui,sans-serif;letter-spacing:.06em;display:none;white-space:nowrap;z-index:3}.bisl .msel.on{display:block}';
+  document.head.appendChild(st); const m = document.createElement('span'); m.className = 'msel'; inner.appendChild(m);
+  let last = ''; (function loop() { const n = graph.primary >= 0 ? graph.selection().length : 0, k = String(n); if (k !== last) { last = k; m.classList.toggle('on', n > 1); m.textContent = n + ' BANDE'; m.title = n + ' bande selezionate: FREQ, GAIN e Q le cambiano tutte insieme'; } requestAnimationFrame(loop); })();
+  window.__tsrq.multiBadge = () => m.classList.contains('on') ? m.textContent : null;
+})();
 </script></body></html>

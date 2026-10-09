@@ -1,7 +1,16 @@
-# TSR Q — Precision Dynamic EQ · TSR Audio · v0.3.0
+# TSR Q — Precision Dynamic EQ · TSR Audio · v0.3.1
 
 Plugin JUCE 8 (C++17). Formati: **AU + VST3 + Standalone su macOS** (universale Apple Silicon + Intel, macOS 11+), VST3 + Standalone su Linux/Windows.
 Produttore: **TSR Audio** (codice produttore `Tsra`, codice plugin `Tsrq`, bundle `com.tsraudio.tsrq`).
+
+## Novità 0.3.1
+- **Menu tasto destro sul nodo**: in più Inverti guadagno, Copia, Incolla (anche Ctrl/Cmd+C, Ctrl/Cmd+V); pendenze dell'elenco secondo il tipo.
+- **Dinamica visibile sul knob GAIN**: anello azzurro = range (pieno = 1,5 dB), bianco = riduzione dal vivo; trascinando l'anello cambia il range.
+- **Selezione multipla**: rettangolo sul grafico; nell'isola compare "N BANDE" e le manopole cambiano tutte le bande selezionate.
+- **Picchi dello spettro**: etichette gialle sulle risonanze; passando sopra = anteprima del Bell; clic = Bell sul picco, trascina giù = taglio.
+- **Band Pass fino a 96 dB/oct** (prima 48); Low/High Cut già fino a 96.
+- **Zona tagliata rossa** sotto Low/High Cut (più intensa sulla banda selezionata).
+- Corretto: dopo un cambio di frequenza di campionamento poteva restare disegnata la curva di una banda appena cancellata.
 
 ## Novità 0.3.0
 - **Interfaccia nuova dentro il plugin**: è la stessa del prototipo approvato (display a tutto schermo, meter IN/OUT, knob digitali,

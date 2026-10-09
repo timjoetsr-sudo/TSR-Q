@@ -1,0 +1,150 @@
+== stem caricati: 12, 21.82 s ciascuno ==
+
+== KICK (picco -7.1 dBFS) ==
+PASS KICK: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS KICK: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS KICK: catena da mix, nessun NaN/Inf
+PASS KICK: catena da mix, picco -5.219 dBFS (< 0)
+PASS KICK: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS KICK: blocchi 32…4096 (DAW diverse), differenza max -300 dBFS (soglia -100, anche con dinamica)
+INFO KICK: risposta stimata dall'audio (Welch) vs progettata, scarto max 0.079 dB su 3056 frequenze (peggiore a 398 Hz) — stima statistica, non è un test
+PASS KICK: uscita = riferimento indipendente (Direct Form I, double), differenza max -150 dBFS (< -100)
+PASS KICK: banda dinamica 4000 Hz, intervento 0.000 dB dentro RANGE 3, attiva nel 0% dei blocchi
+PASS KICK: soglia 0 dB (sopra il segnale) = banda ferma, residuo -300 dBFS
+
+== BASS (picco -13.4 dBFS) ==
+PASS BASS: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS BASS: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS BASS: catena da mix, nessun NaN/Inf
+PASS BASS: catena da mix, picco -11.45 dBFS (< 0)
+PASS BASS: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS BASS: blocchi 32…4096 (DAW diverse), differenza max -162 dBFS (soglia -100, anche con dinamica)
+INFO BASS: risposta stimata dall'audio (Welch) vs progettata, scarto max 0.106 dB su 3059 frequenze (peggiore a 99 Hz) — stima statistica, non è un test
+PASS BASS: uscita = riferimento indipendente (Direct Form I, double), differenza max -162 dBFS (< -100)
+PASS BASS: banda dinamica 200 Hz, intervento -3.60 dB dentro RANGE -4, attiva nel 48% dei blocchi
+PASS BASS: soglia 0 dB (sopra il segnale) = banda ferma, residuo -300 dBFS
+
+== VOCAL (picco -16.6 dBFS) ==
+PASS VOCAL: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS VOCAL: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS VOCAL: catena da mix, nessun NaN/Inf
+PASS VOCAL: catena da mix, picco -15.36 dBFS (< 0)
+PASS VOCAL: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS VOCAL: blocchi 32…4096 (DAW diverse), differenza max -300 dBFS (soglia -100, anche con dinamica)
+INFO VOCAL: risposta stimata dall'audio (Welch) vs progettata, scarto max 0.050 dB su 3043 frequenze (peggiore a 269 Hz) — stima statistica, non è un test
+PASS VOCAL: uscita = riferimento indipendente (Direct Form I, double), differenza max -162 dBFS (< -100)
+PASS VOCAL: banda dinamica 6500 Hz, intervento -6.00 dB dentro RANGE -6, attiva nel 12% dei blocchi
+PASS VOCAL: soglia 0 dB (sopra il segnale) = banda ferma, residuo -300 dBFS
+
+== MELODY (picco -15.7 dBFS) ==
+PASS MELODY: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS MELODY: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS MELODY: catena da mix, nessun NaN/Inf
+PASS MELODY: catena da mix, picco -16.24 dBFS (< 0)
+PASS MELODY: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS MELODY: blocchi 32…4096 (DAW diverse), differenza max -300 dBFS (soglia -100)
+
+== HH (picco -20.6 dBFS) ==
+PASS HH: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS HH: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS HH: catena da mix, nessun NaN/Inf
+PASS HH: catena da mix, picco -22.09 dBFS (< 0)
+PASS HH: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS HH: blocchi 32…4096 (DAW diverse), differenza max -300 dBFS (soglia -100, anche con dinamica)
+INFO HH: risposta stimata dall'audio (Welch) vs progettata, scarto max 0.009 dB su 2996 frequenze (peggiore a 474 Hz) — stima statistica, non è un test
+PASS HH: uscita = riferimento indipendente (Direct Form I, double), differenza max -168 dBFS (< -100)
+PASS HH: banda dinamica 8000 Hz, intervento -4.00 dB dentro RANGE -4, attiva nel 34% dei blocchi
+PASS HH: soglia 0 dB (sopra il segnale) = banda ferma, residuo -300 dBFS
+
+== HH-1 (picco -300.0 dBFS) ==
+PASS HH-1: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS HH-1: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS HH-1: catena da mix, nessun NaN/Inf
+PASS HH-1: catena da mix, picco -300.0 dBFS (< 0)
+PASS HH-1: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS HH-1: blocchi 32…4096 (DAW diverse), differenza max -300 dBFS (soglia -100, anche con dinamica)
+PASS HH-1: banda dinamica 8000 Hz, intervento 0.000 dB dentro RANGE -4, attiva nel 0% dei blocchi
+PASS HH-1: soglia 0 dB (sopra il segnale) = banda ferma, residuo -300 dBFS
+
+== HH-2 (picco -23.4 dBFS) ==
+PASS HH-2: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS HH-2: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS HH-2: catena da mix, nessun NaN/Inf
+PASS HH-2: catena da mix, picco -23.99 dBFS (< 0)
+PASS HH-2: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS HH-2: blocchi 32…4096 (DAW diverse), differenza max -300 dBFS (soglia -100, anche con dinamica)
+INFO HH-2: risposta stimata dall'audio (Welch) vs progettata, scarto max 0.064 dB su 2997 frequenze (peggiore a 539 Hz) — stima statistica, non è un test
+PASS HH-2: uscita = riferimento indipendente (Direct Form I, double), differenza max -174 dBFS (< -100)
+PASS HH-2: banda dinamica 8000 Hz, intervento -4.00 dB dentro RANGE -4, attiva nel 4% dei blocchi
+PASS HH-2: soglia 0 dB (sopra il segnale) = banda ferma, residuo -300 dBFS
+
+== HH-3 (picco -15.7 dBFS) ==
+PASS HH-3: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS HH-3: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS HH-3: catena da mix, nessun NaN/Inf
+PASS HH-3: catena da mix, picco -11.99 dBFS (< 0)
+PASS HH-3: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS HH-3: blocchi 32…4096 (DAW diverse), differenza max -300 dBFS (soglia -100, anche con dinamica)
+INFO HH-3: risposta stimata dall'audio (Welch) vs progettata, scarto max 0.021 dB su 2997 frequenze (peggiore a 574 Hz) — stima statistica, non è un test
+PASS HH-3: uscita = riferimento indipendente (Direct Form I, double), differenza max -162 dBFS (< -100)
+PASS HH-3: banda dinamica 8000 Hz, intervento -0.09 dB dentro RANGE -4, attiva nel 0% dei blocchi
+PASS HH-3: soglia 0 dB (sopra il segnale) = banda ferma, residuo -300 dBFS
+
+== CLAP (picco -24.8 dBFS) ==
+PASS CLAP: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS CLAP: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS CLAP: catena da mix, nessun NaN/Inf
+PASS CLAP: catena da mix, picco -24.26 dBFS (< 0)
+PASS CLAP: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS CLAP: blocchi 32…4096 (DAW diverse), differenza max -288 dBFS (soglia -100, anche con dinamica)
+INFO CLAP: risposta stimata dall'audio (Welch) vs progettata, scarto max 0.173 dB su 3032 frequenze (peggiore a 2871 Hz) — stima statistica, non è un test
+PASS CLAP: uscita = riferimento indipendente (Direct Form I, double), differenza max -174 dBFS (< -100)
+PASS CLAP: banda dinamica 250 Hz, intervento -4.07 dB dentro RANGE -5, attiva nel 6% dei blocchi
+PASS CLAP: soglia 0 dB (sopra il segnale) = banda ferma, residuo -300 dBFS
+
+== CLAP-1 (picco -15.9 dBFS) ==
+PASS CLAP-1: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS CLAP-1: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS CLAP-1: catena da mix, nessun NaN/Inf
+PASS CLAP-1: catena da mix, picco -15.23 dBFS (< 0)
+PASS CLAP-1: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS CLAP-1: blocchi 32…4096 (DAW diverse), differenza max -300 dBFS (soglia -100, anche con dinamica)
+INFO CLAP-1: risposta stimata dall'audio (Welch) vs progettata, scarto max 0.083 dB su 3033 frequenze (peggiore a 3111 Hz) — stima statistica, non è un test
+PASS CLAP-1: uscita = riferimento indipendente (Direct Form I, double), differenza max -162 dBFS (< -100)
+PASS CLAP-1: banda dinamica 250 Hz, intervento -5.00 dB dentro RANGE -5, attiva nel 12% dei blocchi
+PASS CLAP-1: soglia 0 dB (sopra il segnale) = banda ferma, residuo -300 dBFS
+
+== CLAP-2 (picco -26.3 dBFS) ==
+PASS CLAP-2: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS CLAP-2: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS CLAP-2: catena da mix, nessun NaN/Inf
+PASS CLAP-2: catena da mix, picco -26.54 dBFS (< 0)
+PASS CLAP-2: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS CLAP-2: blocchi 32…4096 (DAW diverse), differenza max -300 dBFS (soglia -100, anche con dinamica)
+INFO CLAP-2: risposta stimata dall'audio (Welch) vs progettata, scarto max 0.156 dB su 3034 frequenze (peggiore a 2912 Hz) — stima statistica, non è un test
+PASS CLAP-2: uscita = riferimento indipendente (Direct Form I, double), differenza max -174 dBFS (< -100)
+PASS CLAP-2: banda dinamica 250 Hz, intervento -4.91 dB dentro RANGE -5, attiva nel 7% dei blocchi
+PASS CLAP-2: soglia 0 dB (sopra il segnale) = banda ferma, residuo -300 dBFS
+
+== CLAP-3 (picco -22.3 dBFS) ==
+PASS CLAP-3: senza bande l'uscita è identica all'ingresso (bit per bit)
+PASS CLAP-3: 4 bande a 0 dB, residuo -300 dBFS (< -100)
+PASS CLAP-3: catena da mix, nessun NaN/Inf
+PASS CLAP-3: catena da mix, picco -21.60 dBFS (< 0)
+PASS CLAP-3: BYPASS, residuo dopo 100 ms -300 dBFS
+PASS CLAP-3: blocchi 32…4096 (DAW diverse), differenza max -252 dBFS (soglia -100, anche con dinamica)
+INFO CLAP-3: risposta stimata dall'audio (Welch) vs progettata, scarto max 0.163 dB su 3034 frequenze (peggiore a 2912 Hz) — stima statistica, non è un test
+PASS CLAP-3: uscita = riferimento indipendente (Direct Form I, double), differenza max -168 dBFS (< -100)
+PASS CLAP-3: banda dinamica 250 Hz, intervento -5.00 dB dentro RANGE -5, attiva nel 5% dei blocchi
+PASS CLAP-3: soglia 0 dB (sopra il segnale) = banda ferma, residuo -300 dBFS
+PASS MELODY: Bell +9 dB solo su MID → Side intatto (-162 dBFS), Mid cambiato (-16 dBFS)
+PASS MELODY: shelf solo su LEFT → Right identico al bit, Left cambiato
+PASS VOCAL: gain automatizzato ±12 dB ogni 256 campioni, salto max uscita 0.1318 vs ingresso 0.1364 (≤ ×4 = guadagno max)
+PASS parametri estremi (Q 0.025/40, ±30 dB, 96 dB/oct, 10 Hz/30 kHz) a 44.1–192 kHz: uscita sempre finita
+PASS HH-1 (silenzio): uscita esattamente zero
+PASS silenzio non rallenta (denormali): 43.47 ms vs audio 40.39 ms
+PASS 32 bande (16 dinamiche) stereo a 48 kHz: 40.72× più veloce del tempo reale (un core)
+PASS mix di tutti gli stem, catena bus, 28 giri (~10 min): stabile, RMS giro 2 vs 28 diff 0.0005 dB
+PASS SOLO banda 3 kHz Q4: 3 kHz passa (0.003 dB), 200 Hz tagliato (-40.21 dB)
+
+RISULTATO: 113 PASS, 0 FAIL

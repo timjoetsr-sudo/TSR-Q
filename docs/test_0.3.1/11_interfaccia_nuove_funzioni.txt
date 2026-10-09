@@ -1,0 +1,32 @@
+== 1. Menu tasto destro ==
+PASS voci del menu (['Tipo di filtro', 'Pendenza', 'Lavora su', 'Dinamica', 'Bypass banda', 'Solo banda', 'Inverti guadagno', 'Copia', 'Incolla', 'Elimina'])
+PASS Inverti guadagno: +4 → -4 dB
+PASS Copia + Incolla: 2 bande uguali (2)
+PASS undo dell'incolla
+PASS Elimina dal menu
+PASS Band Pass: pendenze nel menu fino a 96 (['6 dB/oct', '12 dB/oct', '18 dB/oct', '24 dB/oct', '30 dB/oct', '36 dB/oct', '48 dB/oct', '72 dB/oct', '96 dB/oct'])
+PASS Band Pass impostato a 96 dB/oct (indice 8)
+== 2. Pendenze 96 + zona tagliata rossa ==
+PASS rotella sul Band Pass scende da 96 (4)
+PASS rotella sul Band Pass risale e si ferma a 96 (8)
+PASS High Cut 96 dB/oct: zona tagliata rossa (pixel a 15 kHz −6 dB = [80, 41, 45])
+PASS zona rossa piu tenue quando la banda non e selezionata ([46, 34, 38])
+== 3. Dinamica visibile ==
+PASS anello range sul knob GAIN visibile ({'range': -1.5, 'ring': True})
+PASS trascino l'anello in su: range -1.5 → -1.04 dB, guadagno fermo 3
+PASS anello tirato molto in su: range fermo a +1.5 dB (1.5)
+PASS centro del knob: cambia il guadagno (11.82), non il range
+== 4. Selezione multipla ==
+PASS rettangolo seleziona le bande dentro ([0, 1])
+PASS isola: etichetta "2 BANDE"
+PASS trascinando una, le 2 selezionate si muovono insieme (Δ 1.76, 1.76, 0.00)
+PASS con una sola banda l'etichetta sparisce
+== 5. Picchi dello spettro ==
+PASS etichette sui picchi: 2 ([189, 2723])
+PASS trovata la risonanza a 2730 Hz del segnale di prova
+PASS passando sopra l'etichetta: anteprima attiva
+PASS clic + trascina giu: Bell sul picco che taglia ([{'i': 0, 't': 0, 'f': 2722.7689364957705, 'g': -2.65, 'q': 6, 's': 3, 'd': 0, 'r': -1.5}])
+PASS undo 1: banda a 0 dB con Q 6 ([{'i': 0, 't': 0, 'f': 2722.7689364957705, 'g': 0, 'q': 6, 's': 3, 'd': 0, 'r': -1.5}])
+PASS undo 2: nessuna banda
+PASS nessun errore JavaScript ([])
+RISULTATO nuove funzioni UI: 26 PASS, 0 FAIL

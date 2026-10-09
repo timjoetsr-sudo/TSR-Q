@@ -42,9 +42,9 @@ int main() {
     std::printf ("caso peggiore f0<=fs/8: %s -> %.3f dB\n", worstTxt, worst8);
     ok (pct (lo8, 1) < 1.0, "f0 <= fs/8: errore massimo %.3f dB < 1.0 dB", pct (lo8, 1));
 
-    std::printf ("== 1b. Band Pass 12/24/36/48 dB/oct: precisione nella banda utile (sopra -20 dB) ==\n");
+    std::printf ("== 1b. Band Pass 12/24/36/48/72/96 dB/oct: precisione nella banda utile (sopra -20 dB) ==\n");
     { double m = 0, mAll = 0; for (double fs : { 44100.0, 48000.0, 96000.0 }) { Grid g; g.init (fs);
-        for (double f : { 30.0, 250.0, 1000.0, 4000.0, 8000.0 }) for (double q : { 0.5, 1.0, 4.0 }) for (int sl : { 12, 24, 36, 48 }) {
+        for (double f : { 30.0, 250.0, 1000.0, 4000.0, 8000.0 }) for (double q : { 0.5, 1.0, 4.0 }) for (int sl : { 12, 24, 36, 48, 72, 96 }) {
             if (f > fs / 8) continue; m = std::max (m, maxErr (band (BandPass, f, 0, q, sl), fs, g, -20)); mAll = std::max (mAll, maxErr (band (BandPass, f, 0, q, sl), fs, g)); } }
       std::printf ("errore massimo sopra -20 dB: %.3f dB | fino a -40 dB (vicino a Nyquist, il digitale scende un po' di piu): %.3f dB\n", m, mAll);
       ok (m < 1.0, "Band Pass multi-sezione, f0 <= fs/8: errore massimo sopra -20 dB %.3f dB < 1.0 dB", m); }
