@@ -1,8 +1,12 @@
 # TSR Q (TSR Audio) · build e test su macOS ad ogni push; installer .pkg scaricabile dalla pagina Actions (artefatto TSR-Q-mac)
+# I risultati (installer + log) vengono anche copiati nel ramo "ci-out" del repo.
 name: TSR Q macOS
 on: [push, workflow_dispatch]
+permissions:
+  contents: write
 jobs:
   mac:
+    if: github.ref == 'refs/heads/main'
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -19,8 +23,25 @@ jobs:
             echo "AAX_SDK_PATH=$(dirname "$(find "$PWD/aaxsdk" -path '*/Interfaces/AAX.h' | head -1)" | sed 's#/Interfaces$##')" >> "$GITHUB_ENV"
           else echo "AAX saltato: manca il secret AAX_SDK_ZIP_URL (AAX SDK di Avid)"; fi
       - name: Build, test, firma ad-hoc, auval, pluginval, pkg
-        run: ./scripts/build_mac.sh
+        id: build
+        continue-on-error: true
+        run: |
+          mkdir -p dist
+          set -o pipefail
+          ./scripts/build_mac.sh 2>&1 | tee dist/build_log.txt
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: TSR-Q-mac
           path: dist/
+      - name: Copia risultati nel ramo ci-out
+        if: always()
+        run: |
+          echo "esito: ${{ steps.build.outcome }} · commit ${GITHUB_SHA} · $(date -u)" > dist/ESITO.txt
+          mkdir -p /tmp/out && cp -R dist/. /tmp/out/
+          cd /tmp/out && git init -q && git checkout -q -b ci-out
+          git -c user.name=ci -c user.email=ci@tsraudio add -A && git -c user.name=ci -c user.email=ci@tsraudio commit -qm "CI ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ci-out
+      - name: Esito
+        if: steps.build.outcome != 'success'
+        run: exit 1
