@@ -27,18 +27,19 @@ static BandParams band (int type, double f, double g, double q, int slope = 12, 
 
 int main() {
     std::printf ("== 1. PRECISIONE vs prototipo analogico (20 Hz-20 kHz, pavimento -40 dB) ==\n");
-    std::vector<double> lo, lo8, hi;
+    std::vector<double> lo, lo8, hi; double worst8 = 0; char worstTxt[160] = "";
     for (double fs : { 44100.0, 48000.0, 96000.0 }) { Grid g; g.init (fs);
         for (int t : { Bell, LowShelf, HighShelf, TiltShelf, Notch, BandPass, LowCut, HighCut, FlatTilt })
             for (double f : { 30.0, 250.0, 1000.0, 4000.0, 8000.0, 11000.0, 12000.0, 16000.0 })
                 for (double gn : { -12.0, 6.0, 18.0 }) for (double q : { 0.5, 1.0, 4.0 }) {
                     std::vector<int> slopes = (t == LowCut || t == HighCut) ? std::vector<int> { 6, 12, 24, 48, 96 } : (t == LowShelf || t == HighShelf) ? std::vector<int> { 6, 12 } : t == BandPass ? std::vector<int> { 6 } : std::vector<int> { 12 };   // Band Pass 6 dB/oct = una sezione (come prima)
-                    for (int sl : slopes) { const double e = maxErr (band (t, f, gn, q, sl), fs, g); if (f <= fs / 4) lo.push_back (e); else hi.push_back (e); if (f <= fs / 8) lo8.push_back (e); }
+                    for (int sl : slopes) { const double e = maxErr (band (t, f, gn, q, sl), fs, g); if (f <= fs / 4) lo.push_back (e); else hi.push_back (e); if (f <= fs / 8) { lo8.push_back (e); if (e > worst8) { worst8 = e; std::snprintf (worstTxt, sizeof worstTxt, "tipo %d f %.0f g %.0f q %.2f pendenza %d fs %.0f", t, f, gn, q, sl, fs); } } }
                 } }
     auto pct = [] (std::vector<double> v, double p) { std::sort (v.begin(), v.end()); return v[(size_t) ((v.size() - 1) * p)]; };
     std::printf ("casi f0<=fs/4: %zu | mediana %.3f | 95%% %.3f | max %.3f dB\n", lo.size(), pct (lo, .5), pct (lo, .95), pct (lo, 1));
     std::printf ("casi f0>fs/4 : %zu | mediana %.3f | 95%% %.3f | max %.3f dB\n", hi.size(), pct (hi, .5), pct (hi, .95), pct (hi, 1));
     ok (pct (lo, .95) < 1.0, "f0 <= fs/4: 95 percentile %.3f dB < 1.0 dB", pct (lo, .95));
+    std::printf ("caso peggiore f0<=fs/8: %s -> %.3f dB\n", worstTxt, worst8);
     ok (pct (lo8, 1) < 1.0, "f0 <= fs/8: errore massimo %.3f dB < 1.0 dB", pct (lo8, 1));
 
     std::printf ("== 1b. Band Pass 12/24/36/48 dB/oct: precisione nella banda utile (sopra -20 dB) ==\n");
