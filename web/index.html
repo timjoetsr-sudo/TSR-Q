@@ -519,16 +519,21 @@ var TSRQ = (function () {
     if (b.dyn && b.dyn.on) ['thr', 'range', 'att', 'rel', 'knee'].forEach(function (k) { if (typeof b.dyn[k] !== 'number') throw new Error('TSRQ: dinamica senza ' + k); });
   }
 
-  /* oversampling 4x del Character: halfband IIR polifase, 12 coefficienti (transizione 0.02, > 120 dB fuori banda), uguale al C++ */
+  /* oversampling 8x del Character: halfband IIR polifase, 12 coefficienti (transizione 0.02, > 120 dB fuori banda), uguale al C++ */
   var HB = [0.027155856726483182, 0.10300238556004077, 0.21303004592041422, 0.33933626891036295, 0.46602752012040527, 0.58224701385700428, 0.68259076485235193, 0.76595528238687738, 0.83396924102510472, 0.88969265368750716, 0.93680311116581549, 0.97923872973422221];
   function apChain(off) { return { x1: new Float64Array(6), y1: new Float64Array(6), off: off }; }
   function apRun(c, x) { for (var i = 0; i < 6; i++) { var a = HB[c.off + 2 * i], y = a * (x - c.y1[i]) + c.x1[i]; c.x1[i] = x; c.y1[i] = y; x = y; } return x; }
   function shape(chm, x) { return chm === 1 ? x + 0.03 * x * x - 0.06 * x * x * x : Math.tanh(1.8 * x) / 1.8 + 0.04 * x * x; }
-  function OS4() { this.u1 = [apChain(0), apChain(1)]; this.u2 = [apChain(0), apChain(1)]; this.d2 = [apChain(0), apChain(1)]; this.d1 = [apChain(0), apChain(1)]; this.p2 = 0; this.p1 = 0; }
-  OS4.prototype.run = function (chm, x) { var a = apRun(this.u1[0], x), b = apRun(this.u1[1], x), c0 = apRun(this.u2[0], a), c1 = apRun(this.u2[1], a), c2 = apRun(this.u2[0], b), c3 = apRun(this.u2[1], b);
-    c0 = shape(chm, c0); c1 = shape(chm, c1); c2 = shape(chm, c2); c3 = shape(chm, c3);
-    var e = 0.5 * (apRun(this.d2[0], c0) + apRun(this.d2[1], this.p2)); this.p2 = c1; var o = 0.5 * (apRun(this.d2[0], c2) + apRun(this.d2[1], this.p2)); this.p2 = c3;
-    var y = 0.5 * (apRun(this.d1[0], e) + apRun(this.d1[1], this.p1)); this.p1 = o; return y; };
+  function OS8() { this.u = [[apChain(0), apChain(1)], [apChain(0), apChain(1)], [apChain(0), apChain(1)]]; this.d = [[apChain(0), apChain(1)], [apChain(0), apChain(1)], [apChain(0), apChain(1)]]; this.p = [0, 0, 0]; this.b = [new Float64Array(2), new Float64Array(4), new Float64Array(8)]; }
+  OS8.prototype.run = function (chm, x) {   /* 3 stadi halfband: x -> 8 campioni -> saturazione -> 1 campione (uguale al C++) */
+    var s1 = this.b[0], s2 = this.b[1], s3 = this.b[2], i, u = this.u, d = this.d, p = this.p;
+    s1[0] = apRun(u[0][0], x); s1[1] = apRun(u[0][1], x);
+    for (i = 0; i < 2; i++) { s2[2 * i] = apRun(u[1][0], s1[i]); s2[2 * i + 1] = apRun(u[1][1], s1[i]); }
+    for (i = 0; i < 4; i++) { s3[2 * i] = apRun(u[2][0], s2[i]); s3[2 * i + 1] = apRun(u[2][1], s2[i]); }
+    for (i = 0; i < 8; i++) s3[i] = shape(chm, s3[i]);
+    for (i = 0; i < 4; i++) { s2[i] = 0.5 * (apRun(d[2][0], s3[2 * i]) + apRun(d[2][1], p[2])); p[2] = s3[2 * i + 1]; }
+    for (i = 0; i < 2; i++) { s1[i] = 0.5 * (apRun(d[1][0], s2[2 * i]) + apRun(d[1][1], p[1])); p[1] = s2[2 * i + 1]; }
+    var y = 0.5 * (apRun(d[0][0], s1[0]) + apRun(d[0][1], p[0])); p[0] = s1[1]; return y; };
   function Engine(fs, maxBlock) {
     this.fs = fs; this.N = maxBlock || 4096;
     this.L = new Float64Array(this.N); this.R = new Float64Array(this.N);
@@ -537,7 +542,7 @@ var TSRQ = (function () {
     this.bands = []; this.map = {};
     this.st = { inGain: 0, out: 0, autoGainDb: 0, scale: 1, character: 0, bypass: false, solo: -1 };
     this.outG = 1; this.inG = 1; this.byp = 0; this.dc = [0, 0, 0, 0];
-    this.solo = null; this.peak = [0, 0]; this.pin = [0, 0]; this.os = [new OS4(), new OS4()]; this.lastChm = 0; this.panA = 1; this.panB = 1; this.pol = 1;
+    this.solo = null; this.peak = [0, 0]; this.pin = [0, 0]; this.os = [new OS8(), new OS8()]; this.lastChm = 0; this.panA = 1; this.panB = 1; this.pol = 1;
   }
   Engine.prototype.setState = function (st) {
     var self = this, keep = {}, fs = this.fs, sc = typeof st.scale === 'number' ? st.scale : 1;
@@ -617,12 +622,12 @@ var TSRQ = (function () {
       else if (pl === 1) R.fill(0, 0, n); else if (pl === 2) L.fill(0, 0, n);
       run(so.c, so.st[0], L, n); run(so.c, so.st[1], R, n);
     } else for (var b = 0; b < this.bands.length; b++) this._band(this.bands[b], n);
-    /* uscita: OUTPUT (\u2212\u221e sotto \u221260 dB) \u2192 Character (oversampling 4x) \u2192 DC \u2192 pan \u2192 polarit\u00e0 \u2192 bypass morbido (uguale al C++) */
+    /* uscita: OUTPUT (\u2212\u221e sotto \u221260 dB) \u2192 Character (oversampling 8x) \u2192 DC \u2192 pan \u2192 polarit\u00e0 \u2192 bypass morbido (uguale al C++) */
     var mute = (st.out || 0) <= -60, tg = mute ? 0 : Math.pow(10, ((st.out || 0) + (st.autoGainDb || 0)) / 20), ga = 1 - Math.exp(-1 / (0.02 * this.fs)), g = this.outG;
     var ch = st.character || 0, bt = st.bypass ? 1 : 0, by = this.byp, ba = 1 - Math.exp(-1 / (0.008 * this.fs));
     var dc = this.dc, dcA = Math.exp(-2 * PI * 5 / this.fs), pL = 0, pR = 0;
     var pn = Math.max(-1, Math.min(1, st.pan || 0)), tA = Math.min(1, 1 - pn), tB = Math.min(1, 1 + pn), tP = st.invert ? -1 : 1, ms = !!st.panMS, pa = this.panA, pb = this.panB, po = this.pol;
-    if (ch !== this.lastChm) { this.os = [new OS4(), new OS4()]; this.lastChm = ch; }
+    if (ch !== this.lastChm) { this.os = [new OS8(), new OS8()]; this.lastChm = ch; }
     for (i = 0; i < n; i++) {
       g += (tg - g) * ga; if (mute && g < 1e-7) g = 0; by += (bt - by) * ba; pa += (tA - pa) * ga; pb += (tB - pb) * ga; po += (tP - po) * ba;
       var l = L[i] * g, r = R[i] * g;
@@ -1568,7 +1573,8 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
   be.addEventListener('tsrq_load', d => { if (d.fs) window.__tsrqFs = d.fs; if (d.P) { P = d.P; lastSnap = snap(); lastSent = JSON.stringify({ P, solo }); } ready = true; afterLoad(); });
   be.addEventListener('tsrq_meter', m => { if (m.fs) window.__tsrqFs = m.fs; window.__tsrqMax = Math.max(window.__tsrqMax || 0, ...m.peak); window.__tsrqMaxIn = Math.max(window.__tsrqMaxIn || 0, ...m.pin); onMeter(m); });
   const dec = s => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new Float32Array(u.buffer); };
-  be.addEventListener('tsrq_spec', d => { graph.feedSpec(dec(d.pre), dec(d.post), d.n); if (d.sc) graph.feedSC(dec(d.sc), d.n); });
+  const dq = s => { if (!s) return null; const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); const q = new Int16Array(u.buffer), o = new Float32Array(q.length); for (let i = 0; i < q.length; i++) o[i] = q[i] / 100; return o; };   /* dB x 100 in 16 bit */
+  be.addEventListener('tsrq_spec', d => { const f = d.q16 ? dq : dec; graph.feedSpec(f(d.pre), f(d.post), d.n); if (d.sc) graph.feedSC(f(d.sc), d.n); });
   be.addEventListener('tsrq_wave', d => { window.__tsrqWaveCount = (window.__tsrqWaveCount || 0) + 1; if (window.__tsrqWaveIn) window.__tsrqWaveIn(d.w ? dec(d.w) : new Float32Array(0), { B: d.B, fs: d.fs, playing: !!d.playing, drop: d.drop || 0, jumps: d.jumps || 0 }); });
   be.addEventListener('tsrq_midi', d => { window.__tsrqMidi = d; });
   window.__tsrqFFT = o => be.emitEvent('tsrq_fft', { order: o });
@@ -1887,30 +1893,11 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
     return 440 * Math.pow(2, (n - 69 + c / 100) / 12); };
   window.parseFreq = t => { const nf = noteToF(t); if (nf) return nf; const m = String(t).trim().replace(',', '.').match(/^(\d+(?:\.\d+)?)\s*(k|khz|hz)?$/i); if (!m) return null; return parseFloat(m[1]) * (m[2] && /^k/i.test(m[2]) ? 1000 : 1); };
   const parseNum = t => { const m = String(t).trim().replace(',', '.').replace('\u2212', '-').match(/^([+\-]?\d+(?:\.\d+)?)\s*(db)?$/i); return m ? parseFloat(m[1]) : null; };
-  const st = document.createElement('style'); st.textContent = '.numed{position:absolute;z-index:60;display:none;gap:6px;padding:8px;border-radius:10px;background:rgba(10,11,13,.96);border:1px solid rgba(255,214,10,.55);box-shadow:0 8px 24px rgba(0,0,0,.6);font:700 11px "Barlow Semi Condensed",system-ui,sans-serif;color:#eef2f6}.numed.on{display:flex}.numed label{display:flex;flex-direction:column;gap:3px;color:#8b939d;letter-spacing:.08em}.numed input{width:84px;height:24px;border-radius:6px;border:1px solid rgba(255,255,255,.18);background:#15171a;color:#fff;font:700 12px "Barlow Semi Condensed",system-ui,sans-serif;padding:0 6px;outline:none}.numed input:focus{border-color:#FFD60A}.numed input.bad{border-color:#e5484d;background:#2a1213}.numed input:disabled{opacity:.35}.numed .err{position:absolute;left:8px;top:100%;margin-top:4px;color:#ff8a8d;white-space:nowrap}';
-  document.head.appendChild(st);
-  const box = document.createElement('div'); box.className = 'numed'; box.innerHTML = '<label>FREQ<input data-k="freq" placeholder="Hz, kHz, A4"></label><label>GAIN dB<input data-k="gain"></label><label>Q<input data-k="q"></label><span class="err"></span>'; ed.appendChild(box);
-  const inp = k => box.querySelector(`[data-k="${k}"]`), err = box.querySelector('.err'); let band = -1;
-  const close = () => { box.classList.remove('on'); band = -1; err.textContent = ''; box.querySelectorAll('input').forEach(i => i.classList.remove('bad')); };
-  function open(i) { const b = P.bands[i]; band = i; const n = graph.nodePos(i);
-    inp('freq').value = b.freq < 1000 ? b.freq.toFixed(2) : (b.freq / 1000).toFixed(4) + 'k'; inp('gain').value = hasGain(b.type) ? b.gain.toFixed(2) : ''; inp('gain').disabled = !hasGain(b.type); inp('q').value = b.q.toFixed(3); inp('q').disabled = b.type === 3 || b.type === 4;
-    box.classList.add('on'); const w = box.offsetWidth, h = box.offsetHeight; Object.assign(box.style, { left: clamp(10 + n.x - w / 2, 14, 1166 - w) + 'px', top: (34 + n.y - h - 26 < 40 ? 34 + n.y + 26 : 34 + n.y - h - 26) + 'px' }); inp('freq').focus(); inp('freq').select(); }
-  function apply() { const b = P.bands[band]; if (!b || !b.used) { close(); return; } const fs = fsNow(); let bad = []; box.querySelectorAll('input').forEach(i => i.classList.remove('bad'));
-    const f = parseFreq(inp('freq').value); if (f === null) bad.push(['freq', 'frequenza non valida (es. 1250, 1.25k, A4, D#5 +13)']); else if (f < 10 || f > 30000) bad.push(['freq', 'frequenza fuori intervallo 10 Hz \u2013 30 kHz']);
-    let g = b.gain; if (hasGain(b.type)) { g = parseNum(inp('gain').value); if (g === null) bad.push(['gain', 'guadagno non valido']); else if (g < -30 || g > 30) bad.push(['gain', 'guadagno fuori intervallo \u00b130 dB']); }
-    let q = b.q; if (!(b.type === 3 || b.type === 4)) { q = parseNum(inp('q').value); if (q === null) bad.push(['q', 'Q non valido']); else if (q < .025 || q > 40) bad.push(['q', 'Q fuori intervallo 0.025 \u2013 40']); }
-    if (bad.length) { bad.forEach(([k]) => inp(k).classList.add('bad')); err.textContent = bad[0][1]; inp(bad[0][0]).focus(); return false; }
-    txn(); b.freq = f; if (hasGain(b.type)) b.gain = g; b.q = q; commit(); panelSync(); if (f > fs / 2) flash('nota: sopra Nyquist (' + (fs / 2000).toFixed(1) + ' kHz) il filtro lavora al limite operativo'); close(); return true; }
-  box.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); apply(); } else if (e.key === 'Escape') { e.preventDefault(); close(); } });
-  box.addEventListener('pointerdown', e => e.stopPropagation()); box.addEventListener('dblclick', e => e.stopPropagation());
-  addEventListener('pointerdown', e => { if (band >= 0 && !box.contains(e.target)) close(); }, true);
-  cvG.addEventListener('dblclick', e => { const r = cvG.getBoundingClientRect(), p = { x: (e.clientX - r.left) * 1160 / r.width, y: (e.clientY - r.top) * 532 / r.height };
-    let best = -1, bd = 11; P.bands.forEach((b, i) => { if (!b.used) return; const n = graph.nodePos(i), d = Math.hypot(n.x - p.x, n.y - p.y); if (d < bd) { bd = d; best = i; } }); if (best < 0) return; e.stopPropagation(); graph.selectOnly(best); open(best); });
+  /* campi FREQ / GAIN dB / Q sul doppio clic del nodo: eliminati su richiesta (resta la scrittura del valore con doppio clic sotto le manopole) */
   /* manopole: Cmd/Ctrl+clic = valore di default; passando sopra = nome e valore; FREQ accetta anche note */
   for (const k of knobs) { k.cv.addEventListener('pointerdown', e => { if (!(e.metaKey || e.ctrlKey) || !k.en || e.button !== 0) return; e.stopImmediatePropagation(); e.preventDefault(); txn(); k.set(k.def, true); commit(); panelSync(); flash(k.name + ' \u2192 ' + k.fmt(k.v) + ' (default)'); }, true);
     k.cv.addEventListener('pointerenter', () => { k.cv.title = k.name + ': ' + (k.dash ? '\u2014' : k.fmt(k.v)) + '  \u00b7  doppio clic sul valore per scrivere, Cmd/Ctrl+clic = default'; }); }
   const kf = knobs.find(k => k.name === 'FREQ'); if (kf) kf.inp.addEventListener('keydown', e => { if (e.key !== 'Enter') return; const nf = noteToF(kf.inp.value); if (nf) kf.inp.value = String(nf); }, true);
-  window.__tsrq.numEdit = { open: i => open(i), apply: () => apply(), isOpen: () => band >= 0, err: () => err.textContent };
 })();
 
 'use strict';
@@ -1941,7 +1928,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 })();
 
 'use strict';
-/* ====== pannello USCITA: pan (L/R o M/S, bilanciamento lineare), polarit\u00e0, Character (oversampling 4x), Gain-Q, Auto Gain, Bypass \u2014 tutti parametri reali del motore ====== */
+/* ====== pannello USCITA: pan (L/R o M/S, bilanciamento lineare), polarit\u00e0, Character (oversampling 8x), Gain-Q, Auto Gain, Bypass \u2014 tutti parametri reali del motore ====== */
 (() => { const st = document.createElement('style'); st.textContent = '.outp{position:absolute;z-index:70;display:none;width:300px;padding:12px 14px;border-radius:12px;background:rgba(10,11,13,.97);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 30px rgba(0,0,0,.6);font:700 11px "Barlow Semi Condensed",system-ui,sans-serif;color:#eef2f6}.outp.on{display:block}.outp h4{margin:0 0 8px;font-size:11px;letter-spacing:.12em;color:#8b939d}.outp .row{display:flex;align-items:center;gap:6px;margin:7px 0}.outp .row>span:first-child{width:78px;color:#8b939d}.outp button{height:22px;padding:0 9px;border-radius:11px;border:1px solid rgba(255,255,255,.16);background:#15171a;color:#eef2f6;font:inherit;cursor:pointer}.outp button.on{background:#FFD60A;color:#111;border-color:#FFD60A}.outp input[type=range]{flex:1;accent-color:#FFD60A}.outp .v{width:44px;text-align:right}.outp .x{position:absolute;right:8px;top:6px;border:0;background:none;color:#8b939d}';
   document.head.appendChild(st);
   const p = document.createElement('div'); p.className = 'outp'; ed.appendChild(p);
@@ -2060,8 +2047,10 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
       for (let i = 0; i <= 4; i++) { const c = col(-100 + i * 25); g.fillStyle = `rgb(${c.map(v => v | 0)})`; g.fillRect(W - 48, H - 12 - (i + 1) * (H - 24) / 5, 8, (H - 24) / 5); g.fillStyle = '#cfd4da'; g.textAlign = 'left'; g.fillText((-100 + i * 25) + ' dB', W - 36, H - 12 - i * (H - 24) / 5 - 4); }
       for (const f of [50, 200, 1000, 5000, 15000]) { const y = (1 - Math.log(f / 20) / Math.log(Math.min(20000, fsNow() / 2) / 20)) * H; g.fillStyle = 'rgba(255,255,255,.6)'; g.textAlign = 'left'; g.fillText(fmtF(f), 4, y + 3); }
       stx.textContent = 'tempo \u2192  finestra ' + S.T + ' s \u00b7 colore = livello (post) \u00b7 STFT ' + (1 << graph.fftOrder) + ' punti' + (S.frz ? ' \u00b7 FREEZE' : ''); return; }
-    const gp = gps(), span = S.T * gp, head = S.frz ? S.frzHead : S.head, frac = S.frz || S.hold ? 0 : Math.min((performance.now() - S.lastT) / 1000 * gp, gp / 30 * 1.5);
-    const tEnd = head + frac;   /* posizione temporale interpolata tra un pacchetto e l'altro (nessun campione inventato) */
+    const gp = gps(), span = S.T * gp, head = S.frz ? S.frzHead : S.head, now = performance.now(), dt = Math.min(.1, (now - (S.tDraw || now)) / 1000); S.tDraw = now;
+    /* orologio di visualizzazione continuo: avanza col tempo reale a ogni fotogramma e resta ~2 pacchetti dietro ai dati (scorrimento fluido, mai campioni inventati) */
+    const lag = gp / 30 * 2.2, target = head - lag; if (S.frz || S.hold) S.disp = head; else { if (S.disp === undefined || Math.abs(S.disp - target) > gp * .5) S.disp = target; else S.disp += dt * gp + (target - S.disp) * Math.min(1, dt * 2); }
+    const tEnd = S.frz ? head : Math.min(S.disp, head);
     const lanes = S.mode === 'lr' ? [[0, 4, 'L'], [2, 6, 'R']] : [[-1, -1, '']], lh = H / lanes.length; let peak = 0, over = false;
     for (let x = 0; x < W; x++) { const a = Math.floor(tEnd - span * (1 - x / W)), b = Math.floor(tEnd - span * (1 - (x + 1) / W)); for (let k = Math.max(a, head - CAP + 1); k <= Math.min(b, head - 1); k++) { const j = ((k % CAP) + CAP) % CAP; for (let c = 4; c < 8; c++) { const v = Math.abs(ring[j * 8 + c]); if (v > peak) peak = v; } } }
     const sc = S.auto ? (peak > 1e-6 ? .95 / peak : 1) : S.zoom; S.peak = peak; over = peak > 1;
@@ -2099,7 +2088,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
   btn.innerHTML = '<svg viewBox="0 0 20 20"><path d="M2 10h2l1.5-5 2 10 2-12 2 14 2-9 1.5 4H18"/></svg>';
   function toggle(v) { pan.classList.toggle('on', v); btn.classList.toggle('on', v); }
   btn.onclick = () => toggle(!pan.classList.contains('on'));
-  window.__tsrq.wave = { open: toggle, state: () => ({ head: S.head, hold: S.hold, live: S.live, peak: S.peak, frz: S.frz, view: S.view, cols: S.specCols || 0, T: S.T }), set: o => Object.assign(S, o), ring: (k, c) => ring[(k % CAP) * 8 + c], mark: k => mark[k % CAP] };
+  window.__tsrq.wave = { open: toggle, state: () => ({ disp: S.disp, head: S.head, hold: S.hold, live: S.live, peak: S.peak, frz: S.frz, view: S.view, cols: S.specCols || 0, T: S.T }), set: o => Object.assign(S, o), ring: (k, c) => ring[(k % CAP) * 8 + c], mark: k => mark[k % CAP] };
 })();
 
 'use strict';

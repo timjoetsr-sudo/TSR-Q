@@ -224,7 +224,7 @@ inline double dynDelta (double levelDb, const BandParams& b) {
     if (amt > r) amt = r; return b.range < 0 ? -amt : amt;
 }
 
-// ---------- oversampling 4x per il Character: halfband IIR polifase (2 catene di passa-tutto del 1° ordine), 12 coefficienti,
+// ---------- oversampling 8x per il Character (a 4x l'11a armonica di un tono a 15 kHz ricadeva a 11.4 kHz a -72 dB, misurato sul plugin vero): halfband IIR polifase (2 catene di passa-tutto del 1° ordine), 12 coefficienti,
 // banda di transizione 0.02: banda passante piatta fino a 0.23·fs2, attenuazione fuori banda > 120 dB. Nessun ritardo puro (fase minima).
 constexpr double kHB[12] = { 0.027155856726483182, 0.10300238556004077, 0.21303004592041422, 0.33933626891036295, 0.46602752012040527, 0.58224701385700428,
                              0.68259076485235193, 0.76595528238687738, 0.83396924102510472, 0.88969265368750716, 0.93680311116581549, 0.97923872973422221 };
@@ -239,14 +239,19 @@ inline double characterShape (int chm, double x) {
     if (chm == 1) return x + 0.03 * x * x - 0.06 * x * x * x;
     return std::tanh (1.8 * x) / 1.8 + 0.04 * x * x;
 }
-struct Oversampled4x {   // x -> 4 campioni -> saturazione -> 1 campione
-    HalfbandUp u1, u2; HalfbandDown d2, d1;   // u2 e d2 lavorano sul flusso a 2x in sequenza (un solo stato)
+struct Oversampled8x {   // x -> 8 campioni -> saturazione -> 1 campione (3 stadi halfband; ogni stadio ha un solo stato e lavora sul suo flusso in sequenza)
+    HalfbandUp u1, u2, u3; HalfbandDown d3, d2, d1;
     double run (int chm, double x) {
-        double a, b, c0, c1, c2, c3; u1.run (x, a, b); u2.run (a, c0, c1); u2.run (b, c2, c3);
-        c0 = characterShape (chm, c0); c1 = characterShape (chm, c1); c2 = characterShape (chm, c2); c3 = characterShape (chm, c3);
-        const double e = d2.run (c0, c1), o = d2.run (c2, c3); return d1.run (e, o);
+        double s2[2], s4[4], s8[8], r4[4], r2[2];
+        u1.run (x, s2[0], s2[1]);
+        for (int i = 0; i < 2; ++i) u2.run (s2[i], s4[2 * i], s4[2 * i + 1]);
+        for (int i = 0; i < 4; ++i) u3.run (s4[i], s8[2 * i], s8[2 * i + 1]);
+        for (int i = 0; i < 8; ++i) s8[i] = characterShape (chm, s8[i]);
+        for (int i = 0; i < 4; ++i) r4[i] = d3.run (s8[2 * i], s8[2 * i + 1]);
+        for (int i = 0; i < 2; ++i) r2[i] = d2.run (r4[2 * i], r4[2 * i + 1]);
+        return d1.run (r2[0], r2[1]);
     }
-    void reset() { u1.reset(); u2.reset(); d2.reset(); d1.reset(); }
+    void reset() { u1.reset(); u2.reset(); u3.reset(); d3.reset(); d2.reset(); d1.reset(); }
 };
 
 // ---------- motore ----------
@@ -293,7 +298,7 @@ private:
         BandParams p; bool active = false, dynOn = false; double scale = 1, g = 0, delta = 0, aA = 0, aR = 0; int phase = 0;   // phase: posizione nel frame dinamico da 32 campioni (indipendente dal blocco della DAW)
         BandCoefs cur, tgt, det, fr0; double z[2][kMaxSecs * 2] = {}; double dz[2][2] = {}; double env[2] = { 1e-12, 1e-12 };
     };
-    struct SoloState { int id = -1; BandCoefs c; double z[2][kMaxSecs * 2] = {}; };
+    struct SoloState { int id = -1; BandParams src; BandCoefs c; double z[2][kMaxSecs * 2] = {}; };
     static bool same (const BandParams& a, const BandParams& b) {
         return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
             && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
@@ -394,12 +399,15 @@ private:
         if (haveSC) for (int i = 0; i < n; ++i) { sL[(size_t) i] = scL[i]; sR[(size_t) i] = scR[i]; sM[(size_t) i] = 0.5 * (scL[i] + scR[i]); sS[(size_t) i] = 0.5 * (scL[i] - scR[i]); }
         if (glob.solo >= 0 && glob.solo < kMaxBands && st[glob.solo].active) {
             const BandState& b = st[glob.solo];
-            if (soloSt.id != glob.solo || soloSt.c.n == 0) {
+            const bool newId = soloSt.id != glob.solo || soloSt.c.n == 0;
+            if (newId || ! same (soloSt.src, b.p)) {   // il filtro del SOLO segue la banda: spostando o allargando la banda (anche durante il solo) cambia quello che si ascolta
                 BandParams sp; sp.used = true; sp.f = b.p.f; sp.slope = 12;
                 if (b.p.type == LowCut || b.p.type == LowShelf) { sp.type = HighCut; sp.q = std::sqrt (0.5); }
                 else if (b.p.type == HighCut || b.p.type == HighShelf || b.p.type == TiltShelf) { sp.type = LowCut; sp.q = std::sqrt (0.5); }
                 else { sp.type = BandPass; sp.q = std::max (0.3, b.p.q); }
-                designBand (sp, 0, grid, soloSt.c); soloSt.id = glob.solo; std::memset (soloSt.z, 0, sizeof (soloSt.z));
+                const int nOld = soloSt.c.n; designBand (sp, 0, grid, soloSt.c); soloSt.src = b.p;
+                if (newId || soloSt.c.n != nOld) std::memset (soloSt.z, 0, sizeof (soloSt.z));
+                soloSt.id = glob.solo;
             }
             const int pl = b.p.place;
             for (int i = 0; i < n; ++i) {
@@ -412,7 +420,7 @@ private:
             soloSt.id = -1;
             for (int b = 0; b < kMaxBands; ++b) if (st[b].active) bandProcess (b, st[b], n, haveSC);
         }
-        // uscita: OUTPUT (−∞ sotto −60 dB) → Character (oversampling 4x) → DC → pan → polarità → bypass morbido
+        // uscita: OUTPUT (−∞ sotto −60 dB) → Character (oversampling 8x) → DC → pan → polarità → bypass morbido
         const bool mute = glob.outDb <= -60; const double tg = mute ? 0.0 : std::pow (10.0, (glob.outDb + glob.autoGainDb) / 20.0), ga = 1 - std::exp (-1 / (0.02 * fs));
         const double bt = glob.bypass ? 1 : 0, ba = 1 - std::exp (-1 / (0.008 * fs)), dcA = std::exp (-2 * kPi * 5 / fs);
         // legge del pan (bilanciamento lineare, centro = 0 dB su entrambi): A = min(1, 1 − p), B = min(1, 1 + p); L/R: A→L, B→R; M/S: A→Mid, B→Side
@@ -434,7 +442,7 @@ private:
 
     double fs = 48000; int N = 512; Grid grid; Global glob;
     std::vector<double> L, R, M, S, dL, dR, sL, sR, sM, sS;
-    BandState st[kMaxBands]; SoloState soloSt; double outG = 1, inG = 1, byp = 0, dc[4] = {}, panA = 1, panB = 1, pol = 1; Oversampled4x os[2]; int lastChm = 0;
+    BandState st[kMaxBands]; SoloState soloSt; double outG = 1, inG = 1, byp = 0, dc[4] = {}, panA = 1, panB = 1, pol = 1; Oversampled8x os[2]; int lastChm = 0;
 };
 
 } // namespace tsrq

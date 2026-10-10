@@ -1,7 +1,15 @@
-# TSR Q — Precision Dynamic EQ · TSR Audio · v0.4.1
+# TSR Q — Precision Dynamic EQ · TSR Audio · v0.4.2
 
 Plugin JUCE 8 (C++17). Formati: **AU + VST3 + Standalone su macOS** (universale Apple Silicon + Intel, macOS 11+), VST3 + Standalone su Linux/Windows.
 Produttore: **TSR Audio** (codice produttore `Tsra`, codice plugin `Tsrq`, bundle `com.tsraudio.tsrq`).
+
+## Novità 0.4.2
+- **Solo**: con il solo attivo, spostando o allargando la banda si sente subito la nuova zona (prima il plugin restava sul filtro del momento in cui si era premuto solo; il prototipo nel browser era già corretto). Test C++ che falliva sul motore vecchio e passa sul nuovo.
+- **Fluidità**: spettro inviato dal plugin a 60 fotogrammi/s (prima 30) in formato compatto a 16 bit; waveform con orologio continuo (scorre a ogni fotogramma, mai indietro).
+- **Doppio clic sul nodo**: tolto il riquadro FREQ/GAIN dB/Q (richiesta). Restano le manopole e la tastiera.
+- **Character con oversampling 8x** (prima 4x). Il test esterno sul plugin vero ha trovato a 4x un'armonica ripiegata a 11,4 kHz a −72 dB (Warm, 15 kHz, 0 dBFS, 44,1 kHz). Ora −142 dB. Costo: 3,2 % di un core per 10 s stereo a 48 kHz.
+- **Correzione di un test sbagliato**: il test C++ dell'aliasing raddoppiava i dB (rapporto di potenze elevato al quadrato) e a 44,1 kHz era limitato dalla finestra. La cifra "−143 dB" scritta per la 0.4.0 era falsa: il valore reale a 4x era −71 dB.
+- **Limite misurato e dichiarato**: High Cut 12 kHz 24 dB/oct a 44,1 kHz scarta 1,1 dB dall'analogico a 20 kHz (−16,7 invece di −17,8 dB). A 48 kHz 0,37 dB, a 96 kHz 0,14 dB. Il filtro EQ di JUCE nello stesso confronto scarta fino a 5,1 dB.
 
 ## Novità 0.4.1
 - Niente cornice in alto: il display tocca il bordo della finestra (la barra del Mac fa da bordo). In basso la cornice è sottile come a sinistra (10 px). Finestra 1180 × 542.
@@ -19,7 +27,7 @@ Produttore: **TSR Audio** (codice produttore `Tsra`, codice plugin `Tsrq`, bundl
 - Zoom/pan dell'asse delle frequenze trascinando sulla scala (ancorato alla frequenza sotto il puntatore), rotella sulla scala, doppio clic = reset. Scala EQ anche ±3 dB.
 - Uscita: OUTPUT −∞…+36 dB, pan L/R o M/S (bilanciamento lineare, centro 0 dB), polarità; pannello USCITA dal menu o dal tasto destro su OUTPUT.
 - Split L/R e M/S (suono identico per bande statiche, un passo di undo). Gain-Q interaction (Bell: Q × (1 + |dB|/15), max 40).
-- Character con oversampling 4x (halfband IIR polifase, > 120 dB fuori banda): alias peggiore −143 dB invece di −32 dB (misurato).
+- Character con oversampling 4x (halfband IIR polifase, > 120 dB fuori banda). [La cifra "−143 dB" qui riportata era sbagliata: vedi 0.4.2.]
 - Analizzatore: 1024…32768 punti (anche nel plugin), range 60/90/120 dB, tilt regolabile, Pre tratteggiato, spettro Sidechain, stato "nessun ingresso".
 - Spectrum Grab, tastiera con punti delle bande (clic = intona, trascina = semitoni), Sketch che si ridisegna tornando indietro. A/B nel menu. L'isola non copre più i nodi.
 

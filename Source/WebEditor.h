@@ -16,7 +16,7 @@ private:
     void sendLoad();
     void sendSpectrum();
     void runSelfTest();
-    struct SelfTest { juce::File file; int step = 0, fails = 0; double t0 = 0; float outDb = -200; juce::String res[8], out; void* gl = nullptr; };
+    struct SelfTest { juce::File file; int step = 0, fails = 0; double t0 = 0; float outDb = -200; juce::String res[8], out; void* gl = nullptr; int sent0 = 0; double sentT = 0; };
     std::unique_ptr<SelfTest> selfTest;
     TsrqProcessor& proc;
     std::unique_ptr<juce::WebBrowserComponent> web;
@@ -33,6 +33,6 @@ private:
     int ringPos = 0, ringPosSC = 0;
     void setFftOrder (int o);
     void sendWave();
-    int lastMidiVer = -1;
+    int lastMidiVer = -1; int specSent = 0;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsrqWebEditor)
 };

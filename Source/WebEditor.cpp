@@ -48,7 +48,7 @@ TsrqWebEditor::TsrqWebEditor (TsrqProcessor& p) : AudioProcessorEditor (p), proc
     setResizeLimits (708, 325, 2360, 1084);   // stesse proporzioni dell'interfaccia (1180 x 542): il display tocca il bordo della finestra
     if (auto* c = getConstrainer()) c->setFixedAspectRatio (1180.0 / 542.0);
     setSize (1180, 542);
-    startTimerHz (30);
+    startTimerHz (60);
 }
 TsrqWebEditor::~TsrqWebEditor() { stopTimer(); endGesture(); }
 void TsrqWebEditor::setFftOrder (int o) {   // thread dei messaggi: nuova risoluzione dell'analizzatore (non tocca l'audio)
@@ -95,18 +95,25 @@ void TsrqWebEditor::runSelfTest() {
             // atteso: -6 dBFS + 3 (INPUT) - 4.5 (banda) + intervento dinamico (≤ 0, RANGE di default -1.5)
             log (std::abs (st->outDb + 9.0f) < 0.2f, "livello d'uscita esatto: " + String (st->outDb, 2) + " dBFS (atteso -6 +3 INPUT -4.5 banda -1.5 dinamica = -9.0)");
             js ("P.bands[0].byp = 1; dirty = true; 'ok'", 3); st->step = 6; st->t0 = Time::getMillisecondCounterHiRes(); break; }
-        case 6: if (t < 800) break; log (par ("b1_byp") > 0.5f, "UI: bypass banda -> parametro b1_byp = " + String (par ("b1_byp")));
+        case 6: if (t < 800 || (par ("b1_byp") < 0.5f && t < 4000)) break; log (par ("b1_byp") > 0.5f, "UI: bypass banda -> parametro b1_byp = " + String (par ("b1_byp")));
             js ("graph.deleteSelected(); 'ok'", 4); st->step = 7; st->t0 = Time::getMillisecondCounterHiRes(); break;
-        case 7: if (t < 800) break; log (par ("b1_used") < 0.5f, "UI: elimina banda -> parametro b1_used = " + String (par ("b1_used")));
+        case 7: if (t < 800 || (par ("b1_used") > 0.5f && t < 4000)) break; log (par ("b1_used") < 0.5f, "UI: elimina banda -> parametro b1_used = " + String (par ("b1_used")));
             js ("graph.createBand(500, 0); flush(); 'ok'", 5); st->step = 8; st->t0 = Time::getMillisecondCounterHiRes(); break;
-        case 8: { if (t < 600) break;   // banda creata e gia inviata: ora conto solo i gesti del trascinamento simulato
+        case 8: { if (t < 600 || ((par ("b1_used") < 0.5f || std::abs (par ("b1_freq") - 500.0f) > 1.0f || std::abs (par ("b1_gain")) > 0.01f) && t < 4000)) break; if (t < 1200) break;   // banda creata e gia inviata: ora conto solo i gesti del trascinamento simulato
             static GestureCounter gl; gl.b = gl.e = gl.v = 0; if (auto* p = proc.apvts.getParameter ("b1_gain")) p->addListener (&gl); st->gl = &gl;
             js ("__tsrqGesture(true); for (const v of [1, 2, 3, 4]) { P.bands[0].gain = v; dirty = true; flush(); } P.bands[0].gain = 5; dirty = true; __tsrqGesture(false); 'ok'", 5);
             st->step = 12; st->t0 = Time::getMillisecondCounterHiRes(); break; }
         case 12: { if (t < 800) break; auto* g = static_cast<GestureCounter*> (st->gl); const int gb = g->b, ge = g->e, gv = g->v;
             if (auto* p = proc.apvts.getParameter ("b1_gain")) p->removeListener (g);
             log (gb == 1 && ge == 1 && gv >= 5 && std::abs (par ("b1_gain") - 5.0f) < 0.02f, "gesto di automazione: 5 valori in un trascinamento -> inizio " + String (gb) + ", fine " + String (ge) + ", valori " + String (gv) + ", finale " + String (par ("b1_gain"), 2) + " dB (attesi 1/1/>=5/5)");
-            js ("window.__tsrqMidiLearn('out'); graph.fftOrder = 11; window.__tsrqFFT(11); 'ok'", 6); st->step = 9; st->t0 = Time::getMillisecondCounterHiRes(); break; }
+            st->sent0 = specSent; st->sentT = Time::getMillisecondCounterHiRes(); js ("(graph.specCount || 0) + ',' + performance.now()", 6); st->step = 14; st->t0 = Time::getMillisecondCounterHiRes(); break; }
+        case 14: { if (t < 1000 || (st->res[6].isEmpty() && t < 4000)) break; st->res[5] = st->res[6]; st->res[6] = {}; js ("(graph.specCount || 0) + ',' + performance.now()", 6); st->step = 15; st->t0 = Time::getMillisecondCounterHiRes(); break; }
+        case 15: { if (st->res[6].isEmpty() && t < 4000) break; const double fps = (st->res[6].upToFirstOccurrenceOf (",", false, false).getDoubleValue() - st->res[5].upToFirstOccurrenceOf (",", false, false).getDoubleValue()) * 1000.0
+                                 / jmax (1.0, st->res[6].fromFirstOccurrenceOf (",", false, false).getDoubleValue() - st->res[5].fromFirstOccurrenceOf (",", false, false).getDoubleValue());
+            const double sentFps = (specSent - st->sent0) * 1000.0 / (Time::getMillisecondCounterHiRes() - st->sentT);
+            log (sentFps > 55, "spettro inviato dal plugin: " + String (sentFps, 1) + " fotogrammi al secondo (atteso 60)");
+            log (fps > 25, "spettro disegnato dall'interfaccia: " + String (fps, 1) + " fotogrammi al secondo (in questa macchina di test senza GPU; sul Mac dipende dalla WebView)");
+            st->res[6] = {}; js ("window.__tsrqMidiLearn('out'); graph.fftOrder = 11; window.__tsrqFFT(11); 'ok'", 6); st->step = 9; st->t0 = Time::getMillisecondCounterHiRes(); break; }
         case 9: { if (t < 600 || (proc.midiLearnTarget() < 0 && t < 4000)) break;
             log (proc.midiLearnTarget() >= 0, "MIDI Learn dall'interfaccia: parametro OUTPUT in ascolto (" + String (proc.midiLearnTarget()) + ")");
             AudioBuffer<float> b (2, 512); b.clear(); MidiBuffer mb; mb.addEvent (MidiMessage::controllerEvent (1, 21, 127), 10); proc.processBlock (b, mb);
@@ -180,6 +187,7 @@ void TsrqWebEditor::onUiState (const var& v) {
 }
 
 void TsrqWebEditor::sendSpectrum() {
+    ++specSent;
     float tmp[4096];
     for (int pass = 0; pass < 3; ++pass) {   // anelli da 32768 campioni (pre e post scorrono insieme; sidechain a parte)
         auto& fifo = pass == 0 ? proc.scopePre : pass == 1 ? proc.scopePost : proc.scopeSC; auto& ring = pass == 0 ? ringPre : pass == 1 ? ringPost : ringSC;
@@ -188,14 +196,14 @@ void TsrqWebEditor::sendSpectrum() {
         if (pass == 1) ringPos = pos; if (pass == 2) ringPosSC = pos;
     }
     const bool scOn = Time::getMillisecondCounterHiRes() - proc.scLastMs.load() < 500;   // sidechain presente da poco: altrimenti l'interfaccia mostra "assente"
-    DynamicObject::Ptr o = new DynamicObject(); o->setProperty ("n", fftN);
+    DynamicObject::Ptr o = new DynamicObject(); o->setProperty ("n", fftN); o->setProperty ("q16", true);
     for (int pass = 0; pass < (scOn ? 3 : 2); ++pass) {
         const auto& ring = pass == 0 ? ringPre : pass == 1 ? ringPost : ringSC; const int p0 = pass == 2 ? ringPosSC : ringPos;
         for (int i = 0; i < fftN; ++i) work[(size_t) i] = ring[(size_t) ((p0 - fftN + i + kRing) % kRing)] * win[(size_t) i];
         std::fill (work.begin() + fftN, work.end(), 0.0f);
         fft->performFrequencyOnlyForwardTransform (work.data(), true);
-        MemoryBlock mb ((size_t) fftN / 2 * sizeof (float)); auto* d = static_cast<float*> (mb.getData());
-        for (int k = 0; k < fftN / 2; ++k) d[k] = 20.0f * std::log10 (jmax (work[(size_t) k] * 4.0f / (float) fftN, 1.0e-10f));
+        MemoryBlock mb ((size_t) fftN / 2 * sizeof (int16_t)); auto* d = static_cast<int16_t*> (mb.getData());   // dB x 100 in 16 bit: meta dei dati, 60 fotogrammi al secondo
+        for (int k = 0; k < fftN / 2; ++k) d[k] = (int16_t) jlimit (-32000, 32000, (int) std::lround (100.0f * 20.0f * std::log10 (jmax (work[(size_t) k] * 4.0f / (float) fftN, 1.0e-10f))));
         o->setProperty (pass == 0 ? "pre" : pass == 1 ? "post" : "sc", Base64::toBase64 (mb.getData(), mb.getSize()));   // base64 standard (atob nel browser)
     }
     web->emitEventIfBrowserIsVisible ("tsrq_spec", var (o.get()));
@@ -221,7 +229,7 @@ void TsrqWebEditor::timerCallback() {
         b->setProperty ("lvl", proc.engine.meterLevel[i].load()); b->setProperty ("delta", proc.engine.meterDelta[i].load()); bands->setProperty (String (i), var (b.get())); }
     m->setProperty ("bands", var (bands.get()));
     web->emitEventIfBrowserIsVisible ("tsrq_meter", var (m.get()));
-    if (tick % 2 == 0) sendSpectrum();
+    sendSpectrum();   // spettro a 60 fotogrammi al secondo (movimento fluido)
     sendWave();
     if (proc.midiMapVersion.load() != lastMidiVer) { lastMidiVer = proc.midiMapVersion.load(); web->emitEventIfBrowserIsVisible ("tsrq_midi", proc.midiMapAsVar()); }
     // automazione / preset della DAW -> interfaccia (non mentre l'utente sta muovendo qualcosa)

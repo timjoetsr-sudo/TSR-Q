@@ -1,0 +1,21 @@
+PASS UI: creo banda 1 kHz +6 dB con dinamica e INPUT +3 dB (ok)
+PASS UI -> parametri: used 1, freq 1000.00, gain 6.00, dyn 1
+PASS UI -> parametro INPUT: 3.00 dB
+PASS automazione DAW -> interfaccia: gain banda 1 = {"g":-4.5,"f":1000,"d":1}
+PASS motore: 1 s di sinusoide 1 kHz -6 dBFS attraverso il plugin, uscita finita, picco -9.02 dBFS
+PASS spettro plugin -> interfaccia: 267 fotogrammi ricevuti
+PASS meter plugin -> interfaccia (picco out/in lineare, intervento dinamico dB): {"pkMax":0.390227943658829,"pinMax":0.706268787384033,"d":-1.5,"spec":267}
+PASS livello d'uscita esatto: -9.02 dBFS (atteso -6 +3 INPUT -4.5 banda -1.5 dinamica = -9.0)
+PASS UI: bypass banda -> parametro b1_byp = 1
+PASS UI: elimina banda -> parametro b1_used = 0
+PASS gesto di automazione: 5 valori in un trascinamento -> inizio 1, fine 1, valori 5, finale 5.00 dB (attesi 1/1/>=5/5)
+PASS spettro inviato dal plugin: 61.8 fotogrammi al secondo (atteso 60)
+PASS spettro disegnato dall'interfaccia: 37.8 fotogrammi al secondo (in questa macchina di test senza GPU; sul Mac dipende dalla WebView)
+PASS MIDI Learn dall'interfaccia: parametro OUTPUT in ascolto (513)
+PASS CC 21 valore 127 -> OUTPUT = 36.00 dB (atteso +36, il massimo)
+PASS mappa MIDI salvata nello stato e ripristinata: {"map": {"out": 21}, "learning": ""}
+PASS CC 21 valore 0 -> OUTPUT = -60.00 dB (atteso -60 = -inf)
+PASS waveform plugin -> interfaccia: 720 pacchetti, 760 gruppi da 64 campioni
+PASS risoluzione analizzatore scelta nell'interfaccia (2048 punti) usata dal plugin: 1024 bin
+PASS interfaccia informata della mappa MIDI: {"midi":{"map":{"out":21},"learning":""},"wave":720,"head":7
+RISULTATO PASS

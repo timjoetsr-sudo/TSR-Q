@@ -1,0 +1,77 @@
+== Gesti sul grafico ==
+PASS Cmd/Ctrl+trascina in su: Q 1.00 → 1.38, freq e guadagno fermi
+PASS Cmd/Ctrl+rotella: guadagno 3 → 3.5
+PASS Option/Alt+rotella: range -1 → -0.9
+PASS Cmd+Option+rotella: guadagno +0.5 e range -0.5 (g 4, r -1.4)
+PASS Cmd+Option+clic: forma successiva (Bell → 1)
+PASS Option+Shift+clic: pendenza cambia (3 → 0)
+PASS rotella sul High Cut = pendenza (24 → 30 dB/oct)
+PASS Shift+clic: intervallo per frequenza ([1, 2, 3])
+PASS Cmd/Ctrl+clic su banda selezionata: la toglie dalla selezione
+PASS Option+doppio clic: banda creata con dinamica ([{'i': 0, 't': 0, 'f': 1989.7291277268896, 'g': 4.015291865477822, 'q': 1, 's': 3, 'd': 1, 'r': -1.5, 'p': 0, 'b': 0}])
+== Campi numerici (eliminati su richiesta) ==
+PASS doppio clic sul nodo: nessun riquadro FREQ/GAIN dB/Q, nessuna banda nuova
+PASS un trascinamento = una sola operazione di undo (1)
+== Manopole ==
+PASS Cmd/Ctrl+clic sulla manopola Q: torna al default 1 (1)
+PASS hover sulla manopola: nome e valore ('Q: 1.00  ·  doppio c…')
+== P0.1 Decadimento spettro indipendente dagli fps ==
+PASS 30 fps: da 0 a -40 dB in 1.0333333333345363 s (atteso 1.00 s a 40 dB/s)
+PASS 60 fps: da 0 a -40 dB in 0.9999999999976716 s (atteso 1.00 s a 40 dB/s)
+PASS 120 fps: da 0 a -40 dB in 1.0000000000046567 s (atteso 1.00 s a 40 dB/s)
+PASS stesso tempo a 30/60/120 fps (scarto 0.033 s)
+PASS pausa UI di 3 s: alla ripresa lo spettro e gia sceso di 120 dB (-120.0 dB), non si blocca
+== P0.2 Gesti di automazione (lato interfaccia) ==
+PASS trascinamento con 12 movimenti: un solo inizio e una sola fine (['begin', 'end'])
+PASS 5 scatti di rotellina ravvicinati: un gesto (['begin', 'end'])
+PASS perdita del focus durante il trascinamento: gesto chiuso (['begin', 'end'])
+== P1.5 Zoom e pan delle frequenze ==
+PASS trascina in su sulla scala: zoom (159–3553 Hz), 1 kHz resta sotto il puntatore (scarto 0.00 px)
+PASS trascina a sinistra: pan (273–6087 Hz), ampiezza invariata
+PASS zoom e pan non cambiano nessun parametro audio
+PASS il nodo usa la stessa trasformazione della griglia
+PASS doppio clic sulla scala: vista completa (10–24000 Hz)
+PASS pan/zoom limitati all'intervallo utile (10–24000)
+== P1.7 Split ==
+PASS Split L/R: due bande Left/Right con gli stessi parametri e ID diversi ([(0, 1), (1, 2)])
+PASS Split = un solo passo di undo
+PASS undo: torna una banda Stereo
+PASS Split conserva il suono (motore audio, rumore stereo): L/R residuo -600 dBFS, M/S residuo -600 dBFS
+PASS Split con bande libere insufficienti: rifiutato, nessuna banda persa
+== Pannello USCITA, A/B, isola ==
+PASS pannello USCITA → parametri ({'pan': 57, 'ms': 1, 'inv': 1, 'ch': 2, 'gq': 1})
+PASS A/B dal menu: passa da A a B ([0, 1])
+PASS nodo che finirebbe sotto l'isola: l'isola sale in alto (top), il nodo resta cliccabile (canvas)
+== Grab, piano, sketch ==
+PASS cursore fermo sullo spettro 1,5 s: Spectrum Grab attivo ({'on': True, 'pers': False})
+PASS vista congelata e bande attenuate
+PASS trascino dal picco: Bell che taglia ([(347, -2.6)]), al rilascio Grab finito ({'on': False, 'pers': False})
+PASS tieni premuto 0,9 s: modalità persistente ({'on': True, 'pers': True})
+PASS clic sullo sfondo: esce ({'on': False, 'pers': False})
+PASS piano: clic sul punto della banda (437 Hz) → intonata a A4 440.00 Hz
+PASS piano: trascinata a semitoni fino a A5 (880.00 Hz)
+PASS Sketch: campana −6 dB, poi indietro e ridisegnata +6 dB → solo bande positive, poche ([[353, 6]])
+== Analizzatore: range, tilt, Pre tratteggiato, nessun ingresso, freeze ==
+PASS range analizzatore 60/90/120 dB: fondo scala corretto ([510, 271.9, 510])
+PASS tilt 4.5 dB/ottava: a 4 kHz +9.00 dB (2 ottave sopra 1 kHz) solo nel disegno
+PASS FREEZE: trattiene e accumula i massimi (-20 dB resta dopo un frame a -60: -20)
+PASS audio fermo: stato "nessun audio" esplicito, nessuna animazione finta
+== Waveform ==
+PASS inviluppo ricevuto: 1500 gruppi (2 s @48k)
+PASS il picco isolato di un solo gruppo (64 campioni) resta visibile dopo la riduzione per pixel (picco post 0.450, atteso 0.450)
+PASS 5 gruppi persi = buco dichiarato (NaN, niente campioni inventati) e salto di trasporto segnato ([7, True, 1])
+PASS trasporto fermo: silenzio = HOLD (il tempo si ferma), ingresso presente = LIVE ([0, True, 10, True])
+PASS FREEZE blocca la vista, non i dati (il buffer continua a riempirsi)
+PASS audio reale dal motore: 720 gruppi/s (atteso 689 = fs/64): scorrimento a tempo
+PASS spettrogramma: colonne disegnate dai dati STFT reali (1656 px)
+== EQ Match ==
+PASS riferimento con +6 dB a 2,5 kHz (livello diverso di 10 dB): proposta [[2496, 4.9, 1.55], [1111, -1.4, 0.3], [2039, 1.4, 1.2], [5941, -1.1, 0.57], [3145, 1.1, 2.29], [20, -1, 0.31]], scarto 0.66 dB
+PASS dettaglio 1: una sola banda ([[2496, 4.9, 1.55]])
+PASS applica: 6 bande, un passo di undo
+PASS undo: proposta rimossa
+PASS riferimento in silenzio: rifiutato con messaggio ('riferimento insufficiente: silenzio (picco medio -200 dB)')
+== Fluidita: waveform e spettro ==
+PASS waveform: scorrimento continuo a ogni fotogramma, mai indietro (0 passi indietro), velocita 692 gruppi/s (attesa 689), irregolarita 2.8 %
+PASS spettro nel browser: aggiornato in 32 fotogrammi su 32 disegnati in 1 s
+PASS nessun errore JavaScript ([])
+RISULTATO master UI: 63 PASS, 0 FAIL

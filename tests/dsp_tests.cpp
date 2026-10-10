@@ -144,22 +144,23 @@ int main() {
       const double wa = db (bandMag2 (ca, 2000, 48000)), wb = db (bandMag2 (cb, 2000, 48000));
       ok (wb < wa - 1, "+12 dB: con Gain-Q la campana e piu stretta (a 2 kHz %.2f dB invece di %.2f dB)", wb, wa);
       BandParams z = band (Bell, 1000, 0, 2); z.gq = true; BandCoefs cz; designBand (z, 0, g, cz); ok (std::abs (db (bandMag2 (cz, 1000, 48000))) < 1e-9, "0 dB con Gain-Q: piatto (%.1e dB)", db (bandMag2 (cz, 1000, 48000))); }
-    std::printf ("== 11. CHARACTER: aliasing misurato senza e con oversampling 4x (sinusoide alta, vari livelli e fs) ==\n");
+    std::printf ("== 11. CHARACTER: aliasing misurato senza e con oversampling 8x (sinusoide alta, vari livelli e fs) ==\n");
     { auto measure = [&] (double fs, double f0, double ampDb, int chm, bool os, double& alias, double& fund) {
-          const int n = 1 << 15, skip = 4096; std::vector<double> x ((size_t) n); Oversampled4x o; double dcs[4] = {}; const double dcA = std::exp (-2 * kPi * 5 / fs), a = std::pow (10.0, ampDb / 20);
+          const int n = 1 << 15, skip = 4096; std::vector<double> x ((size_t) n); Oversampled8x o; double dcs[4] = {}; const double dcA = std::exp (-2 * kPi * 5 / fs), a = std::pow (10.0, ampDb / 20);
           for (int i = 0; i < n + skip; ++i) { const double s = a * std::sin (2 * kPi * f0 * i / fs); double y = os ? o.run (chm, s) : characterShape (chm, s); const double yy = y - dcs[0] + dcA * dcs[1]; dcs[0] = y; dcs[1] = yy; if (i >= skip) x[(size_t) (i - skip)] = yy; }
           std::vector<double> w (x); for (int i = 0; i < n; ++i) w[(size_t) i] *= 0.35875 - 0.48829 * std::cos (2 * kPi * i / n) + 0.14128 * std::cos (4 * kPi * i / n) - 0.01168 * std::cos (6 * kPi * i / n);
           std::vector<double> m; fftMag (w, m); const int k0 = (int) std::lround (f0 / fs * n); fund = 0; for (int k = k0 - 6; k <= k0 + 6; ++k) fund = std::max (fund, m[(size_t) k]);
           alias = 0; for (int k = 20; k < n / 2 - 4; ++k) { const double fk = (double) k * fs / n; bool harm = false; for (int h = 1; h * f0 < fs / 2; ++h) if (std::abs (fk - h * f0) < 8 * fs / n) harm = true; if (! harm && fk < 20000) alias = std::max (alias, m[(size_t) k]); } };
       double worstOld = -999, worstNew = -999;
       for (double fs : { 44100.0, 48000.0, 96000.0 }) for (double lv : { -12.0, -6.0, 0.0 }) for (int chm : { 1, 2 }) {
-          double a0, f0a, a1, f1a; measure (fs, 15000, lv, chm, false, a0, f0a); measure (fs, 15000, lv, chm, true, a1, f1a);
-          const double ro = db (a0 * a0 / (f0a * f0a)), rn = db (a1 * a1 / (f1a * f1a)); worstOld = std::max (worstOld, ro); worstNew = std::max (worstNew, rn);
-          std::printf ("   fs %.0f, 15 kHz %+.0f dBFS, %s: alias sotto 20 kHz  senza OS %.1f dB  |  con OS 4x %.1f dB (rispetto alla fondamentale)\n", fs, lv, chm == 1 ? "Subtle" : "Warm  ", ro, rn); }
-      ok (worstNew < worstOld - 20, "oversampling 4x: alias peggiore %.1f dB invece di %.1f dB (miglioramento > 20 dB)", worstNew, worstOld);
-      ok (worstNew < -60, "alias peggiore con oversampling 4x sotto -60 dB rispetto alla fondamentale (%.1f dB)", worstNew);
+          const double fc = std::round (15000.0 * 32768 / fs) * fs / 32768;   /* tono centrato su un bin (campionamento coerente): senza, a 44.1k la dispersione della finestra (-94 dB) mascherava la misura */
+          double a0, f0a, a1, f1a; measure (fs, fc, lv, chm, false, a0, f0a); measure (fs, fc, lv, chm, true, a1, f1a);
+          const double ro = db (a0 / f0a), rn = db (a1 / f1a);   /* fftMag restituisce POTENZA: prima il rapporto veniva elevato al quadrato e i dB risultavano raddoppiati */ worstOld = std::max (worstOld, ro); worstNew = std::max (worstNew, rn);
+          std::printf ("   fs %.0f, 15 kHz %+.0f dBFS, %s: alias sotto 20 kHz  senza OS %.1f dB  |  con OS 8x %.1f dB (rispetto alla fondamentale)\n", fs, lv, chm == 1 ? "Subtle" : "Warm  ", ro, rn); }
+      ok (worstNew < worstOld - 20, "oversampling 8x: alias peggiore %.1f dB invece di %.1f dB (miglioramento > 20 dB)", worstNew, worstOld);
+      ok (worstNew < -100, "alias peggiore con oversampling 8x sotto -100 dB rispetto alla fondamentale (%.1f dB)", worstNew);
       // banda passante e ritardo del filtro di oversampling (segnale piccolo: la saturazione e praticamente lineare)
-      auto resp = [&] (double fs, double f, double& magDb, double& delay) { Oversampled4x o; const int n = (int) fs; double sr = 0, si = 0, sa = 0; const double a = 1e-4;
+      auto resp = [&] (double fs, double f, double& magDb, double& delay) { Oversampled8x o; const int n = (int) fs; double sr = 0, si = 0, sa = 0; const double a = 1e-4;
           for (int i = 0; i < n; ++i) { const double s = a * std::sin (2 * kPi * f * i / fs), y = o.run (1, s) / a; if (i > n / 2) { sr += y * std::sin (2 * kPi * f * i / fs); si += y * std::cos (2 * kPi * f * i / fs); sa += 0.5; } }
           magDb = 20 * std::log10 (std::hypot (sr, si) / sa); const double ph = std::atan2 (-si, sr); delay = -ph / (2 * kPi * f) * fs; };
       auto gdel = [&] (double f) { double ma, pa, mb, pb; resp (44100, f, ma, pa); resp (44100, f + 20, mb, pb); double dp = (pb - pa) / 44100 * (2 * kPi * f);   // pa/pb = -fase/(2 pi f) * fs
@@ -171,7 +172,18 @@ int main() {
       { const double fs = 48000; double t[2]; for (int chm : { 0, 2 }) { Engine e; e.prepare (fs, 128); Engine::Global gl; gl.character = chm; e.setGlobal (gl); std::vector<float> L (128, .1f), R (128, .1f);
           auto t0 = std::chrono::steady_clock::now(); for (int k = 0; k < (int) (fs * 10 / 128); ++k) { for (int i = 0; i < 128; ++i) { L[i] = .3f * (float) std::sin (k * 128 + i); R[i] = L[i]; } e.process (L.data(), R.data(), nullptr, nullptr, 128); }
           t[chm ? 1 : 0] = std::chrono::duration<double, std::milli> (std::chrono::steady_clock::now() - t0).count(); }
-        std::printf ("   CPU, 10 s stereo @48k senza bande: Clean %.0f ms, Warm con OS 4x %.0f ms\n", t[0], t[1]); ok (t[1] < 2000, "costo del Character con oversampling 4x: %.0f ms per 10 s (%.1f %% di un core)", t[1], t[1] / 100); } }
+        std::printf ("   CPU, 10 s stereo @48k senza bande: Clean %.0f ms, Warm con OS 8x %.0f ms\n", t[0], t[1]); ok (t[1] < 2000, "costo del Character con oversampling 8x: %.0f ms per 10 s (%.1f %% di un core)", t[1], t[1] / 100); } }
+
+    std::printf ("== 12. SOLO: allargando o spostando la banda durante il solo cambia cio che si ascolta ==\n");
+    { const double fs = 48000; auto lvl = [&] (double q, double f0) { Engine e; e.prepare (fs, 256); Engine::Global g; g.solo = 0; e.setGlobal (g);
+          std::vector<float> L (256), R (256); double s = 0; int cnt = 0; BandParams b = band (Bell, 1000, 6, 4);
+          for (int k = 0; k < 400; ++k) { if (k == 200) { b.q = q; b.f = f0; } e.setBand (0, b);   // a meta: banda allargata/spostata, solo sempre acceso
+              for (int i = 0; i < 256; ++i) { L[i] = R[i] = (float) (0.5 * std::sin (2 * kPi * 2500 * (k * 256 + i) / fs)); } e.process (L.data(), R.data(), nullptr, nullptr, 256);
+              if (k > 300) for (int i = 0; i < 256; ++i) { s += L[i] * L[i]; ++cnt; } }
+          return 10 * std::log10 (s / cnt / 0.125); };
+      const double narrow = lvl (4, 1000), wide = lvl (0.3, 1000), moved = lvl (4, 2500);
+      ok (wide > narrow + 6, "solo su 1 kHz, tono a 2,5 kHz: Q 4 -> %.1f dB, allargata a Q 0.3 -> %.1f dB (si sente di piu)", narrow, wide);
+      ok (moved > narrow + 6, "spostata a 2,5 kHz durante il solo: %.1f dB (prima %.1f dB)", moved, narrow); }
 
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;
