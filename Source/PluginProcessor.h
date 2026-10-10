@@ -29,6 +29,29 @@ struct ScopeFifo {
     }
 };
 
+// inviluppo min/max per la waveform (audio -> UI): ogni gruppo di kWaveB campioni = 8 valori (min/max di L e R, prima e dopo il motore)
+constexpr int kWaveB = 64;
+struct WaveFifo {
+    juce::AbstractFifo fifo { 1 << 17 };
+    std::vector<float> buf = std::vector<float> (1 << 17, 0.0f);
+    std::atomic<int> dropped { 0 };
+    void push8 (const float* v) {
+        if (fifo.getFreeSpace() < 8) { dropped.fetch_add (1, std::memory_order_relaxed); return; }   // UI chiusa o lenta: buco dichiarato, nessun campione inventato
+        int s1, n1, s2, n2; fifo.prepareToWrite (8, s1, n1, s2, n2);
+        if (n1 > 0) std::memcpy (buf.data() + s1, v, sizeof (float) * (size_t) n1);
+        if (n2 > 0) std::memcpy (buf.data() + s2, v + n1, sizeof (float) * (size_t) n2);
+        fifo.finishedWrite (n1 + n2);
+    }
+    int pull (float* out, int max) {
+        int s1, n1, s2, n2; fifo.prepareToRead (std::min (max, fifo.getNumReady()) / 8 * 8, s1, n1, s2, n2);
+        if (n1 > 0) std::memcpy (out, buf.data() + s1, sizeof (float) * (size_t) n1);
+        if (n2 > 0) std::memcpy (out + n1, buf.data() + s2, sizeof (float) * (size_t) n2);
+        fifo.finishedRead (n1 + n2); return n1 + n2;
+    }
+};
+// MIDI Learn: un CC (0..127) comanda un parametro; il thread audio legge i CC e li passa al thread dei messaggi (nessuna allocazione)
+struct MidiCC { int param; float v; };
+
 class TsrqProcessor : public juce::AudioProcessor, private juce::Timer {
 public:
     TsrqProcessor();
@@ -41,7 +64,7 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
     const juce::String getName() const override { return "TSR Q"; }
-    bool acceptsMidi() const override { return false; }
+    bool acceptsMidi() const override { return true; }    // MIDI Learn (CC)
     bool producesMidi() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }
     int getNumPrograms() override { return 1; }
@@ -64,6 +87,17 @@ public:
     int currentAB() const { return abSlot; }
     void copyCurrentToOther();
 
+    // MIDI Learn
+    void midiLearn (const juce::String& paramId);     // "" = annulla
+    void midiForget (const juce::String& paramId);
+    juce::var midiMapAsVar() const;                     // { paramId: cc } + "learning"
+    int midiLearnTarget() const { return learnTarget.load(); }
+    std::atomic<int> midiMapVersion { 0 };
+    // waveform e trasporto
+    WaveFifo wave;
+    std::atomic<bool> hostPlaying { false }; std::atomic<int> transportJumps { 0 };
+    ScopeFifo scopeSC; std::atomic<double> scLastMs { 0.0 };
+
     juce::UndoManager undo;
     juce::AudioProcessorValueTreeState apvts;
     tsrq::Engine engine;
@@ -78,7 +112,13 @@ private:
     std::atomic<float>* raw[tsrq::kMaxBands][ids::numBandKeys] {};
     std::atomic<float>* gIn = nullptr; std::atomic<float>* gOut = nullptr; std::atomic<float>* gScale = nullptr; std::atomic<float>* gAuto = nullptr;
     std::atomic<float>* gChar = nullptr; std::atomic<float>* gByp = nullptr;
+    std::atomic<float>* gPan = nullptr; std::atomic<float>* gPanMode = nullptr; std::atomic<float>* gInv = nullptr; std::atomic<float>* gGq = nullptr;
     std::atomic<double> sr { 48000.0 };
+    std::atomic<int> ccMap[128];                      // indice del parametro (getParameters()) o -1
+    std::atomic<int> learnTarget { -1 };
+    juce::AbstractFifo ccFifo { 1024 }; MidiCC ccBuf[1024];
+    std::vector<float> wavePre; float wAccPre[4] {}, wAccPost[4] {}; int wCnt = 0; int64_t lastEnd = -1;
+    void applyMidiCC();
     std::vector<float> monoTmp;
     juce::ValueTree abState[2]; int abSlot = 0;
     tsrq::Grid uiGrid;

@@ -1,0 +1,3 @@
+PASS JS 8 bande (4 dinamiche), blocchi 128 come Web Audio: 20.8× tempo reale
+PASS JS 16 bande (8 dinamiche), blocchi 128 come Web Audio: 8.1× tempo reale
+PASS JS 32 bande (16 dinamiche), blocchi 128 come Web Audio: 7.3× tempo reale

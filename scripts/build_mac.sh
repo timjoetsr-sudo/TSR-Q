@@ -39,7 +39,8 @@ rm -rf ~/Library/Audio/Plug-Ins/Components/"TSR Q.component" ~/Library/Audio/Plu
 cp -R "$A/AU/TSR Q.component" ~/Library/Audio/Plug-Ins/Components/
 cp -R "$A/VST3/TSR Q.vst3" ~/Library/Audio/Plug-Ins/VST3/
 killall -9 AudioComponentRegistrar 2>/dev/null || true; sleep 2
-auval -v aufx Tsrq Tsra | tee "$OUT/auval.txt" | tail -3
+# tipo "aumf" (music effect): effetto audio che riceve MIDI, serve al MIDI Learn
+auval -v aumf Tsrq Tsra | tee "$OUT/auval.txt" | tail -3
 grep -q "AU VALIDATION SUCCEEDED" "$OUT/auval.txt" || { echo "ERRORE: auval non superato"; exit 1; }
 if command -v pluginval >/dev/null || [ -x /Applications/pluginval.app/Contents/MacOS/pluginval ]; then
   PV=$(command -v pluginval || echo /Applications/pluginval.app/Contents/MacOS/pluginval)

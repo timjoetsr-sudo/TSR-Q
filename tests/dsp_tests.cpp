@@ -115,6 +115,64 @@ int main() {
       std::printf ("   tempo per 10 s di audio: %.0f ms -> %.1f %% di un core\n", ms, ms / 100);
       ok (ms < 10000, "piu veloce del tempo reale (x%.1f)", 10000 / ms); }
 
+    // ---------- funzioni del master ----------
+    auto runSine = [] (Engine& e, double fs, double f, double amp, double phR, int secs, std::vector<double>& outL, std::vector<double>& outR, const float* inR = nullptr) {
+        const int n = (int) (fs * secs); outL.assign ((size_t) n, 0); outR.assign ((size_t) n, 0); std::vector<float> L (256), R (256);
+        for (int i0 = 0; i0 < n; i0 += 256) { for (int i = 0; i < 256; ++i) { const double t = (i0 + i) / fs; L[i] = (float) (amp * std::sin (2 * kPi * f * t)); R[i] = (float) (amp * phR * std::sin (2 * kPi * f * t)); }
+            e.process (L.data(), R.data(), nullptr, nullptr, 256); for (int i = 0; i < 256 && i0 + i < n; ++i) { outL[(size_t) (i0 + i)] = L[i]; outR[(size_t) (i0 + i)] = R[i]; } } };
+    auto rmsTail = [] (const std::vector<double>& x) { double s = 0; const size_t a = x.size() / 2; for (size_t i = a; i < x.size(); ++i) s += x[i] * x[i]; return std::sqrt (s / (double) (x.size() - a)); };
+    std::printf ("== 9. USCITA: OUTPUT -inf/+36, pan L/R e M/S (bilanciamento lineare, centro 0 dB), polarita ==\n");
+    { const double fs = 48000; std::vector<double> l, r; const double ref = 0.5 / std::sqrt (2.0);
+      auto mk = [&] (double out, double pan, bool ms, bool inv, double phR) { Engine e; e.prepare (fs, 256); Engine::Global g; g.outDb = out; g.pan = pan; g.panMS = ms; g.invert = inv; e.setGlobal (g); runSine (e, fs, 1000, .5, phR, 1, l, r); };
+      mk (-60, 0, false, false, 1); ok (rmsTail (l) == 0 && rmsTail (r) == 0, "OUTPUT a -60 = -inf: uscita %.1e / %.1e (attesa zero esatto)", rmsTail (l), rmsTail (r));
+      mk (36, 0, false, false, 1); ok (std::abs (20 * std::log10 (rmsTail (l) / ref) - 36) < 0.01, "OUTPUT +36 dB: misurato %.3f dB", 20 * std::log10 (rmsTail (l) / ref));
+      mk (0, 0.5, false, false, 1); ok (std::abs (20 * std::log10 (rmsTail (l) / ref) + 6.0206) < 0.01 && std::abs (20 * std::log10 (rmsTail (r) / ref)) < 0.01, "pan L/R +50%%: L %.3f dB (atteso -6.021), R %.3f dB (atteso 0)", 20 * std::log10 (rmsTail (l) / ref), 20 * std::log10 (rmsTail (r) / ref));
+      mk (0, -1, false, false, 1); ok (rmsTail (r) < 1e-9 && std::abs (20 * std::log10 (rmsTail (l) / ref)) < 0.01, "pan L/R -100%%: R %.1e (atteso 0), L %.3f dB", rmsTail (r), 20 * std::log10 (rmsTail (l) / ref));
+      mk (0, -1, true, false, -1); ok (rmsTail (l) < 1e-9 && rmsTail (r) < 1e-9, "pan M/S -100%% (solo Mid) su segnale tutto Side (R = -L): uscita %.1e / %.1e (attesa zero)", rmsTail (l), rmsTail (r));
+      mk (0, 1, true, false, 1); ok (rmsTail (l) < 1e-9, "pan M/S +100%% (solo Side) su segnale tutto Mid (R = L): uscita %.1e (attesa zero)", rmsTail (l));
+      mk (0, 0, true, false, 0); { const double a = rmsTail (l), b = rmsTail (r); ok (std::abs (20 * std::log10 (a / ref)) < 0.01 && b < 1e-9, "pan M/S al centro: neutro (L %.3f dB, R %.1e)", 20 * std::log10 (a / ref), b); }
+      { Engine e; e.prepare (fs, 256); Engine::Global g; g.invert = true; e.setGlobal (g); runSine (e, fs, 1000, .5, 1, 1, l, r); double m = 0; for (size_t i = l.size() / 2; i < l.size(); ++i) m = std::max (m, std::abs (l[i] + .5 * std::sin (2 * kPi * 1000 * (double) i / fs)));
+        ok (m < 1e-6, "polarita invertita: uscita = -ingresso, scarto %.1e", m); } }
+    std::printf ("== 10. GAIN-Q INTERACTION (Bell): Q effettivo = Q * (1 + |dB|/15), max 40 ==\n");
+    { Grid g; g.init (48000); double worst = 0;
+      for (double gd : { -30.0, -12.0, -3.0, 3.0, 12.0, 30.0 }) for (double q : { 0.3, 1.0, 4.0, 40.0 }) { BandParams b = band (Bell, 1000, gd, q); b.gq = true; BandCoefs c; designBand (b, gd, g, c);
+          BandParams r = band (Bell, 1000, gd, std::min (40.0, q * (1 + std::abs (gd) / 15))); SecSet ss; sectionsFor (r, gd, ss);
+          for (double f : { 250.0, 700.0, 1000.0, 1400.0, 4000.0 }) worst = std::max (worst, std::abs (db (bandMag2 (c, f, 48000)) - db (anaMag2 (ss, f)))); 
+          for (int k = 0; k < c.n; ++k) if (! stable (c.c[k])) worst = 99; }
+      ok (worst < 0.5, "filtro reale = Bell con Q effettivo (24 casi fino a +/-30 dB e Q 40): scarto max %.3f dB, tutti stabili", worst);
+      BandParams a = band (Bell, 1000, 12, 1), b2 = a; b2.gq = true; BandCoefs ca, cb; designBand (a, 12, g, ca); designBand (b2, 12, g, cb);
+      const double wa = db (bandMag2 (ca, 2000, 48000)), wb = db (bandMag2 (cb, 2000, 48000));
+      ok (wb < wa - 1, "+12 dB: con Gain-Q la campana e piu stretta (a 2 kHz %.2f dB invece di %.2f dB)", wb, wa);
+      BandParams z = band (Bell, 1000, 0, 2); z.gq = true; BandCoefs cz; designBand (z, 0, g, cz); ok (std::abs (db (bandMag2 (cz, 1000, 48000))) < 1e-9, "0 dB con Gain-Q: piatto (%.1e dB)", db (bandMag2 (cz, 1000, 48000))); }
+    std::printf ("== 11. CHARACTER: aliasing misurato senza e con oversampling 4x (sinusoide alta, vari livelli e fs) ==\n");
+    { auto measure = [&] (double fs, double f0, double ampDb, int chm, bool os, double& alias, double& fund) {
+          const int n = 1 << 15, skip = 4096; std::vector<double> x ((size_t) n); Oversampled4x o; double dcs[4] = {}; const double dcA = std::exp (-2 * kPi * 5 / fs), a = std::pow (10.0, ampDb / 20);
+          for (int i = 0; i < n + skip; ++i) { const double s = a * std::sin (2 * kPi * f0 * i / fs); double y = os ? o.run (chm, s) : characterShape (chm, s); const double yy = y - dcs[0] + dcA * dcs[1]; dcs[0] = y; dcs[1] = yy; if (i >= skip) x[(size_t) (i - skip)] = yy; }
+          std::vector<double> w (x); for (int i = 0; i < n; ++i) w[(size_t) i] *= 0.35875 - 0.48829 * std::cos (2 * kPi * i / n) + 0.14128 * std::cos (4 * kPi * i / n) - 0.01168 * std::cos (6 * kPi * i / n);
+          std::vector<double> m; fftMag (w, m); const int k0 = (int) std::lround (f0 / fs * n); fund = 0; for (int k = k0 - 6; k <= k0 + 6; ++k) fund = std::max (fund, m[(size_t) k]);
+          alias = 0; for (int k = 20; k < n / 2 - 4; ++k) { const double fk = (double) k * fs / n; bool harm = false; for (int h = 1; h * f0 < fs / 2; ++h) if (std::abs (fk - h * f0) < 8 * fs / n) harm = true; if (! harm && fk < 20000) alias = std::max (alias, m[(size_t) k]); } };
+      double worstOld = -999, worstNew = -999;
+      for (double fs : { 44100.0, 48000.0, 96000.0 }) for (double lv : { -12.0, -6.0, 0.0 }) for (int chm : { 1, 2 }) {
+          double a0, f0a, a1, f1a; measure (fs, 15000, lv, chm, false, a0, f0a); measure (fs, 15000, lv, chm, true, a1, f1a);
+          const double ro = db (a0 * a0 / (f0a * f0a)), rn = db (a1 * a1 / (f1a * f1a)); worstOld = std::max (worstOld, ro); worstNew = std::max (worstNew, rn);
+          std::printf ("   fs %.0f, 15 kHz %+.0f dBFS, %s: alias sotto 20 kHz  senza OS %.1f dB  |  con OS 4x %.1f dB (rispetto alla fondamentale)\n", fs, lv, chm == 1 ? "Subtle" : "Warm  ", ro, rn); }
+      ok (worstNew < worstOld - 20, "oversampling 4x: alias peggiore %.1f dB invece di %.1f dB (miglioramento > 20 dB)", worstNew, worstOld);
+      ok (worstNew < -60, "alias peggiore con oversampling 4x sotto -60 dB rispetto alla fondamentale (%.1f dB)", worstNew);
+      // banda passante e ritardo del filtro di oversampling (segnale piccolo: la saturazione e praticamente lineare)
+      auto resp = [&] (double fs, double f, double& magDb, double& delay) { Oversampled4x o; const int n = (int) fs; double sr = 0, si = 0, sa = 0; const double a = 1e-4;
+          for (int i = 0; i < n; ++i) { const double s = a * std::sin (2 * kPi * f * i / fs), y = o.run (1, s) / a; if (i > n / 2) { sr += y * std::sin (2 * kPi * f * i / fs); si += y * std::cos (2 * kPi * f * i / fs); sa += 0.5; } }
+          magDb = 20 * std::log10 (std::hypot (sr, si) / sa); const double ph = std::atan2 (-si, sr); delay = -ph / (2 * kPi * f) * fs; };
+      auto gdel = [&] (double f) { double ma, pa, mb, pb; resp (44100, f, ma, pa); resp (44100, f + 20, mb, pb); double dp = (pb - pa) / 44100 * (2 * kPi * f);   // pa/pb = -fase/(2 pi f) * fs
+          const double ph1 = -pa * 2 * kPi * f / 44100, ph2 = -pb * 2 * kPi * (f + 20) / 44100; double d = ph2 - ph1; while (d > kPi) d -= 2 * kPi; while (d < -kPi) d += 2 * kPi; (void) dp; return std::abs (d / (2 * kPi * 20) * 44100); };
+      double m1, d1, m10, d10, m18, d18, m20, d20; resp (44100, 1000, m1, d1); resp (44100, 10000, m10, d10); resp (44100, 18000, m18, d18); resp (44100, 20000, m20, d20);
+      std::printf ("   filtro OS @44.1k: modulo 1 kHz %.3f dB, 10 kHz %.3f dB, 18 kHz %.3f dB, 20 kHz %.3f dB | ritardo di gruppo 1 kHz %.2f, 10 kHz %.2f, 18 kHz %.2f campioni\n", m1, m10, m18, m20, gdel (1000), gdel (10000), gdel (18000));
+      ok (std::abs (m1) < 0.01 && std::abs (m10) < 0.01 && std::abs (m18) < 0.05, "banda passante piatta fino a 18 kHz @44.1k (scarto max %.3f dB)", std::max ({ std::abs (m1), std::abs (m10), std::abs (m18) }));
+      std::printf ("   nota: con Character attivo il suono passa da questi filtri (ritardo di fase indicato sopra); con Clean nessun oversampling e nessun ritardo\n");
+      { const double fs = 48000; double t[2]; for (int chm : { 0, 2 }) { Engine e; e.prepare (fs, 128); Engine::Global gl; gl.character = chm; e.setGlobal (gl); std::vector<float> L (128, .1f), R (128, .1f);
+          auto t0 = std::chrono::steady_clock::now(); for (int k = 0; k < (int) (fs * 10 / 128); ++k) { for (int i = 0; i < 128; ++i) { L[i] = .3f * (float) std::sin (k * 128 + i); R[i] = L[i]; } e.process (L.data(), R.data(), nullptr, nullptr, 128); }
+          t[chm ? 1 : 0] = std::chrono::duration<double, std::milli> (std::chrono::steady_clock::now() - t0).count(); }
+        std::printf ("   CPU, 10 s stereo @48k senza bande: Clean %.0f ms, Warm con OS 4x %.0f ms\n", t[0], t[1]); ok (t[1] < 2000, "costo del Character con oversampling 4x: %.0f ms per 10 s (%.1f %% di un core)", t[1], t[1] / 100); } }
+
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;
 }

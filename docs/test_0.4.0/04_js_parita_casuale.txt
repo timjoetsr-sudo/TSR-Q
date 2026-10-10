@@ -1,0 +1,1 @@
+RISULTATO parità casuale: 40 PASS, 0 FAIL, differenza peggiore -151 dBFS (soglia -90)

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(TSRQ VERSION 0.3.1 LANGUAGES C CXX)
+project(TSRQ VERSION 0.4.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # stessi arrotondamenti su ogni CPU/compilatore (niente FMA automatiche): il progetto dei filtri deve dare lo stesso risultato su Mac arm64, Intel e Linux
@@ -41,13 +41,13 @@ juce_add_plugin(TSRQ
   FORMATS ${TSRQ_FORMATS}
   PRODUCT_NAME "TSR Q"
   IS_SYNTH FALSE
-  NEEDS_MIDI_INPUT FALSE
+  NEEDS_MIDI_INPUT TRUE
   NEEDS_MIDI_OUTPUT FALSE
   IS_MIDI_EFFECT FALSE
   EDITOR_WANTS_KEYBOARD_FOCUS TRUE
   NEEDS_WEB_BROWSER TRUE
   COPY_PLUGIN_AFTER_BUILD FALSE
-  AU_MAIN_TYPE kAudioUnitType_Effect
+  AU_MAIN_TYPE kAudioUnitType_MusicEffect
   VST3_CATEGORIES Fx EQ
   AAX_CATEGORY AAX_ePlugInCategory_EQ
   AAX_IDENTIFIER com.tsraudio.tsrq)

@@ -1,7 +1,28 @@
-# TSR Q — Precision Dynamic EQ · TSR Audio · v0.3.1
+# TSR Q — Precision Dynamic EQ · TSR Audio · v0.4.0
 
 Plugin JUCE 8 (C++17). Formati: **AU + VST3 + Standalone su macOS** (universale Apple Silicon + Intel, macOS 11+), VST3 + Standalone su Linux/Windows.
 Produttore: **TSR Audio** (codice produttore `Tsra`, codice plugin `Tsrq`, bundle `com.tsraudio.tsrq`).
+
+## Novità 0.4.0 (implementazione dei gap del master)
+**Correttezza (P0)**
+- Spettro: discesa in dB/s e media legate al tempo reale trascorso (stesso tempo a 30/60/120 fps, anche dopo una pausa della UI); Freeze accumula i massimi.
+- Automazione: un gesto per trascinamento/rotellina (inizio e fine bilanciati, chiusura anche su perdita del focus o chiusura dell'editor); tastiera e campi numerici = modifica singola; i valori in arrivo dall'host non creano gesti.
+
+**Controlli (P1)**
+- Doppio clic sul nodo: campi FREQ/GAIN/Q (Tab/Shift+Tab, Enter, Esc; Hz, kHz, note come A4 o D#5 +13; valori fuori intervallo segnalati, mai corretti in silenzio).
+- Scorciatoie: Cmd/Ctrl+trascina = Q; Cmd/Ctrl+rotella = guadagno; Option/Alt+rotella = range; Cmd+Option+rotella = guadagno e range inversi; rotella sui tagli = pendenza;
+  Cmd+Option+clic = forma; Option+Shift+clic = pendenza; Shift+clic = intervallo; Option+doppio clic = banda dinamica; Cmd/Ctrl+clic su manopola = default; Cmd/Ctrl+C/V.
+- Zoom/pan dell'asse delle frequenze trascinando sulla scala (ancorato alla frequenza sotto il puntatore), rotella sulla scala, doppio clic = reset. Scala EQ anche ±3 dB.
+- Uscita: OUTPUT −∞…+36 dB, pan L/R o M/S (bilanciamento lineare, centro 0 dB), polarità; pannello USCITA dal menu o dal tasto destro su OUTPUT.
+- Split L/R e M/S (suono identico per bande statiche, un passo di undo). Gain-Q interaction (Bell: Q × (1 + |dB|/15), max 40).
+- Character con oversampling 4x (halfband IIR polifase, > 120 dB fuori banda): alias peggiore −143 dB invece di −32 dB (misurato).
+- Analizzatore: 1024…32768 punti (anche nel plugin), range 60/90/120 dB, tilt regolabile, Pre tratteggiato, spettro Sidechain, stato "nessun ingresso".
+- Spectrum Grab, tastiera con punti delle bande (clic = intona, trascina = semitoni), Sketch che si ridisegna tornando indietro. A/B nel menu. L'isola non copre più i nodi.
+
+**Nuove funzioni (P2)**
+- Waveform reale scorrevole (min/max ogni 64 campioni, Pre/Post o L/R, 0,5–10 s, freeze, zoom, auto-scala dichiarata, cursori con Δt, buchi e salti del trasporto segnati, HOLD/LIVE a trasporto fermo).
+- Spettrogramma STFT (palette leggibile, legenda dB, memoria limitata). EQ Match (riferimento da ingresso, file o salvato; dettaglio; anteprima; un undo).
+- MIDI Learn (tasto destro su FREQ/GAIN/Q/OUTPUT; mappa salvata nello stato). Il plugin AU diventa di tipo "aumf" (effetto che riceve MIDI).
 
 ## Novità 0.3.1
 - **Menu tasto destro sul nodo**: in più Inverti guadagno, Copia, Incolla (anche Ctrl/Cmd+C, Ctrl/Cmd+V); pendenze dell'elenco secondo il tipo.

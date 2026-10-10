@@ -1,0 +1,11 @@
+PASS Character Subtle 4x: JS = C++ su VOCAL, differenza max -175 dBFS (picco uscita -8.7 dBFS)
+PASS Character Warm 4x: JS = C++ su VOCAL, differenza max -300 dBFS (picco uscita -4.8 dBFS)
+PASS OUTPUT −∞: JS = C++ su VOCAL, differenza max -300 dBFS (picco uscita -300.0 dBFS)
+PASS OUTPUT +36: JS = C++ su VOCAL, differenza max -300 dBFS (picco uscita 19.4 dBFS)
+PASS pan L/R −60%: JS = C++ su VOCAL, differenza max -300 dBFS (picco uscita -17.5 dBFS)
+PASS pan M/S +40%: JS = C++ su VOCAL, differenza max -300 dBFS (picco uscita -22.0 dBFS)
+PASS polarità invertita: JS = C++ su VOCAL, differenza max -300 dBFS (picco uscita -15.3 dBFS)
+PASS Gain-Q su Bell +12/−9: JS = C++ su VOCAL, differenza max -157 dBFS (picco uscita -8.6 dBFS)
+PASS Gain-Q + dinamica: JS = C++ su VOCAL, differenza max -300 dBFS (picco uscita -15.7 dBFS)
+PASS tutto insieme: JS = C++ su VOCAL, differenza max -300 dBFS (picco uscita -15.0 dBFS)
+RISULTATO parità master: 10 PASS, 0 FAIL

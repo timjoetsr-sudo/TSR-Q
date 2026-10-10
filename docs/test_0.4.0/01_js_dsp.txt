@@ -1,0 +1,58 @@
+== 1. PRECISIONE vs prototipo analogico, 20 Hz-20 kHz (pavimento -40 dB) ==
+tipo@fs          f0<=fs/4: TSR Q    RBJ bilineare    f0>fs/4: TSR Q
+bell@44100       0.690 dB           9.70 dB          0.71 dB
+lshelf@44100     4.118 dB           18.10 dB         2.45 dB
+hshelf@44100     4.148 dB           18.10 dB         5.45 dB
+tilt@44100       0.115 dB           -                0.12 dB
+notch@44100      2.138 dB           -                4.95 dB
+bpass@44100      0.952 dB           -                1.44 dB
+lcut@44100       0.231 dB           -                0.93 dB
+hcut@44100       1.464 dB           -                1.79 dB
+flat@44100       0.020 dB           -                0.02 dB
+bell@48000       0.293 dB           7.58 dB          0.25 dB
+lshelf@48000     1.749 dB           18.15 dB         1.30 dB
+hshelf@48000     1.752 dB           18.15 dB         1.94 dB
+tilt@48000       0.022 dB           -                0.01 dB
+notch@48000      1.693 dB           -                3.15 dB
+bpass@48000      0.952 dB           -                1.04 dB
+lcut@48000       0.233 dB           -                0.69 dB
+hcut@48000       0.506 dB           -                2.35 dB
+flat@48000       0.008 dB           -                0.01 dB
+bell@96000       0.066 dB           1.47 dB          0.00 dB
+lshelf@96000     0.142 dB           17.08 dB         0.00 dB
+hshelf@96000     0.148 dB           17.08 dB         0.00 dB
+tilt@96000       0.008 dB           -                0.00 dB
+notch@96000      0.751 dB           -                0.00 dB
+bpass@96000      0.830 dB           -                0.00 dB
+lcut@96000       0.047 dB           -                0.00 dB
+hcut@96000       0.050 dB           -                0.00 dB
+flat@96000       0.010 dB           -                0.00 dB
+casi f0<=fs/4: 3591 | mediana 0.005 | 95% 0.351 | max 4.148 dB
+casi f0>fs/4 : 513 | mediana 0.114 | 95% 1.936 | max 5.453 dB
+caso peggiore assoluto: {"type":"hshelf","f":12000,"g":18,"q":4,"slope":12} 44100 Hz, err 5.45 dB a 20000 Hz
+casi f0<=fs/8: 2565 | max 0.751 dB
+PASS f0 <= fs/4: 95 percentile 0.351 dB < 1.0 dB
+PASS f0 <= fs/8: errore massimo 0.751 dB < 1.0 dB
+== 2. STABILITA (poli dentro il cerchio unitario), 20000 bande casuali ==
+PASS sezioni instabili o non finite: 0
+== 3. COERENZA motore: risposta all impulso (FFT) == curva disegnata ==
+PASS differenza max impulso-FFT vs curva = 7.53e-5 dB
+== 4. NULL TEST: bande a 0 dB / bypass ==
+PASS residuo bande a 0 dB = -300.0 dBFS
+== 5. STEREO: banda MID non tocca il SIDE, banda LEFT non tocca il RIGHT ==
+PASS MID: residuo sul canale intatto -153.0 dBFS, canale trattato cambiato di 0.428
+PASS LEFT: residuo sul canale intatto -300.0 dBFS, canale trattato cambiato di 0.802
+== 6. DINAMICA: sinusoide sopra soglia -> riduzione = attesa; sotto soglia -> statica ==
+PASS sopra soglia: livello det -6.03 dB, gain misurato -12.00 dB, atteso -12.00 dB
+PASS sotto soglia: gain misurato 0.000 dB (atteso 0)
+PASS range positivo (espansione): gain 6.00 dB, atteso +6
+== 7. PENDENZE dei tagli: attenuazione a fc/2 vs Butterworth analogico ==
+   96 dB/oct a fc/2: misurato 96.33 dB, teorico 96.33 dB
+PASS scarto max 6..96 dB/oct = 0.0012 dB
+== 8. PRESTAZIONI: 24 bande dinamiche + 4 tagli 96 dB/oct, stereo, 10 s @48k ==
+   tempo per 10 s audio: 796 ms -> CPU 8.0 % di un core
+PASS piu veloce del tempo reale (x12.6)
+== 9. ERRORI ESPLICITI su dati mancanti ==
+PASS banda senza q -> errore: "TSRQ: banda senza campi q"
+
+RISULTATO: tutti i test PASS

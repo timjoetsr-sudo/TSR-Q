@@ -24,6 +24,7 @@ struct BandParams {
     bool used = false, bypass = false;
     int type = Bell; double f = 1000, gain = 0, q = 1; int slope = 12; int place = Stereo;
     bool dyn = false; double thr = -24, range = -6, att = 5, rel = 80, knee = 6; int det = DetRMS; bool sc = false;
+    bool gq = false;   // Gain-Q interaction (solo Bell): Q effettivo = Q * (1 + |guadagno| / 15), massimo 40
 };
 struct Sec { double f0, n[3], d[3]; };
 struct SecSet { int n = 0; double k = 1; Sec s[kMaxSecs]; };
@@ -51,7 +52,7 @@ inline void sectionsFor (const BandParams& b, double gainDb, SecSet& o) {
     o.n = 0; o.k = 1;
     const double f = b.f, Q = b.q, A = std::pow (10.0, gainDb / 40.0), sA = std::sqrt (A);
     switch (b.type) {
-        case Bell:      push (o, f, 1, A / Q, 1, 1, 1 / (A * Q), 1); break;
+        case Bell: { const double Qe = b.gq ? std::min (40.0, Q * (1.0 + std::abs (gainDb) / 15.0)) : Q; push (o, f, 1, A / Qe, 1, 1, 1 / (A * Qe), 1); break; }
         case LowShelf:  if (b.slope <= 6) push (o, f, A * A, A, 0, 1, A, 0); else push (o, f, A * A, A * sA / Q, A, 1, sA / Q, A); break;
         case HighShelf: if (b.slope <= 6) push (o, f, A, A * A, 0, A, 1, 0); else push (o, f, A, A * sA / Q, A * A, A, sA / Q, 1); break;
         case TiltShelf: push (o, f, 1, A, 0, A, 1, 0); break;
@@ -223,10 +224,36 @@ inline double dynDelta (double levelDb, const BandParams& b) {
     if (amt > r) amt = r; return b.range < 0 ? -amt : amt;
 }
 
+// ---------- oversampling 4x per il Character: halfband IIR polifase (2 catene di passa-tutto del 1° ordine), 12 coefficienti,
+// banda di transizione 0.02: banda passante piatta fino a 0.23·fs2, attenuazione fuori banda > 120 dB. Nessun ritardo puro (fase minima).
+constexpr double kHB[12] = { 0.027155856726483182, 0.10300238556004077, 0.21303004592041422, 0.33933626891036295, 0.46602752012040527, 0.58224701385700428,
+                             0.68259076485235193, 0.76595528238687738, 0.83396924102510472, 0.88969265368750716, 0.93680311116581549, 0.97923872973422221 };
+struct AllpassChain {   // 6 passa-tutto (a + z^-1)/(1 + a z^-1) alla frequenza della catena
+    double x1[6] = {}, y1[6] = {}; int off = 0;
+    double run (double x) { for (int i = 0; i < 6; ++i) { const double a = kHB[off + 2 * i], y = a * (x - y1[i]) + x1[i]; x1[i] = x; y1[i] = y; x = y; } return x; }
+    void reset() { for (int i = 0; i < 6; ++i) x1[i] = y1[i] = 0; }
+};
+struct HalfbandUp   { AllpassChain a, b; HalfbandUp()   { a.off = 0; b.off = 1; } void run (double x, double& y0, double& y1) { y0 = a.run (x); y1 = b.run (x); } void reset() { a.reset(); b.reset(); } };
+struct HalfbandDown { AllpassChain a, b; double prev = 0; HalfbandDown() { a.off = 0; b.off = 1; } double run (double e, double o) { const double y = 0.5 * (a.run (e) + b.run (prev)); prev = o; return y; } void reset() { a.reset(); b.reset(); prev = 0; } };
+inline double characterShape (int chm, double x) {
+    if (chm == 1) return x + 0.03 * x * x - 0.06 * x * x * x;
+    return std::tanh (1.8 * x) / 1.8 + 0.04 * x * x;
+}
+struct Oversampled4x {   // x -> 4 campioni -> saturazione -> 1 campione
+    HalfbandUp u1, u2; HalfbandDown d2, d1;   // u2 e d2 lavorano sul flusso a 2x in sequenza (un solo stato)
+    double run (int chm, double x) {
+        double a, b, c0, c1, c2, c3; u1.run (x, a, b); u2.run (a, c0, c1); u2.run (b, c2, c3);
+        c0 = characterShape (chm, c0); c1 = characterShape (chm, c1); c2 = characterShape (chm, c2); c3 = characterShape (chm, c3);
+        const double e = d2.run (c0, c1), o = d2.run (c2, c3); return d1.run (e, o);
+    }
+    void reset() { u1.reset(); u2.reset(); d2.reset(); d1.reset(); }
+};
+
 // ---------- motore ----------
 class Engine {
 public:
-    struct Global { double inDb = 0, outDb = 0, autoGainDb = 0, scale = 1; int character = 0; bool bypass = false; int solo = -1; };
+    struct Global { double inDb = 0, outDb = 0, autoGainDb = 0, scale = 1; int character = 0; bool bypass = false; int solo = -1;
+                    double pan = 0; bool panMS = false; bool invert = false; bool gq = false; };   // pan -1..+1 (L/R o M/S), polarità invertita, Gain-Q
     std::atomic<float> meterDelta[kMaxBands], meterLevel[kMaxBands];
 
     Engine() { for (int i = 0; i < kMaxBands; ++i) { meterDelta[i] = 0; meterLevel[i] = -120; } }
@@ -234,7 +261,7 @@ public:
         fs = sampleRate; grid.init (fs); N = std::max (maxBlock, 32);
         for (auto* v : { &L, &R, &M, &S, &dL, &dR, &sL, &sR, &sM, &sS }) v->assign ((size_t) N, 0.0);
         for (auto& b : st) { b = BandState(); }
-        outG = 1; inG = 1; byp = 0; std::memset (dc, 0, sizeof (dc)); soloSt = SoloState();
+        outG = 1; inG = 1; byp = 0; std::memset (dc, 0, sizeof (dc)); soloSt = SoloState(); os[0].reset(); os[1].reset(); panA = panB = 1; pol = 1;
     }
     // chiamato all'inizio di ogni blocco, dal thread audio
     void setBand (int i, const BandParams& p) {
@@ -269,7 +296,7 @@ private:
     struct SoloState { int id = -1; BandCoefs c; double z[2][kMaxSecs * 2] = {}; };
     static bool same (const BandParams& a, const BandParams& b) {
         return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
-            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc;
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
     }
     static void detShape (const BandParams& b, BandParams& d) {
         d = BandParams(); d.used = true; d.f = b.f; d.slope = 12;
@@ -385,24 +412,29 @@ private:
             soloSt.id = -1;
             for (int b = 0; b < kMaxBands; ++b) if (st[b].active) bandProcess (b, st[b], n, haveSC);
         }
-        const double tg = std::pow (10.0, (glob.outDb + glob.autoGainDb) / 20.0), ga = 1 - std::exp (-1 / (0.02 * fs));
+        // uscita: OUTPUT (−∞ sotto −60 dB) → Character (oversampling 4x) → DC → pan → polarità → bypass morbido
+        const bool mute = glob.outDb <= -60; const double tg = mute ? 0.0 : std::pow (10.0, (glob.outDb + glob.autoGainDb) / 20.0), ga = 1 - std::exp (-1 / (0.02 * fs));
         const double bt = glob.bypass ? 1 : 0, ba = 1 - std::exp (-1 / (0.008 * fs)), dcA = std::exp (-2 * kPi * 5 / fs);
-        double g = outG, by = byp; const int chm = glob.character;
+        // legge del pan (bilanciamento lineare, centro = 0 dB su entrambi): A = min(1, 1 − p), B = min(1, 1 + p); L/R: A→L, B→R; M/S: A→Mid, B→Side
+        const double p = std::clamp (glob.pan, -1.0, 1.0), tA = std::min (1.0, 1 - p), tB = std::min (1.0, 1 + p), tP = glob.invert ? -1.0 : 1.0; const bool ms = glob.panMS;
+        double g = outG, by = byp, pa = panA, pb = panB, po = pol; const int chm = glob.character;
+        if (chm != lastChm) { os[0].reset(); os[1].reset(); lastChm = chm; }   // cambio di Character: stato dell'oversampling pulito
         for (int i = 0; i < n; ++i) {
-            g += (tg - g) * ga; by += (bt - by) * ba;
+            g += (tg - g) * ga; if (mute && g < 1e-7) g = 0; by += (bt - by) * ba; pa += (tA - pa) * ga; pb += (tB - pb) * ga; po += (tP - po) * ba;
             double l = L[(size_t) i] * g, r = R[(size_t) i] * g;
-            if (chm == 1) { l = l + 0.03 * l * l - 0.06 * l * l * l; r = r + 0.03 * r * r - 0.06 * r * r * r; }
-            else if (chm == 2) { l = std::tanh (1.8 * l) / 1.8 + 0.04 * l * l; r = std::tanh (1.8 * r) / 1.8 + 0.04 * r * r; }
-            if (chm) { const double yl = l - dc[0] + dcA * dc[1]; dc[0] = l; dc[1] = yl; const double yr = r - dc[2] + dcA * dc[3]; dc[2] = r; dc[3] = yr; l = yl; r = yr; }
+            if (chm) { l = os[0].run (chm, l); r = os[1].run (chm, r);
+                const double yl = l - dc[0] + dcA * dc[1]; dc[0] = l; dc[1] = yl; const double yr = r - dc[2] + dcA * dc[3]; dc[2] = r; dc[3] = yr; l = yl; r = yr; }
+            if (ms) { const double m = 0.5 * (l + r) * pa, sd = 0.5 * (l - r) * pb; l = m + sd; r = m - sd; } else { l *= pa; r *= pb; }
+            l *= po; r *= po;
             l += (dL[(size_t) i] - l) * by; r += (dR[(size_t) i] - r) * by;
             Lio[i] = (float) l; Rio[i] = (float) r;
         }
-        outG = g; byp = by;
+        outG = g; byp = by; panA = pa; panB = pb; pol = po;
     }
 
     double fs = 48000; int N = 512; Grid grid; Global glob;
     std::vector<double> L, R, M, S, dL, dR, sL, sR, sM, sS;
-    BandState st[kMaxBands]; SoloState soloSt; double outG = 1, inG = 1, byp = 0, dc[4] = {};
+    BandState st[kMaxBands]; SoloState soloSt; double outG = 1, inG = 1, byp = 0, dc[4] = {}, panA = 1, panB = 1, pol = 1; Oversampled4x os[2]; int lastChm = 0;
 };
 
 } // namespace tsrq

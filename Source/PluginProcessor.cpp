@@ -38,7 +38,12 @@ AudioProcessorValueTreeState::ParameterLayout TsrqProcessor::createLayout() {
         L.add (std::move (grp));
     }
     L.add (std::make_unique<AudioParameterFloat> (ParameterID { "in", 1 }, "Input", NormalisableRange<float> (-24.f, 24.f, 0.01f), 0.f, AudioParameterFloatAttributes().withLabel ("dB")));
-    L.add (std::make_unique<AudioParameterFloat> (ParameterID { "out", 1 }, "Output", NormalisableRange<float> (-24.f, 24.f, 0.01f), 0.f, AudioParameterFloatAttributes().withLabel ("dB")));
+    L.add (std::make_unique<AudioParameterFloat> (ParameterID { "out", 1 }, "Output", NormalisableRange<float> (-60.f, 36.f, 0.01f), 0.f,
+        AudioParameterFloatAttributes().withLabel ("dB").withStringFromValueFunction ([] (float v, int) { return v <= -60.f ? String ("-inf") : String (v, 2); })));   // -inf ... +36 dB
+    L.add (std::make_unique<AudioParameterFloat> (ParameterID { "pan", 1 }, "Output Pan", NormalisableRange<float> (-100.f, 100.f, 0.1f), 0.f, AudioParameterFloatAttributes().withLabel ("%")));
+    L.add (std::make_unique<AudioParameterChoice> (ParameterID { "panmode", 1 }, "Pan Mode", StringArray { "Left/Right", "Mid/Side" }, 0));
+    L.add (std::make_unique<AudioParameterBool> (ParameterID { "invert", 1 }, "Polarity Invert", false));
+    L.add (std::make_unique<AudioParameterBool> (ParameterID { "gq", 1 }, "Gain-Q Interaction", false));
     L.add (std::make_unique<AudioParameterFloat> (ParameterID { "scale", 1 }, "Gain Scale", NormalisableRange<float> (-100.f, 200.f, 1.f), 100.f, AudioParameterFloatAttributes().withLabel ("%")));
     L.add (std::make_unique<AudioParameterBool> (ParameterID { "auto", 1 }, "Auto Gain", false));
     L.add (std::make_unique<AudioParameterChoice> (ParameterID { "char", 1 }, "Character", StringArray { "Clean", "Subtle", "Warm" }, 0));
@@ -56,8 +61,10 @@ TsrqProcessor::TsrqProcessor()
         for (int k = 0; k < ids::numBandKeys; ++k) raw[i][k] = apvts.getRawParameterValue (ids::b (i, ids::bandKeys[k]));
     gIn = apvts.getRawParameterValue ("in"); gOut = apvts.getRawParameterValue ("out"); gScale = apvts.getRawParameterValue ("scale"); gAuto = apvts.getRawParameterValue ("auto");
     gChar = apvts.getRawParameterValue ("char"); gByp = apvts.getRawParameterValue ("bypass");
+    gPan = apvts.getRawParameterValue ("pan"); gPanMode = apvts.getRawParameterValue ("panmode"); gInv = apvts.getRawParameterValue ("invert"); gGq = apvts.getRawParameterValue ("gq");
     // frequenze di partenza distribuite, così le bande nuove non si sovrappongono
     for (int i = 0; i < tsrq::kMaxBands; ++i) if (auto* p = bp (i, "freq")) p->setValueNotifyingHost (p->convertTo0to1 ((float) (40.0 * std::pow (2.0, i * 9.0 / 31.0))));
+    for (auto& c : ccMap) c.store (-1);
     undo.clearUndoHistory();
     startTimerHz (30);
 }
@@ -75,6 +82,7 @@ void TsrqProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) {
     sr = sampleRate;
     engine.prepare (sampleRate, jmax (32, samplesPerBlock));
     monoTmp.assign ((size_t) jmax (32, samplesPerBlock) * 4, 0.0f);
+    wavePre.assign ((size_t) (jmax (32, samplesPerBlock) * 4 / kWaveB + 4) * 4, 0.0f); wCnt = 0; for (auto& v : wAccPre) v = 0; for (auto& v : wAccPost) v = 0; lastEnd = -1;
 }
 
 tsrq::BandParams TsrqProcessor::readBand (int i) const {
@@ -86,22 +94,40 @@ tsrq::BandParams TsrqProcessor::readBand (int i) const {
     return b;
 }
 
-void TsrqProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer&) {
+void TsrqProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midi) {
     ScopedNoDenormals nd;
+    // MIDI Learn: i CC vanno al thread dei messaggi (che muove il parametro come un controllo dell'utente)
+    for (const auto m : midi) { const auto msg = m.getMessage(); if (! msg.isController()) continue;
+        const int cc = msg.getControllerNumber(); const int t = learnTarget.load();
+        if (t >= 0) { for (auto& c : ccMap) if (c.load() == t) c.store (-1); ccMap[cc].store (t); learnTarget.store (-1); midiMapVersion.fetch_add (1); }
+        const int p = ccMap[cc].load(); if (p < 0) continue;
+        int s1, n1, s2, n2; ccFifo.prepareToWrite (1, s1, n1, s2, n2); if (n1 + n2 == 1) { ccBuf[n1 ? s1 : s2] = { p, (float) msg.getControllerValue() / 127.0f }; ccFifo.finishedWrite (1); } }
+    midi.clear();
     auto main = getBusBuffer (buffer, false, 0);
     const int n = main.getNumSamples(), nch = main.getNumChannels(); if (n == 0 || nch == 0) return;
     const double fs = sr.load();
+    // trasporto: play/stop e salti (seek, loop) per la waveform
+    if (auto* ph = getPlayHead()) if (auto pos = ph->getPosition()) { const bool pl = pos->getIsPlaying(); hostPlaying.store (pl);
+        if (auto t = pos->getTimeInSamples()) { if (pl && lastEnd >= 0 && *t != lastEnd) transportJumps.fetch_add (1); lastEnd = pl ? *t + n : -1; } }
 
     tsrq::Engine::Global g; g.inDb = gIn->load(); g.outDb = gOut->load(); g.scale = gScale->load() / 100.0; g.character = (int) gChar->load();
     g.bypass = gByp->load() > 0.5f; g.solo = solo.load(); g.autoGainDb = gAuto->load() > 0.5f ? autoGainDb.load() : 0.0;
+    g.pan = gPan->load() / 100.0; g.panMS = gPanMode->load() > 0.5f; g.invert = gInv->load() > 0.5f; g.gq = gGq->load() > 0.5f;
     engine.setGlobal (g);
-    for (int i = 0; i < tsrq::kMaxBands; ++i) { auto b = readBand (i); b.f = std::min (b.f, fs * 0.495); engine.setBand (i, b); }
+    for (int i = 0; i < tsrq::kMaxBands; ++i) { auto b = readBand (i); b.f = std::min (b.f, fs * 0.495); b.gq = g.gq; engine.setBand (i, b); }
 
     const float* scL = nullptr; const float* scR = nullptr;
     if (getBusCount (true) > 1) { auto* scBus = getBus (true, 1);
         if (scBus != nullptr && scBus->isEnabled()) { auto sc = getBusBuffer (buffer, true, 1); if (sc.getNumChannels() > 0) { scL = sc.getReadPointer (0); scR = sc.getReadPointer (jmin (1, sc.getNumChannels() - 1)); } } }
 
     float* L = main.getWritePointer (0); float* R = nch > 1 ? main.getWritePointer (1) : nullptr;
+    if (scL != nullptr) { for (int i0 = 0; i0 < n; i0 += 1024) { const int m = jmin (1024, n - i0); float tmp[1024]; for (int i = 0; i < m; ++i) tmp[i] = 0.5f * (scL[i0 + i] + scR[i0 + i]); scopeSC.push (tmp, m); }
+        scLastMs.store (Time::getMillisecondCounterHiRes()); }
+    // waveform: min/max per gruppo di kWaveB campioni, prima del motore (i gruppi a cavallo dei blocchi continuano)
+    const int maxGroups = (int) wavePre.size() / 4; int kPre = 0;
+    { int c = wCnt; float* a = wAccPre; for (int i = 0; i < n; ++i) { const float l = L[i], r = R ? R[i] : l;
+            if (c == 0) { a[0] = a[1] = l; a[2] = a[3] = r; } else { a[0] = jmin (a[0], l); a[1] = jmax (a[1], l); a[2] = jmin (a[2], r); a[3] = jmax (a[3], r); }
+            if (++c == kWaveB) { if (kPre < maxGroups) std::memcpy (wavePre.data() + 4 * kPre, a, 4 * sizeof (float)); ++kPre; c = 0; } } }
     { const float gi = Decibels::decibelsToGain (gIn->load()); float a = 0, b = 0; for (int i = 0; i < n; ++i) { a = jmax (a, std::abs (L[i])); if (R) b = jmax (b, std::abs (R[i])); }
       maxInto (pkIn[0], a * gi); maxInto (pkIn[1], (R ? b : a) * gi); }
     // analizzatore: ingresso
@@ -114,13 +140,36 @@ void TsrqProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer&) {
     for (int i0 = 0; i0 < n; i0 += 1024) { const int m = jmin (1024, n - i0); float tmp[1024];
         for (int i = 0; i < m; ++i) tmp[i] = R ? 0.5f * (L[i0 + i] + R[i0 + i]) : L[i0 + i]; scopePost.push (tmp, m); }
     { float a = 0, b = 0; for (int i = 0; i < n; ++i) { a = jmax (a, std::abs (L[i])); if (R) b = jmax (b, std::abs (R[i])); } maxInto (pkOut[0], a); maxInto (pkOut[1], R ? b : a); }
+    // waveform: stessi gruppi dopo il motore (latenza del motore = 0 campioni: prima e dopo sono allineati)
+    { int c = wCnt, k = 0; float* a = wAccPost; for (int i = 0; i < n; ++i) { const float l = L[i], r = R ? R[i] : l;
+            if (c == 0) { a[0] = a[1] = l; a[2] = a[3] = r; } else { a[0] = jmin (a[0], l); a[1] = jmax (a[1], l); a[2] = jmin (a[2], r); a[3] = jmax (a[3], r); }
+            if (++c == kWaveB) { if (k < maxGroups) { float v[8]; std::memcpy (v, wavePre.data() + 4 * k, 4 * sizeof (float)); std::memcpy (v + 4, a, 4 * sizeof (float)); wave.push8 (v); } else wave.dropped.fetch_add (1); ++k; c = 0; } }
+      wCnt = c; }
+}
+
+void TsrqProcessor::applyMidiCC() {   // thread dei messaggi: i CC ricevuti muovono i parametri (con inizio/fine gesto)
+    const auto& ps = getParameters(); int s1, n1, s2, n2; ccFifo.prepareToRead (ccFifo.getNumReady(), s1, n1, s2, n2);
+    auto go = [&] (int st, int cnt) { for (int i = 0; i < cnt; ++i) { const auto& m = ccBuf[st + i]; if (m.param >= 0 && m.param < ps.size()) { auto* p = ps[m.param]; p->beginChangeGesture(); p->setValueNotifyingHost (m.v); p->endChangeGesture(); } } };
+    go (s1, n1); go (s2, n2); ccFifo.finishedRead (n1 + n2);
+}
+static int paramIndex (const AudioProcessor& ap, const String& id) { const auto& ps = ap.getParameters(); for (int i = 0; i < ps.size(); ++i) if (auto* r = dynamic_cast<const RangedAudioParameter*> (ps[i])) if (r->getParameterID() == id) return i; return -1; }
+void TsrqProcessor::midiLearn (const String& id) { learnTarget.store (id.isEmpty() ? -1 : paramIndex (*this, id)); midiMapVersion.fetch_add (1); }
+void TsrqProcessor::midiForget (const String& id) { const int p = paramIndex (*this, id); if (p < 0) return; for (auto& c : ccMap) if (c.load() == p) c.store (-1); midiMapVersion.fetch_add (1); }
+var TsrqProcessor::midiMapAsVar() const {
+    DynamicObject::Ptr o = new DynamicObject(); const auto& ps = getParameters();
+    for (int cc = 0; cc < 128; ++cc) { const int p = ccMap[cc].load(); if (p >= 0 && p < ps.size()) if (auto* r = dynamic_cast<const RangedAudioParameter*> (ps[p])) o->setProperty (r->getParameterID(), cc); }
+    DynamicObject::Ptr res = new DynamicObject(); res->setProperty ("map", var (o.get()));
+    const int t = learnTarget.load(); res->setProperty ("learning", t >= 0 && t < ps.size() ? var (dynamic_cast<const RangedAudioParameter*> (ps[t])->getParameterID()) : var (String()));
+    return var (res.get());
 }
 
 void TsrqProcessor::timerCallback() {   // auto gain: media in dB della curva statica 20 Hz-20 kHz, calcolata fuori dal thread audio
+    applyMidiCC();
     if (gAuto->load() < 0.5f) return;
     const double fs = sr.load(); if (uiGrid.fs != fs) uiGrid.init (fs);
     const double sc = gScale->load() / 100.0; double sum = 0; tsrq::BandCoefs c[tsrq::kMaxBands]; int nb = 0;
-    for (int i = 0; i < tsrq::kMaxBands; ++i) { auto b = readBand (i); if (! b.used || b.bypass) continue; b.f = std::min (b.f, fs * 0.495);
+    const bool gq = gGq->load() > 0.5f;
+    for (int i = 0; i < tsrq::kMaxBands; ++i) { auto b = readBand (i); if (! b.used || b.bypass) continue; b.f = std::min (b.f, fs * 0.495); b.gq = gq;
         tsrq::designBand (b, tsrq::hasGain (b.type) ? b.gain * sc : 0, uiGrid, c[nb++]); }
     for (int k = 0; k <= 60; ++k) { const double f = 20 * std::pow (1000.0, k / 60.0); double m = 1; for (int i = 0; i < nb; ++i) m *= tsrq::bandMag2 (c[i], f, fs); sum += 10 * std::log10 (std::max (m, 1e-12)); }
     autoGainDb = (float) (-sum / 61.0);
@@ -142,10 +191,19 @@ void TsrqProcessor::switchAB (int slot) {
 void TsrqProcessor::copyCurrentToOther() { abState[1 - abSlot] = apvts.copyState(); }
 
 void TsrqProcessor::getStateInformation (MemoryBlock& dest) {
-    auto st = apvts.copyState(); if (auto xml = st.createXml()) copyXmlToBinary (*xml, dest);
+    auto st = apvts.copyState(); st.setProperty ("tsrqStateVersion", 2, nullptr);
+    ValueTree mm ("MIDI"); const auto& ps = getParameters();
+    for (int cc = 0; cc < 128; ++cc) { const int p = ccMap[cc].load(); if (p >= 0 && p < ps.size()) if (auto* r = dynamic_cast<RangedAudioParameter*> (ps[p])) { ValueTree e ("CC"); e.setProperty ("cc", cc, nullptr); e.setProperty ("param", r->getParameterID(), nullptr); mm.appendChild (e, nullptr); } }
+    st.removeChild (st.getChildWithName ("MIDI"), nullptr); st.appendChild (mm, nullptr);
+    if (auto xml = st.createXml()) copyXmlToBinary (*xml, dest);
 }
 void TsrqProcessor::setStateInformation (const void* data, int size) {
-    if (auto xml = getXmlFromBinary (data, size)) if (xml->hasTagName (apvts.state.getType())) apvts.replaceState (ValueTree::fromXml (*xml));
+    if (auto xml = getXmlFromBinary (data, size)) if (xml->hasTagName (apvts.state.getType())) {
+        auto vt = ValueTree::fromXml (*xml); const auto mm = vt.getChildWithName ("MIDI");
+        for (auto& c : ccMap) c.store (-1);
+        for (int i = 0; i < mm.getNumChildren(); ++i) { const auto e = mm.getChild (i); const int cc = e.getProperty ("cc", -1); const int p = paramIndex (*this, e.getProperty ("param").toString()); if (cc >= 0 && cc < 128 && p >= 0) ccMap[cc].store (p); }
+        vt.removeChild (mm, nullptr); apvts.replaceState (vt); midiMapVersion.fetch_add (1);
+    }
 }
 
 AudioProcessorEditor* TsrqProcessor::createEditor() { return new TsrqWebEditor (*this); }   // interfaccia TSR Q (HTML) dentro una WebView
