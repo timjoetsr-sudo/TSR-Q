@@ -1,0 +1,653 @@
+== 1/6 configurazione (universale arm64 + x86_64, macOS 11+) ==
+-- The C compiler identification is AppleClang 15.0.0.15000309
+-- The CXX compiler identification is AppleClang 15.0.0.15000309
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (92.8s)
+-- Generating done (0.1s)
+-- Build files have been written to: /Users/runner/work/TSR-Q/TSR-Q/build-mac
+== 2/6 build AU, VST3, Standalone, test ==
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.mm:35:
+/Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.cpp:61:2: warning: This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored [-W#pragma-messages]
+ JUCE_COMPILER_WARNING ("This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored")
+ ^
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.mm:35:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.cpp:55:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.h:68:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_graphics/juce_graphics.h:67:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_core/juce_core.h:215:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_core/system/juce_StandardHeader.h:94:
+/Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_core/system/juce_PlatformDefs.h:286:38: note: expanded from macro 'JUCE_COMPILER_WARNING'
+ #define JUCE_COMPILER_WARNING(msg)  _Pragma (JUCE_STRINGIFY (message (msg)))
+                                     ^
+<scratch space>:275:2: note: expanded from here
+ message ("This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored")
+ ^
+1 warning generated.
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/WebEditor.cpp:1:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/WebEditor.h:3:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginProcessor.h:4:
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:103:12: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (d2 == 0) { const double p = -d0 / d1 * w0; a1 = -std::exp (p); a2 = 0; return; }
+        ~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:141:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0) { const double e = std::exp (-n[1] / n[2] * w0); z[0] = 1; z[1] = -(1 + e); z[2] = e; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:199:29: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    const bool jw = sc.n[1] == 0 && sc.n[0] > 0 && sc.n[2] > 0;
+                    ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:17: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:33: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+                        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:280:57: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = ! same (s.p, p) || s.scale != glob.scale;
+                                                ~~~~~~~ ^  ~~~~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:84: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                               ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:101: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                             ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:118: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                                                 ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:40: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                 ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:60: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                   ~~~~~~~ ^  ~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:80: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                         ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:98: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                           ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:117: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                                             ~~~~~~ ^  ~~~~~~
+20 warnings generated.
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginProcessor.cpp:1:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginProcessor.h:4:
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:103:12: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (d2 == 0) { const double p = -d0 / d1 * w0; a1 = -std::exp (p); a2 = 0; return; }
+        ~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:141:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0) { const double e = std::exp (-n[1] / n[2] * w0); z[0] = 1; z[1] = -(1 + e); z[2] = e; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:199:29: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    const bool jw = sc.n[1] == 0 && sc.n[0] > 0 && sc.n[2] > 0;
+                    ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:17: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:33: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+                        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:280:57: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = ! same (s.p, p) || s.scale != glob.scale;
+                                                ~~~~~~~ ^  ~~~~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:84: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                               ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:101: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                             ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:118: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                                                 ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:40: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                 ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:60: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                   ~~~~~~~ ^  ~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:80: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                         ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:98: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                           ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:117: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                                             ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginProcessor.cpp:169:48: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    const double fs = sr.load(); if (uiGrid.fs != fs) uiGrid.init (fs);
+                                     ~~~~~~~~~ ^  ~~
+21 warnings generated.
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:1:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.h:2:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginProcessor.h:4:
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:103:12: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (d2 == 0) { const double p = -d0 / d1 * w0; a1 = -std::exp (p); a2 = 0; return; }
+        ~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:141:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0) { const double e = std::exp (-n[1] / n[2] * w0); z[0] = 1; z[1] = -(1 + e); z[2] = e; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:199:29: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    const bool jw = sc.n[1] == 0 && sc.n[0] > 0 && sc.n[2] > 0;
+                    ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:17: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:33: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+                        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:280:57: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = ! same (s.p, p) || s.scale != glob.scale;
+                                                ~~~~~~~ ^  ~~~~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:84: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                               ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:101: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                             ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:118: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                                                 ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:40: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                 ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:60: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                   ~~~~~~~ ^  ~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:80: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                         ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:98: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                           ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:117: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                                             ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:92:17: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (cacheFs != fs || (int) colF.size() != W) {
+        ~~~~~~~ ^  ~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:96:124: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    const double sc = proc.apvts.getRawParameterValue ("scale")->load() / 100.0; bool any = false, totalDirty = geom || sc != cacheScale; cacheScale = sc;
+                                                                                                                        ~~ ^  ~~~~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:109:41: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = geom || sc != cacheScale || o.used != b.used || o.bypass != b.bypass || o.type != b.type || o.f != b.f || o.gain != b.gain || o.q != b.q || o.slope != b.slope;
+                                     ~~ ^  ~~~~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:109:126: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = geom || sc != cacheScale || o.used != b.used || o.bypass != b.bypass || o.type != b.type || o.f != b.f || o.gain != b.gain || o.q != b.q || o.slope != b.slope;
+                                                                                                                         ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:109:143: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = geom || sc != cacheScale || o.used != b.used || o.bypass != b.bypass || o.type != b.type || o.f != b.f || o.gain != b.gain || o.q != b.q || o.slope != b.slope;
+                                                                                                                                       ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:109:160: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = geom || sc != cacheScale || o.used != b.used || o.bypass != b.bypass || o.type != b.type || o.f != b.f || o.gain != b.gain || o.q != b.q || o.slope != b.slope;
+                                                                                                                                                           ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:187:63: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    for (auto& [f, t] : fl) if (f <= fMax()) { g.setColour (f == 100 || f == 1000 || f == 10000 ? col::ink : col::dim); g.drawText (t, (int) X (f) - 20, (int) r.getBottom() + 4, 40, 12, Justification::centred); }
+                                                            ~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:187:75: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    for (auto& [f, t] : fl) if (f <= fMax()) { g.setColour (f == 100 || f == 1000 || f == 10000 ? col::ink : col::dim); g.drawText (t, (int) X (f) - 20, (int) r.getBottom() + 4, 40, 12, Justification::centred); }
+                                                                        ~ ^  ~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:187:88: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    for (auto& [f, t] : fl) if (f <= fMax()) { g.setColour (f == 100 || f == 1000 || f == 10000 ? col::ink : col::dim); g.drawText (t, (int) X (f) - 20, (int) r.getBottom() + 4, 40, 12, Justification::centred); }
+                                                                                     ~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:491:205: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    for (auto [n, v] : { std::pair<const char*, float> { "Lento", 12.f }, { "Medio", 40.f }, { "Veloce", 120.f } }) dec.addItem (String (n) + " (" + String ((int) v) + " dB/s)", true, graph.decayDbPerSec == v, [this, v = v] { graph.decayDbPerSec = v; });
+                                                                                                                                                                                        ~~~~~~~~~~~~~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:493:154: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    for (auto [n, v] : { std::pair<const char*, float> { "Nessuna", 0.f }, { "Breve", 0.5f }, { "Lunga", 0.85f } }) avg.addItem (n, true, graph.avgAlpha == v, [this, v = v] { graph.avgAlpha = v; });
+                                                                                                                                          ~~~~~~~~~~~~~~ ^  ~
+31 warnings generated.
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.mm:35:
+/Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.cpp:61:2: warning: This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored [-W#pragma-messages]
+ JUCE_COMPILER_WARNING ("This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored")
+ ^
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.mm:35:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.cpp:55:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.h:68:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_graphics/juce_graphics.h:67:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_core/juce_core.h:215:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_core/system/juce_StandardHeader.h:94:
+/Users/runner/work/TSR-Q/TSR-Q/build-mac/_deps/juce-src/modules/juce_core/system/juce_PlatformDefs.h:286:38: note: expanded from macro 'JUCE_COMPILER_WARNING'
+ #define JUCE_COMPILER_WARNING(msg)  _Pragma (JUCE_STRINGIFY (message (msg)))
+                                     ^
+<scratch space>:76:2: note: expanded from here
+ message ("This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored")
+ ^
+1 warning generated.
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/WebEditor.cpp:1:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/WebEditor.h:3:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginProcessor.h:4:
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:103:12: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (d2 == 0) { const double p = -d0 / d1 * w0; a1 = -std::exp (p); a2 = 0; return; }
+        ~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:141:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0) { const double e = std::exp (-n[1] / n[2] * w0); z[0] = 1; z[1] = -(1 + e); z[2] = e; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:199:29: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    const bool jw = sc.n[1] == 0 && sc.n[0] > 0 && sc.n[2] > 0;
+                    ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:17: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:33: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+                        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:280:57: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = ! same (s.p, p) || s.scale != glob.scale;
+                                                ~~~~~~~ ^  ~~~~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:84: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                               ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:101: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                             ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:118: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                                                 ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:40: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                 ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:60: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                   ~~~~~~~ ^  ~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:80: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                         ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:98: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                           ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:117: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                                             ~~~~~~ ^  ~~~~~~
+20 warnings generated.
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginProcessor.cpp:1:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginProcessor.h:4:
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:103:12: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (d2 == 0) { const double p = -d0 / d1 * w0; a1 = -std::exp (p); a2 = 0; return; }
+        ~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:141:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0) { const double e = std::exp (-n[1] / n[2] * w0); z[0] = 1; z[1] = -(1 + e); z[2] = e; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:199:29: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    const bool jw = sc.n[1] == 0 && sc.n[0] > 0 && sc.n[2] > 0;
+                    ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:17: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:33: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+                        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:280:57: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = ! same (s.p, p) || s.scale != glob.scale;
+                                                ~~~~~~~ ^  ~~~~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:84: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                               ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:101: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                             ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:118: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                                                 ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:40: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                 ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:60: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                   ~~~~~~~ ^  ~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:80: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                         ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:98: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                           ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:117: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                                             ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginProcessor.cpp:169:48: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    const double fs = sr.load(); if (uiGrid.fs != fs) uiGrid.init (fs);
+                                     ~~~~~~~~~ ^  ~~
+21 warnings generated.
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:1:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.h:2:
+In file included from /Users/runner/work/TSR-Q/TSR-Q/Source/PluginProcessor.h:4:
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:103:12: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (d2 == 0) { const double p = -d0 / d1 * w0; a1 = -std::exp (p); a2 = 0; return; }
+        ~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:139:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[1] == 0) { z[0] = 1; z[1] = -2; z[2] = 1; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:140:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0 && n[2] == 0) { z[0] = 1; z[1] = -1; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:141:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[0] == 0) { const double e = std::exp (-n[1] / n[2] * w0); z[0] = 1; z[1] = -(1 + e); z[2] = e; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:14: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+        ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:142:27: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (n[1] == 0 && n[2] == 0) { z[0] = 1; z[1] = 0; z[2] = 0; return; }
+                     ~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:199:29: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    const bool jw = sc.n[1] == 0 && sc.n[0] > 0 && sc.n[2] > 0;
+                    ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:17: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:204:33: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (sc.n[0] == 0 && sc.n[1] == 0) return best;   // passa-alto puro: il fit IRLS è mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
+                        ~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:280:57: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = ! same (s.p, p) || s.scale != glob.scale;
+                                                ~~~~~~~ ^  ~~~~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:84: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                               ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:101: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                             ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:314:118: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
+                                                                                                                 ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:40: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                 ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:60: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                   ~~~~~~~ ^  ~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:80: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                         ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:98: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                           ~~~~~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/TsrqDsp.h:315:117: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+            && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
+                                                                                                             ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:92:17: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    if (cacheFs != fs || (int) colF.size() != W) {
+        ~~~~~~~ ^  ~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:96:124: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    const double sc = proc.apvts.getRawParameterValue ("scale")->load() / 100.0; bool any = false, totalDirty = geom || sc != cacheScale; cacheScale = sc;
+                                                                                                                        ~~ ^  ~~~~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:109:41: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = geom || sc != cacheScale || o.used != b.used || o.bypass != b.bypass || o.type != b.type || o.f != b.f || o.gain != b.gain || o.q != b.q || o.slope != b.slope;
+                                     ~~ ^  ~~~~~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:109:126: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = geom || sc != cacheScale || o.used != b.used || o.bypass != b.bypass || o.type != b.type || o.f != b.f || o.gain != b.gain || o.q != b.q || o.slope != b.slope;
+                                                                                                                         ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:109:143: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = geom || sc != cacheScale || o.used != b.used || o.bypass != b.bypass || o.type != b.type || o.f != b.f || o.gain != b.gain || o.q != b.q || o.slope != b.slope;
+                                                                                                                                       ~~~~~~ ^  ~~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:109:160: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+        const bool changed = geom || sc != cacheScale || o.used != b.used || o.bypass != b.bypass || o.type != b.type || o.f != b.f || o.gain != b.gain || o.q != b.q || o.slope != b.slope;
+                                                                                                                                                           ~~~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:187:63: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    for (auto& [f, t] : fl) if (f <= fMax()) { g.setColour (f == 100 || f == 1000 || f == 10000 ? col::ink : col::dim); g.drawText (t, (int) X (f) - 20, (int) r.getBottom() + 4, 40, 12, Justification::centred); }
+                                                            ~ ^  ~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:187:75: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    for (auto& [f, t] : fl) if (f <= fMax()) { g.setColour (f == 100 || f == 1000 || f == 10000 ? col::ink : col::dim); g.drawText (t, (int) X (f) - 20, (int) r.getBottom() + 4, 40, 12, Justification::centred); }
+                                                                        ~ ^  ~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:187:88: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    for (auto& [f, t] : fl) if (f <= fMax()) { g.setColour (f == 100 || f == 1000 || f == 10000 ? col::ink : col::dim); g.drawText (t, (int) X (f) - 20, (int) r.getBottom() + 4, 40, 12, Justification::centred); }
+                                                                                     ~ ^  ~~~~~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:491:205: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    for (auto [n, v] : { std::pair<const char*, float> { "Lento", 12.f }, { "Medio", 40.f }, { "Veloce", 120.f } }) dec.addItem (String (n) + " (" + String ((int) v) + " dB/s)", true, graph.decayDbPerSec == v, [this, v = v] { graph.decayDbPerSec = v; });
+                                                                                                                                                                                        ~~~~~~~~~~~~~~~~~~~ ^  ~
+/Users/runner/work/TSR-Q/TSR-Q/Source/PluginEditor.cpp:493:154: warning: comparing floating point with == or != is unsafe [-Wfloat-equal]
+    for (auto [n, v] : { std::pair<const char*, float> { "Nessuna", 0.f }, { "Breve", 0.5f }, { "Lunga", 0.85f } }) avg.addItem (n, true, graph.avgAlpha == v, [this, v = v] { graph.avgAlpha = v; });
+                                                                                                                                          ~~~~~~~~~~~~~~ ^  ~
+31 warnings generated.
+note: Run script build phase 'CMake PostBuild Rules' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'TSRQ_VST3' from project 'TSRQ')
+note: Run script build phase 'Generate CMakeFiles/ZERO_CHECK' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'ZERO_CHECK' from project 'TSRQ')
+note: Run script build phase 'CMake PostBuild Rules' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'TSRQ_Standalone' from project 'TSRQ')
+note: Run script build phase 'CMake PostBuild Rules' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'TSRQ_AU' from project 'TSRQ')
+Architectures in the fat file: build-mac/TSRQ_artefacts/Release/AU/TSR Q.component/Contents/MacOS/TSR Q are: x86_64 arm64 
+== 3/6 test del motore ==
+== 1. PRECISIONE vs prototipo analogico (20 Hz-20 kHz, pavimento -40 dB) ==
+casi f0<=fs/4: 3591 | mediana 0.006 | 95% 0.563 | max 4.148 dB
+casi f0>fs/4 : 513 | mediana 0.119 | 95% 2.350 | max 5.453 dB
+PASS f0 <= fs/4: 95 percentile 0.563 dB < 1.0 dB
+caso peggiore f0<=fs/8: tipo 6 f 4000 g -12 q 4.00 pendenza 6 fs 44100 -> 0.982 dB
+PASS f0 <= fs/8: errore massimo 0.982 dB < 1.0 dB
+== 1b. Band Pass 12/24/36/48/72/96 dB/oct: precisione nella banda utile (sopra -20 dB) ==
+errore massimo sopra -20 dB: 0.532 dB | fino a -40 dB (vicino a Nyquist, il digitale scende un po' di piu): 1.539 dB
+PASS Band Pass multi-sezione, f0 <= fs/8: errore massimo sopra -20 dB 0.532 dB < 1.0 dB
+== 2. STABILITA, 20000 bande casuali (10 tipi) ==
+PASS sezioni instabili o non finite: 0
+== 3. COERENZA motore: risposta all'impulso (FFT) == curva disegnata ==
+PASS differenza max impulso-FFT vs curva = 7.53e-05 dB
+== 4. NULL TEST bande a 0 dB, ALL PASS = modulo piatto ==
+PASS residuo bande a 0 dB = -300.0 dBFS
+PASS ALL PASS: scarto dal modulo piatto = 5.3e-09 dB (tolleranza 1e-6: arrotondamento double)
+== 5. STEREO: MID non tocca il SIDE, LEFT non tocca il RIGHT ==
+PASS MID: residuo sul SIDE -150.5 dBFS, canale trattato cambiato di 0.476
+PASS LEFT: residuo sul RIGHT -300.0 dBFS, canale trattato cambiato di 0.863
+== 6. DINAMICA: sopra/sotto soglia, espansione, knee, Peak, sidechain ==
+PASS sopra soglia: gain -12.00 dB, atteso -12.00 dB
+PASS sotto soglia: gain 0.000 dB (atteso 0)
+PASS espansione: gain 6.00 dB, atteso +6
+PASS detector PEAK: gain -12.00 dB, atteso -12.00 dB
+PASS SIDECHAIN forte, segnale debole: gain -12.00 dB (attesa riduzione)
+PASS SIDECHAIN muto, segnale forte: gain 0.000 dB (atteso 0)
+PASS knee 12 dB: a soglia -1.12 dB, 6,5 dB sotto -0.00 dB
+== 7. PENDENZE: attenuazione a fc/2 vs Butterworth analogico ==
+PASS scarto max 6..96 dB/oct = 0.0012 dB
+== 8. PRESTAZIONI: 32 bande (28 dinamiche + 4 tagli 96 dB/oct), stereo, 10 s @48k, blocchi 128 ==
+   tempo per 10 s di audio: 837 ms -> 8.4 % di un core
+PASS piu veloce del tempo reale (x12.0)
+== 9. USCITA: OUTPUT -inf/+36, pan L/R e M/S (bilanciamento lineare, centro 0 dB), polarita ==
+PASS OUTPUT a -60 = -inf: uscita 0.0e+00 / 0.0e+00 (attesa zero esatto)
+PASS OUTPUT +36 dB: misurato 36.000 dB
+PASS pan L/R +50%: L -6.021 dB (atteso -6.021), R -0.000 dB (atteso 0)
+PASS pan L/R -100%: R 3.5e-22 (atteso 0), L -0.000 dB
+PASS pan M/S -100% (solo Mid) su segnale tutto Side (R = -L): uscita 3.5e-22 / 3.5e-22 (attesa zero)
+PASS pan M/S +100% (solo Side) su segnale tutto Mid (R = L): uscita 3.5e-22 (attesa zero)
+PASS pan M/S al centro: neutro (L -0.000 dB, R 0.0e+00)
+PASS polarita invertita: uscita = -ingresso, scarto 1.4e-08
+== 10. GAIN-Q INTERACTION (Bell): Q effettivo = Q * (1 + |dB|/15), max 40 ==
+PASS filtro reale = Bell con Q effettivo (24 casi fino a +/-30 dB e Q 40): scarto max 0.011 dB, tutti stabili
+PASS +12 dB: con Gain-Q la campana e piu stretta (a 2 kHz 1.75 dB invece di 3.96 dB)
+PASS 0 dB con Gain-Q: piatto (0.0e+00 dB)
+== 11. CHARACTER: aliasing misurato senza e con oversampling 8x (sinusoide alta, vari livelli e fs) ==
+   fs 44100, 15 kHz -12 dBFS, Subtle: alias sotto 20 kHz  senza OS -48.5 dB  |  con OS 8x -169.3 dB (rispetto alla fondamentale)
+   fs 44100, 15 kHz -12 dBFS, Warm  : alias sotto 20 kHz  senza OS -35.8 dB  |  con OS 8x -159.2 dB (rispetto alla fondamentale)
+   fs 44100, 15 kHz -6 dBFS, Subtle: alias sotto 20 kHz  senza OS -42.4 dB  |  con OS 8x -163.2 dB (rispetto alla fondamentale)
+   fs 44100, 15 kHz -6 dBFS, Warm  : alias sotto 20 kHz  senza OS -25.0 dB  |  con OS 8x -149.1 dB (rispetto alla fondamentale)
+   fs 44100, 15 kHz +0 dBFS, Subtle: alias sotto 20 kHz  senza OS -36.1 dB  |  con OS 8x -156.9 dB (rispetto alla fondamentale)
+   fs 44100, 15 kHz +0 dBFS, Warm  : alias sotto 20 kHz  senza OS -16.4 dB  |  con OS 8x -142.1 dB (rispetto alla fondamentale)
+   fs 48000, 15 kHz -12 dBFS, Subtle: alias sotto 20 kHz  senza OS -48.5 dB  |  con OS 8x -164.9 dB (rispetto alla fondamentale)
+   fs 48000, 15 kHz -12 dBFS, Warm  : alias sotto 20 kHz  senza OS -35.8 dB  |  con OS 8x -151.2 dB (rispetto alla fondamentale)
+   fs 48000, 15 kHz -6 dBFS, Subtle: alias sotto 20 kHz  senza OS -42.4 dB  |  con OS 8x -158.8 dB (rispetto alla fondamentale)
+   fs 48000, 15 kHz -6 dBFS, Warm  : alias sotto 20 kHz  senza OS -25.0 dB  |  con OS 8x -141.1 dB (rispetto alla fondamentale)
+   fs 48000, 15 kHz +0 dBFS, Subtle: alias sotto 20 kHz  senza OS -36.1 dB  |  con OS 8x -151.2 dB (rispetto alla fondamentale)
+   fs 48000, 15 kHz +0 dBFS, Warm  : alias sotto 20 kHz  senza OS -16.4 dB  |  con OS 8x -134.3 dB (rispetto alla fondamentale)
+   fs 96000, 15 kHz -12 dBFS, Subtle: alias sotto 20 kHz  senza OS -181.2 dB  |  con OS 8x -181.2 dB (rispetto alla fondamentale)
+   fs 96000, 15 kHz -12 dBFS, Warm  : alias sotto 20 kHz  senza OS -104.0 dB  |  con OS 8x -178.1 dB (rispetto alla fondamentale)
+   fs 96000, 15 kHz -6 dBFS, Subtle: alias sotto 20 kHz  senza OS -174.8 dB  |  con OS 8x -174.7 dB (rispetto alla fondamentale)
+   fs 96000, 15 kHz -6 dBFS, Warm  : alias sotto 20 kHz  senza OS -71.1 dB  |  con OS 8x -170.7 dB (rispetto alla fondamentale)
+   fs 96000, 15 kHz +0 dBFS, Subtle: alias sotto 20 kHz  senza OS -168.3 dB  |  con OS 8x -168.3 dB (rispetto alla fondamentale)
+   fs 96000, 15 kHz +0 dBFS, Warm  : alias sotto 20 kHz  senza OS -44.1 dB  |  con OS 8x -152.3 dB (rispetto alla fondamentale)
+PASS oversampling 8x: alias peggiore -134.3 dB invece di -16.4 dB (miglioramento > 20 dB)
+PASS alias peggiore con oversampling 8x sotto -100 dB rispetto alla fondamentale (-134.3 dB)
+   filtro OS @44.1k: modulo 1 kHz -0.000 dB, 10 kHz 0.000 dB, 18 kHz -0.000 dB, 20 kHz -0.000 dB | ritardo di gruppo 1 kHz 7.97, 10 kHz 9.51, 18 kHz 18.66 campioni
+PASS banda passante piatta fino a 18 kHz @44.1k (scarto max 0.000 dB)
+   nota: con Character attivo il suono passa da questi filtri (ritardo di fase indicato sopra); con Clean nessun oversampling e nessun ritardo
+   CPU, 10 s stereo @48k senza bande: Clean 17 ms, Warm con OS 8x 311 ms
+PASS costo del Character con oversampling 8x: 311 ms per 10 s (3.1 % di un core)
+== 12. SOLO: allargando o spostando la banda durante il solo cambia cio che si ascolta ==
+PASS solo su 1 kHz, tono a 2,5 kHz: Q 4 -> -9.9 dB, allargata a Q 0.3 -> -0.8 dB (si sente di piu)
+PASS spostata a 2,5 kHz durante il solo: 0.0 dB (prima -9.9 dB)
+== 13. CLICK: ogni cambio di stato misurato come energia sopra 6 kHz su un segnale senza contenuto sopra 1,5 kHz (blocchi da 256) ==
+   static          -137.9 dB  (parametri fermi)
+   drag            -137.6 dB  (frequenza 200 Hz -> 2 kHz)
+   solo_static     -148.8 dB  (solo fermo)
+   solo_drag       -146.5 dB  (solo mentre la banda si sposta)
+   solo_q          -145.6 dB  (solo mentre la banda si allarga)
+   solo_toggle     -114.1 dB  (solo acceso/spento)
+   bypass_band     -125.4 dB  (banda bypass on/off)
+   used            -125.4 dB  (banda attivata/disattivata)
+   type            -114.7 dB  (cambio di tipo Bell/LowShelf/HighShelf/Notch)
+   slope           -114.9 dB  (cambio di pendenza 12/24/48)
+   place           -123.3 dB  (cambio di collocazione Stereo/Mid/Side)
+   dyn             -124.3 dB  (dinamica on/off)
+   gbypass         -123.3 dB  (bypass globale on/off)
+   subtle          -121.7 dB  (Character Clean/Subtle)
+   outstep         -123.7 dB  (OUTPUT a gradino 0/-12 dB)
+   instep          -125.1 dB  (INPUT a gradino 0/-12 dB)
+   polarity        -109.1 dB  (inversione di polarita)
+   pan             -137.9 dB  (pan a gradino)
+   pavimento (parametri fermi) -137.9 dB
+PASS nessun click: energia sopra 6 kHz al massimo -109.1 dB rispetto al segnale in tutti gli scenari (< -90 dB)
+
+RISULTATO: tutti i test PASS
+(test sugli stem saltato: imposta STEMS_DIR con i file .f32)
+== 4/6 firma ==
+build-mac/TSRQ_artefacts/Release/AU/TSR Q.component: replacing existing signature
+build-mac/TSRQ_artefacts/Release/VST3/TSR Q.vst3: replacing existing signature
+build-mac/TSRQ_artefacts/Release/Standalone/TSR Q.app: replacing existing signature
+== 5/6 validazione nei formati Apple ==
+--------------------------------------------------
+AU VALIDATION SUCCEEDED.
+--------------------------------------------------
+2026-10-10 20:41:02.707 pluginval[18395:49862] WARNING: Secure coding is automatically enabled for restorable state! However, not on all supported macOS versions of this application. Opt-in to secure coding explicitly by implementing NSApplicationDelegate.applicationSupportsSecureRestorableState:.
+Completed tests in pluginval / Fuzz parameters
+SUCCESS
+2026-10-10 20:41:59.539 pluginval[20581:55239] WARNING: Secure coding is automatically enabled for restorable state! However, not on all supported macOS versions of this application. Opt-in to secure coding explicitly by implementing NSApplicationDelegate.applicationSupportsSecureRestorableState:.
+Completed tests in pluginval / Fuzz parameters
+SUCCESS
+== 6/6 installer .pkg + zip ==
+pkgbuild: Inferring bundle components from contents of /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/T/tmp.M2jVtAGH5T/au
+pkgbuild: Adding component at TSR Q.component
+pkgbuild: Wrote package to /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/T/tmp.M2jVtAGH5T/au.pkg
+pkgbuild: Inferring bundle components from contents of /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/T/tmp.M2jVtAGH5T/vst3
+pkgbuild: Adding component at TSR Q.vst3
+pkgbuild: Wrote package to /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/T/tmp.M2jVtAGH5T/vst3.pkg
+pkgbuild: Inferring bundle components from contents of /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/T/tmp.M2jVtAGH5T/app
+pkgbuild: Adding component at TSR Q.app
+pkgbuild: Wrote package to /var/folders/s6/5hzmn6lx4dz5nxs7k_0slzph0000gn/T/tmp.M2jVtAGH5T/app.pkg
+productbuild: Wrote product to dist/TSR-Q-0.4.3-mac/TSR Q 0.4.3 (TSR Audio).pkg
+
+FATTO → dist/TSR-Q-0.4.3-mac
+total 45768
+drwxr-xr-x  8 runner  staff       256 Oct 10 20:43 .
+drwxr-xr-x  4 runner  staff       128 Oct 10 20:34 ..
+-rw-r--r--  1 runner  staff  11301460 Oct 10 20:43 TSR Q 0.4.3 (TSR Audio).pkg
+-rw-r--r--  1 runner  staff  11290906 Oct 10 20:43 TSR-Q-0.4.3-mac-plugins.zip
+-rw-r--r--  1 runner  staff    151115 Oct 10 20:40 auval.txt
+-rw-r--r--  1 runner  staff      8028 Oct 10 20:43 pluginval_au.txt
+-rw-r--r--  1 runner  staff      7960 Oct 10 20:41 pluginval_vst3.txt
+-rw-r--r--  1 runner  staff      7723 Oct 10 20:40 test_dsp.txt

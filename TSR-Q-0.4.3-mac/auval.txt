@@ -1,0 +1,5064 @@
+
+    AU Validation Tool
+    Version: 1.10.0 
+    Copyright 2003-2019, Apple Inc. All Rights Reserved.
+    Specify -h (-help) for command options
+
+--------------------------------------------------
+VALIDATING AUDIO UNIT: 'aumf' - 'Tsrq' - 'Tsra'
+--------------------------------------------------
+Manufacturer String: TSR Audio
+AudioUnit Name: TSR Q
+Component Version: 0.4.3 (0x403)
+
+* * PASS
+--------------------------------------------------
+TESTING OPEN TIMES:
+COLD:
+Time to open AudioUnit:         103.157 ms
+WARM:
+Time to open AudioUnit:         3.919  ms
+This AudioUnit is a version 2 implementation.
+FIRST TIME:
+Time for initialization:        0.051 ms
+
+* * PASS
+--------------------------------------------------
+VERIFYING DEFAULT SCOPE FORMATS:
+Input Scope Bus Configuration:
+ Default Bus Count:2
+    Bus Name: Input
+    Format Bus 0: AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+    Bus Name: Sidechain
+    Format Bus 1: AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+    Bus 0, Has Channel Layouts: 0x640001 0x650002 0x660002 0x670002 0x6A0002 
+    Default Layout (bus 0):
+	Tag=0x650002, Num Chan Descs=0
+    Bus 1, Has Channel Layouts: 0x640001 0x650002 0x660002 0x670002 0x6A0002 0x930000 
+    Default Layout (bus 1):
+	Tag=0x650002, Num Chan Descs=0
+
+Output Scope Bus Configuration:
+ Default Bus Count:1
+    Bus Name: Output
+    Default Format: AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+    Has Channel Layouts: 0x640001 0x650002 0x660002 0x670002 0x6A0002 
+    Default Layout:
+	Tag=0x650002, Num Chan Descs=0
+
+* * PASS
+--------------------------------------------------
+VERIFYING REQUIRED PROPERTIES:
+
+* * PASS
+--------------------------------------------------
+VERIFYING RECOMMENDED PROPERTIES:
+  VERIFYING PROPERTY: Latency
+    PASS
+  VERIFYING PROPERTY: Tail Time
+    PASS
+  VERIFYING PROPERTY: Bypass Effect
+    PASS
+
+* * PASS
+--------------------------------------------------
+VERIFYING OPTIONAL PROPERTIES:
+
+* * PASS
+--------------------------------------------------
+VERIFYING SPECIAL PROPERTIES:
+
+VERIFYING CUSTOM UI
+Cocoa Views Available: 1
+  JUCE_AUCocoaViewClass_8ac5cf647d0945da
+    PASS
+
+HAS FACTORY PRESETS
+    ID:   0    Name: Untitled
+
+VERIFYING CLASS INFO
+    PASS
+
+TESTING HOST CALLBACKS
+    PASS
+
+* * PASS
+--------------------------------------------------
+PUBLISHED PARAMETER INFO:
+
+# # # 522 Global Scope Parameters:
+Parameter ID:3306
+Name: Gain-Q Interaction
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:3365
+Name: Input
+Parameter Type: Generic
+Values: Minimum = -24.00, Default = 0.00, Maximum = 24.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:110414
+Name: Output
+Parameter Type: Generic
+Values: Minimum = -inf, Default = 0.00, Maximum = 36.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:110749
+Name: Output Pan
+Parameter Type: Generic
+Values: Minimum = -100.0, Default = 0.0, Maximum = 100.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:3005871
+Name: Auto Gain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:3052374
+Name: Character
+Parameter Type: Indexed
+Values: Minimum = Clean, Default = Clean, Maximum = Warm
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 3
+Value: 0,  String: Clean
+Value: 1,  String: Subtle
+Value: 2,  String: Warm
+  -parameter PASS
+
+Parameter ID:109250890
+Name: Gain Scale
+Parameter Type: Generic
+Values: Minimum = -100, Default = 100, Maximum = 200
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:773352680
+Name: Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:963780566
+Name: Polarity Invert
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1350652864
+Name: Pan Mode
+Parameter Type: Indexed
+Values: Minimum = Left/Right, Default = Left/Right, Maximum = Mid/Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: Left/Right
+Value: 1,  String: Mid/Side
+  -parameter PASS
+
+
+# # Parameters for clump: 1
+# Full Clump Name: Band 1
+# Short (4 Chars limit) Clump Name: Band 1
+Parameter ID:2969665
+Name: Band 1 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:92059776
+Name: Band 1 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:213762263
+Name: Band 1 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:215294221
+Name: Band 1 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:216546683
+Name: Band 1 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:422245544
+Name: Band 1 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:422259119
+Name: Band 1 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:422390643
+Name: Band 1 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:422669674
+Name: Band 1 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:422693357
+Name: Band 1 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706352753
+Name: Band 1 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706353865
+Name: Band 1 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706355171
+Name: Band 1 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:706355785
+Name: Band 1 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706368617
+Name: Band 1 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706370638
+Name: Band 1 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 2
+# Full Clump Name: Band 2
+# Short (4 Chars limit) Clump Name: Band 2
+Parameter ID:2970626
+Name: Band 2 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:92089567
+Name: Band 2 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:450874695
+Name: Band 2 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:450888270
+Name: Band 2 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:451019794
+Name: Band 2 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:451298825
+Name: Band 2 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:451322508
+Name: Band 2 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:707276274
+Name: Band 2 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:707277386
+Name: Band 2 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:707278692
+Name: Band 2 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:707279306
+Name: Band 2 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:707292138
+Name: Band 2 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:707294159
+Name: Band 2 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1101265944
+Name: Band 2 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1102797902
+Name: Band 2 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1104050364
+Name: Band 2 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 3
+# Full Clump Name: Band 3
+# Short (4 Chars limit) Clump Name: Band 3
+Parameter ID:2971587
+Name: Band 3 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:92119358
+Name: Band 3 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:479503846
+Name: Band 3 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:479517421
+Name: Band 3 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:479648945
+Name: Band 3 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:479927976
+Name: Band 3 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:479951659
+Name: Band 3 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:708199795
+Name: Band 3 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:708200907
+Name: Band 3 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:708202213
+Name: Band 3 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:708202827
+Name: Band 3 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:708215659
+Name: Band 3 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:708217680
+Name: Band 3 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1988769625
+Name: Band 3 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1990301583
+Name: Band 3 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1991554045
+Name: Band 3 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 4
+# Full Clump Name: Band 4
+# Short (4 Chars limit) Clump Name: Band 4
+Parameter ID:2972548
+Name: Band 4 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:92149149
+Name: Band 4 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:508132997
+Name: Band 4 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:508146572
+Name: Band 4 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:508278096
+Name: Band 4 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:508557127
+Name: Band 4 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:508580810
+Name: Band 4 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:709123316
+Name: Band 4 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:709124428
+Name: Band 4 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:709125734
+Name: Band 4 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:709126348
+Name: Band 4 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:709139180
+Name: Band 4 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:709141201
+Name: Band 4 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:728789658
+Name: Band 4 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:730321616
+Name: Band 4 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:731574078
+Name: Band 4 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 5
+# Full Clump Name: Band 5
+# Short (4 Chars limit) Clump Name: Band 5
+Parameter ID:2973509
+Name: Band 5 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:92178940
+Name: Band 5 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:536762148
+Name: Band 5 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:536775723
+Name: Band 5 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:536907247
+Name: Band 5 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:537186278
+Name: Band 5 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:537209961
+Name: Band 5 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:710046837
+Name: Band 5 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:710047949
+Name: Band 5 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:710049255
+Name: Band 5 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:710049869
+Name: Band 5 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:710062701
+Name: Band 5 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:710064722
+Name: Band 5 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1616293339
+Name: Band 5 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1617825297
+Name: Band 5 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1619077759
+Name: Band 5 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 6
+# Full Clump Name: Band 6
+# Short (4 Chars limit) Clump Name: Band 6
+Parameter ID:2974470
+Name: Band 6 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:92208731
+Name: Band 6 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:356313372
+Name: Band 6 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:357845330
+Name: Band 6 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:359097792
+Name: Band 6 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:565391299
+Name: Band 6 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:565404874
+Name: Band 6 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:565536398
+Name: Band 6 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:565815429
+Name: Band 6 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:565839112
+Name: Band 6 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:710970358
+Name: Band 6 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:710971470
+Name: Band 6 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:710972776
+Name: Band 6 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:710973390
+Name: Band 6 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:710986222
+Name: Band 6 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:710988243
+Name: Band 6 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 7
+# Full Clump Name: Band 7
+# Short (4 Chars limit) Clump Name: Band 7
+Parameter ID:2975431
+Name: Band 7 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:92238522
+Name: Band 7 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:594020450
+Name: Band 7 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:594034025
+Name: Band 7 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:594165549
+Name: Band 7 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:594444580
+Name: Band 7 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:594468263
+Name: Band 7 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:711893879
+Name: Band 7 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:711894991
+Name: Band 7 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:711896297
+Name: Band 7 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:711896911
+Name: Band 7 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:711909743
+Name: Band 7 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:711911764
+Name: Band 7 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1243817053
+Name: Band 7 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1245349011
+Name: Band 7 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1246601473
+Name: Band 7 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 8
+# Full Clump Name: Band 8
+# Short (4 Chars limit) Clump Name: Band 8
+Parameter ID:2976392
+Name: Band 8 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:92268313
+Name: Band 8 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:622649601
+Name: Band 8 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:622663176
+Name: Band 8 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:622794700
+Name: Band 8 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:623073731
+Name: Band 8 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:623097414
+Name: Band 8 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:712817400
+Name: Band 8 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:712818512
+Name: Band 8 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:712819818
+Name: Band 8 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:712820432
+Name: Band 8 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:712833264
+Name: Band 8 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:712835285
+Name: Band 8 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2131320734
+Name: Band 8 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:2132852692
+Name: Band 8 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2134105154
+Name: Band 8 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 9
+# Full Clump Name: Band 9
+# Short (4 Chars limit) Clump Name: Band 9
+Parameter ID:2977353
+Name: Band 9 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:92298104
+Name: Band 9 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:651278752
+Name: Band 9 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:651292327
+Name: Band 9 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:651423851
+Name: Band 9 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:651702882
+Name: Band 9 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:651726565
+Name: Band 9 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:713740921
+Name: Band 9 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:713742033
+Name: Band 9 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:713743339
+Name: Band 9 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:713743953
+Name: Band 9 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:713756785
+Name: Band 9 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:713758806
+Name: Band 9 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:871340767
+Name: Band 9 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:872872725
+Name: Band 9 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:874125187
+Name: Band 9 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 10
+# Full Clump Name: Band 10
+# Short (4 Chars limit) Clump Name: Band 10
+Parameter ID:92014003
+Name: Band 10 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:378615651
+Name: Band 10 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:378616763
+Name: Band 10 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:378618069
+Name: Band 10 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:378618683
+Name: Band 10 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:378631515
+Name: Band 10 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:378633536
+Name: Band 10 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:704950606
+Name: Band 10 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:938503497
+Name: Band 10 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:940035455
+Name: Band 10 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:941287917
+Name: Band 10 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:999813622
+Name: Band 10 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:999827197
+Name: Band 10 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:999958721
+Name: Band 10 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1000237752
+Name: Band 10 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1000261435
+Name: Band 10 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 11
+# Full Clump Name: Band 11
+# Short (4 Chars limit) Clump Name: Band 11
+Parameter ID:92014964
+Name: Band 11 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:379539172
+Name: Band 11 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:379540284
+Name: Band 11 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:379541590
+Name: Band 11 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:379542204
+Name: Band 11 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:379555036
+Name: Band 11 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:379557057
+Name: Band 11 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:704980397
+Name: Band 11 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1028442773
+Name: Band 11 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1028456348
+Name: Band 11 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1028587872
+Name: Band 11 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1028866903
+Name: Band 11 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1028890586
+Name: Band 11 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1826007178
+Name: Band 11 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1827539136
+Name: Band 11 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1828791598
+Name: Band 11 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 12
+# Full Clump Name: Band 12
+# Short (4 Chars limit) Clump Name: Band 12
+Parameter ID:92015925
+Name: Band 12 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:380462693
+Name: Band 12 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:380463805
+Name: Band 12 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:380465111
+Name: Band 12 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:380465725
+Name: Band 12 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:380478557
+Name: Band 12 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:380480578
+Name: Band 12 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:566027211
+Name: Band 12 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:567559169
+Name: Band 12 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:568811631
+Name: Band 12 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:705010188
+Name: Band 12 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1057071924
+Name: Band 12 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1057085499
+Name: Band 12 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1057217023
+Name: Band 12 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1057496054
+Name: Band 12 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1057519737
+Name: Band 12 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 13
+# Full Clump Name: Band 13
+# Short (4 Chars limit) Clump Name: Band 13
+Parameter ID:92016886
+Name: Band 13 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:381386214
+Name: Band 13 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:381387326
+Name: Band 13 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:381388632
+Name: Band 13 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:381389246
+Name: Band 13 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:381402078
+Name: Band 13 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:381404099
+Name: Band 13 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:705039979
+Name: Band 13 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1085701075
+Name: Band 13 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1085714650
+Name: Band 13 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1085846174
+Name: Band 13 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1086125205
+Name: Band 13 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1086148888
+Name: Band 13 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1453530892
+Name: Band 13 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1455062850
+Name: Band 13 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1456315312
+Name: Band 13 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 14
+# Full Clump Name: Band 14
+# Short (4 Chars limit) Clump Name: Band 14
+Parameter ID:92017847
+Name: Band 14 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:193550925
+Name: Band 14 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:195082883
+Name: Band 14 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:196335345
+Name: Band 14 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:382309735
+Name: Band 14 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:382310847
+Name: Band 14 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:382312153
+Name: Band 14 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:382312767
+Name: Band 14 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:382325599
+Name: Band 14 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:382327620
+Name: Band 14 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:705069770
+Name: Band 14 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1114330226
+Name: Band 14 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1114343801
+Name: Band 14 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1114475325
+Name: Band 14 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1114754356
+Name: Band 14 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1114778039
+Name: Band 14 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 15
+# Full Clump Name: Band 15
+# Short (4 Chars limit) Clump Name: Band 15
+Parameter ID:92018808
+Name: Band 15 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:383233256
+Name: Band 15 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:383234368
+Name: Band 15 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:383235674
+Name: Band 15 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:383236288
+Name: Band 15 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:383249120
+Name: Band 15 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:383251141
+Name: Band 15 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:705099561
+Name: Band 15 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1081054606
+Name: Band 15 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1082586564
+Name: Band 15 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1083839026
+Name: Band 15 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:1142959377
+Name: Band 15 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1142972952
+Name: Band 15 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1143104476
+Name: Band 15 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1143383507
+Name: Band 15 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1143407190
+Name: Band 15 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 16
+# Full Clump Name: Band 16
+# Short (4 Chars limit) Clump Name: Band 16
+Parameter ID:92019769
+Name: Band 16 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:384156777
+Name: Band 16 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:384157889
+Name: Band 16 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:384159195
+Name: Band 16 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:384159809
+Name: Band 16 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:384172641
+Name: Band 16 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:384174662
+Name: Band 16 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:705129352
+Name: Band 16 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1171588528
+Name: Band 16 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1171602103
+Name: Band 16 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1171733627
+Name: Band 16 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1172012658
+Name: Band 16 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1172036341
+Name: Band 16 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1968558287
+Name: Band 16 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1970090245
+Name: Band 16 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1971342707
+Name: Band 16 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 17
+# Full Clump Name: Band 17
+# Short (4 Chars limit) Clump Name: Band 17
+Parameter ID:92020730
+Name: Band 17 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:385080298
+Name: Band 17 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:385081410
+Name: Band 17 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:385082716
+Name: Band 17 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:385083330
+Name: Band 17 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:385096162
+Name: Band 17 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:385098183
+Name: Band 17 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:705159143
+Name: Band 17 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:708578320
+Name: Band 17 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:710110278
+Name: Band 17 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:711362740
+Name: Band 17 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:1200217679
+Name: Band 17 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1200231254
+Name: Band 17 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1200362778
+Name: Band 17 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1200641809
+Name: Band 17 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1200665492
+Name: Band 17 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 18
+# Full Clump Name: Band 18
+# Short (4 Chars limit) Clump Name: Band 18
+Parameter ID:92021691
+Name: Band 18 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:386003819
+Name: Band 18 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:386004931
+Name: Band 18 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:386006237
+Name: Band 18 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:386006851
+Name: Band 18 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:386019683
+Name: Band 18 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:386021704
+Name: Band 18 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:705188934
+Name: Band 18 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1228846830
+Name: Band 18 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1228860405
+Name: Band 18 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1228991929
+Name: Band 18 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1229270960
+Name: Band 18 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1229294643
+Name: Band 18 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1596082001
+Name: Band 18 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1597613959
+Name: Band 18 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1598866421
+Name: Band 18 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 19
+# Full Clump Name: Band 19
+# Short (4 Chars limit) Clump Name: Band 19
+Parameter ID:92022652
+Name: Band 19 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:336102034
+Name: Band 19 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:337633992
+Name: Band 19 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:338886454
+Name: Band 19 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:386927340
+Name: Band 19 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:386928452
+Name: Band 19 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:386929758
+Name: Band 19 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:386930372
+Name: Band 19 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:386943204
+Name: Band 19 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:386945225
+Name: Band 19 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:705218725
+Name: Band 19 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1257475981
+Name: Band 19 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1257489556
+Name: Band 19 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1257621080
+Name: Band 19 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1257900111
+Name: Band 19 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1257923794
+Name: Band 19 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 20
+# Full Clump Name: Band 20
+# Short (4 Chars limit) Clump Name: Band 20
+Parameter ID:92043794
+Name: Band 20 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:407244802
+Name: Band 20 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:407245914
+Name: Band 20 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:407247220
+Name: Band 20 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:407247834
+Name: Band 20 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:407260666
+Name: Band 20 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:407262687
+Name: Band 20 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:533830184
+Name: Band 20 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:535362142
+Name: Band 20 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:536614604
+Name: Band 20 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:705874127
+Name: Band 20 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1887317303
+Name: Band 20 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1887330878
+Name: Band 20 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1887462402
+Name: Band 20 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1887741433
+Name: Band 20 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1887765116
+Name: Band 20 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 21
+# Full Clump Name: Band 21
+# Short (4 Chars limit) Clump Name: Band 21
+Parameter ID:92044755
+Name: Band 21 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:408168323
+Name: Band 21 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:408169435
+Name: Band 21 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:408170741
+Name: Band 21 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:408171355
+Name: Band 21 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:408184187
+Name: Band 21 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:408186208
+Name: Band 21 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:705903918
+Name: Band 21 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1421333865
+Name: Band 21 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1422865823
+Name: Band 21 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1424118285
+Name: Band 21 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:1915946454
+Name: Band 21 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1915960029
+Name: Band 21 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1916091553
+Name: Band 21 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1916370584
+Name: Band 21 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1916394267
+Name: Band 21 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 22
+# Full Clump Name: Band 22
+# Short (4 Chars limit) Clump Name: Band 22
+Parameter ID:92045716
+Name: Band 22 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:161353898
+Name: Band 22 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:162885856
+Name: Band 22 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:164138318
+Name: Band 22 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:409091844
+Name: Band 22 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:409092956
+Name: Band 22 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:409094262
+Name: Band 22 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:409094876
+Name: Band 22 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:409107708
+Name: Band 22 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:409109729
+Name: Band 22 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:705933709
+Name: Band 22 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1944575605
+Name: Band 22 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1944589180
+Name: Band 22 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1944720704
+Name: Band 22 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1944999735
+Name: Band 22 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1945023418
+Name: Band 22 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 23
+# Full Clump Name: Band 23
+# Short (4 Chars limit) Clump Name: Band 23
+Parameter ID:92046677
+Name: Band 23 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:410015365
+Name: Band 23 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:410016477
+Name: Band 23 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:410017783
+Name: Band 23 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:410018397
+Name: Band 23 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:410031229
+Name: Band 23 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:410033250
+Name: Band 23 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:705963500
+Name: Band 23 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1048857579
+Name: Band 23 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1050389537
+Name: Band 23 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1051641999
+Name: Band 23 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:1973204756
+Name: Band 23 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1973218331
+Name: Band 23 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1973349855
+Name: Band 23 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1973628886
+Name: Band 23 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:1973652569
+Name: Band 23 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 24
+# Full Clump Name: Band 24
+# Short (4 Chars limit) Clump Name: Band 24
+Parameter ID:92047638
+Name: Band 24 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:410938886
+Name: Band 24 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:410939998
+Name: Band 24 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:410941304
+Name: Band 24 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:410941918
+Name: Band 24 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:410954750
+Name: Band 24 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:410956771
+Name: Band 24 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:705993291
+Name: Band 24 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1936361260
+Name: Band 24 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1937893218
+Name: Band 24 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1939145680
+Name: Band 24 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:2001833907
+Name: Band 24 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2001847482
+Name: Band 24 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2001979006
+Name: Band 24 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2002258037
+Name: Band 24 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:2002281720
+Name: Band 24 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 25
+# Full Clump Name: Band 25
+# Short (4 Chars limit) Clump Name: Band 25
+Parameter ID:92048599
+Name: Band 25 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:411862407
+Name: Band 25 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:411863519
+Name: Band 25 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:411864825
+Name: Band 25 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:411865439
+Name: Band 25 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:411878271
+Name: Band 25 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:411880292
+Name: Band 25 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:676381293
+Name: Band 25 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:677913251
+Name: Band 25 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:679165713
+Name: Band 25 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:706023082
+Name: Band 25 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2030463058
+Name: Band 25 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2030476633
+Name: Band 25 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2030608157
+Name: Band 25 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2030887188
+Name: Band 25 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:2030910871
+Name: Band 25 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 26
+# Full Clump Name: Band 26
+# Short (4 Chars limit) Clump Name: Band 26
+Parameter ID:92049560
+Name: Band 26 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:412785928
+Name: Band 26 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:412787040
+Name: Band 26 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:412788346
+Name: Band 26 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:412788960
+Name: Band 26 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:412801792
+Name: Band 26 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:412803813
+Name: Band 26 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706052873
+Name: Band 26 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1563884974
+Name: Band 26 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1565416932
+Name: Band 26 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1566669394
+Name: Band 26 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:2059092209
+Name: Band 26 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2059105784
+Name: Band 26 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2059237308
+Name: Band 26 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2059516339
+Name: Band 26 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:2059540022
+Name: Band 26 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 27
+# Full Clump Name: Band 27
+# Short (4 Chars limit) Clump Name: Band 27
+Parameter ID:92050521
+Name: Band 27 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:303905007
+Name: Band 27 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:305436965
+Name: Band 27 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:306689427
+Name: Band 27 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:413709449
+Name: Band 27 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:413710561
+Name: Band 27 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:413711867
+Name: Band 27 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:413712481
+Name: Band 27 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:413725313
+Name: Band 27 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:413727334
+Name: Band 27 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706082664
+Name: Band 27 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2087721360
+Name: Band 27 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2087734935
+Name: Band 27 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2087866459
+Name: Band 27 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2088145490
+Name: Band 27 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:2088169173
+Name: Band 27 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 28
+# Full Clump Name: Band 28
+# Short (4 Chars limit) Clump Name: Band 28
+Parameter ID:92051482
+Name: Band 28 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:414632970
+Name: Band 28 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:414634082
+Name: Band 28 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:414635388
+Name: Band 28 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:414636002
+Name: Band 28 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:414648834
+Name: Band 28 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:414650855
+Name: Band 28 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706112455
+Name: Band 28 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1191408688
+Name: Band 28 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1192940646
+Name: Band 28 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1194193108
+Name: Band 28 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:2116350511
+Name: Band 28 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2116364086
+Name: Band 28 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2116495610
+Name: Band 28 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2116774641
+Name: Band 28 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:2116798324
+Name: Band 28 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 29
+# Full Clump Name: Band 29
+# Short (4 Chars limit) Clump Name: Band 29
+Parameter ID:92052443
+Name: Band 29 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:415556491
+Name: Band 29 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:415557603
+Name: Band 29 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:415558909
+Name: Band 29 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:415559523
+Name: Band 29 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:415572355
+Name: Band 29 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:415574376
+Name: Band 29 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706142246
+Name: Band 29 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2078912369
+Name: Band 29 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:2080444327
+Name: Band 29 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2081696789
+Name: Band 29 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:2144979662
+Name: Band 29 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2144993237
+Name: Band 29 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2145124761
+Name: Band 29 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:2145403792
+Name: Band 29 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:2145427475
+Name: Band 29 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 30
+# Full Clump Name: Band 30
+# Short (4 Chars limit) Clump Name: Band 30
+Parameter ID:92073585
+Name: Band 30 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:129156871
+Name: Band 30 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:130688829
+Name: Band 30 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:131941291
+Name: Band 30 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Parameter ID:435873953
+Name: Band 30 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:435875065
+Name: Band 30 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:435876371
+Name: Band 30 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:435876985
+Name: Band 30 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:435889817
+Name: Band 30 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:435891838
+Name: Band 30 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:627337336
+Name: Band 30 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:627350911
+Name: Band 30 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:627482435
+Name: Band 30 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:627761466
+Name: Band 30 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:627785149
+Name: Band 30 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706797648
+Name: Band 30 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+
+# # Parameters for clump: 31
+# Full Clump Name: Band 31
+# Short (4 Chars limit) Clump Name: Band 31
+Parameter ID:92074546
+Name: Band 31 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:436797474
+Name: Band 31 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:436798586
+Name: Band 31 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:436799892
+Name: Band 31 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:436800506
+Name: Band 31 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:436813338
+Name: Band 31 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:436815359
+Name: Band 31 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:655966487
+Name: Band 31 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:655980062
+Name: Band 31 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:656111586
+Name: Band 31 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:656390617
+Name: Band 31 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:656414300
+Name: Band 31 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706827439
+Name: Band 31 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1016660552
+Name: Band 31 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1018192510
+Name: Band 31 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1019444972
+Name: Band 31 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+
+# # Parameters for clump: 32
+# Full Clump Name: Band 32
+# Short (4 Chars limit) Clump Name: Band 32
+Parameter ID:92075507
+Name: Band 32 Q
+Parameter Type: Generic
+Values: Minimum = 0.0250000, Default = 1.0000000, Maximum = 40.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:437720995
+Name: Band 32 Attack
+Parameter Type: Generic
+Values: Minimum = 0.1000000, Default = 5.0000010, Maximum = 200.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:437722107
+Name: Band 32 Bypass
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:437723413
+Name: Band 32 Detection
+Parameter Type: Indexed
+Values: Minimum = RMS, Default = RMS, Maximum = Peak
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 2
+Value: 0,  String: RMS
+Value: 1,  String: Peak
+  -parameter PASS
+
+Parameter ID:437724027
+Name: Band 32 Dynamic
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:437736859
+Name: Band 32 Release
+Parameter Type: Generic
+Values: Minimum = 5.0000000, Default = 80.0000000, Maximum = 2000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:437738880
+Name: Band 32 Threshold
+Parameter Type: Generic
+Values: Minimum = -60.0, Default = -24.0, Maximum = 0.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:684595638
+Name: Band 32 Freq
+Parameter Type: Generic
+Values: Minimum = 10.0000000, Default = 1000.0000000, Maximum = 30000.0000000
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:684609213
+Name: Band 32 Gain
+Parameter Type: Generic
+Values: Minimum = -30.00, Default = 0.00, Maximum = 30.00
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:684740737
+Name: Band 32 Knee
+Parameter Type: Generic
+Values: Minimum = 0.0, Default = 6.0, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:685019768
+Name: Band 32 Type
+Parameter Type: Indexed
+Values: Minimum = Bell, Default = Bell, Maximum = All Pass
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 10
+Value: 0,  String: Bell
+Value: 1,  String: Low Shelf
+Value: 2,  String: High Shelf
+Value: 3,  String: Low Cut
+Value: 4,  String: High Cut
+Value: 5,  String: Notch
+Value: 6,  String: Band Pass
+Value: 7,  String: Tilt Shelf
+Value: 8,  String: Flat Tilt
+Value: 9,  String: All Pass
+  -parameter PASS
+
+Parameter ID:685043451
+Name: Band 32 Used
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:706857230
+Name: Band 32 External Sidechain
+Parameter Type: Boolean
+Values: Minimum = Off, Default = Off, Maximum = On
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1904164233
+Name: Band 32 Placement
+Parameter Type: Indexed
+Values: Minimum = Stereo, Default = Stereo, Maximum = Side
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 5
+Value: 0,  String: Stereo
+Value: 1,  String: Left
+Value: 2,  String: Right
+Value: 3,  String: Mid
+Value: 4,  String: Side
+  -parameter PASS
+
+Parameter ID:1905696191
+Name: Band 32 Range
+Parameter Type: Generic
+Values: Minimum = -24.0, Default = -1.5, Maximum = 24.0
+Flags: Values Have Strings, High Resolution, Can Ramp, Readable, Writable 
+  -parameter PASS
+
+Parameter ID:1906948653
+Name: Band 32 Slope
+Parameter Type: Indexed
+Values: Minimum = 6 dB/oct, Default = 24 dB/oct, Maximum = 96 dB/oct
+Flags: Values Have Strings, High Resolution, Readable, Writable 
+Parameter has Value Strings
+Num Strings = 9
+Value: 0,  String: 6 dB/oct
+Value: 1,  String: 12 dB/oct
+Value: 2,  String: 18 dB/oct
+Value: 3,  String: 24 dB/oct
+Value: 4,  String: 30 dB/oct
+Value: 5,  String: 36 dB/oct
+Value: 6,  String: 48 dB/oct
+Value: 7,  String: 72 dB/oct
+Value: 8,  String: 96 dB/oct
+  -parameter PASS
+
+Testing that parameters retain value across reset and initialization
+  PASS
+
+* * PASS
+--------------------------------------------------
+FORMAT TESTS:
+
+Reported Channel Capabilities (explicit):
+      [1, 1]  [2, 2]  
+
+Input/Output Channel Handling:
+1-1   1-2   1-4   1-5   1-6   1-7   1-8   2-2   2-4   2-5   2-6   2-7   2-8   4-4   4-5   5-5   6-6   7-7   8-8
+X                                         X                                                                       
+
+# # AudioChannelLayouts (5), Input Scope:
+ChannelLayout is Writable: T
+The Unit publishes the following Channel Layouts:
+  0x640001, 0x650002, 0x660002, 0x670002, 0x6A0002, 
+
+Is Audio Channel Layout Available:
+Mono    Stereo  Binau.  AU_4    Ambi.   AU_5    AU_5_0  AU_6    AU_6_0  AU_7_0  AU_7_0F AU_8    AU_5_1  AU_6_1  AU_7_1  AU_7_1F 
+X       X       X                                                                                                               
+
+Current Format:AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+Current Format Tag = 0x650002, New Format Tag = 0x640001, Success - did not reset format with mis-matched layout
+
+Current Format:AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+Current Format Tag = 0x650002, New Format Tag = 0x650002, Successsful
+
+Current Format:AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+Current Format Tag = 0x650002, New Format Tag = 0x6A0002, Successsful
+
+# # AudioChannelLayouts (5), Output Scope:
+ChannelLayout is Writable: T
+The Unit publishes the following Channel Layouts:
+  0x640001, 0x650002, 0x660002, 0x670002, 0x6A0002, 
+
+Is Audio Channel Layout Available:
+Mono    Stereo  Binau.  AU_4    Ambi.   AU_5    AU_5_0  AU_6    AU_6_0  AU_7_0  AU_7_0F AU_8    AU_5_1  AU_6_1  AU_7_1  AU_7_1F 
+X       X       X                                                                                                               
+
+Current Format:AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+Current Format Tag = 0x650002, New Format Tag = 0x640001, Success - did not reset format with mis-matched layout
+
+Current Format:AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+Current Format Tag = 0x650002, New Format Tag = 0x650002, Successsful
+
+Current Format:AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+Current Format Tag = 0x650002, New Format Tag = 0x6A0002, Successsful
+
+* * PASS
+--------------------------------------------------
+RENDER TESTS:
+
+Input Format: AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+Output Format: AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+Render Test at 512 frames
+Slicing Render Test at 64 frames
+  PASS
+
+
+Render Test at 64 frames, sample rate: 22050 Hz
+Render Test at 137 frames, sample rate: 96000 Hz
+Render Test at 4096 frames, sample rate: 48000 Hz
+Render Test at 4096 frames, sample rate: 192000 Hz
+Render Test at 4096 frames, sample rate: 11025 Hz
+Render Test at 512 frames, sample rate: 44100 Hz
+  PASS
+
+1 Channel Test:
+Render Test at 512 frames
+  PASS
+
+Checking connection semantics:
+Connection format:
+AudioStreamBasicDescription:  2 ch,  44100 Hz, Float32, deinterleaved
+  PASS
+
+Bad Max Frames - Render should fail
+  PASS
+
+Checking parameter setting
+Using AudioUnitSetParameter
+Using AudioUnitScheduleParameter
+  PASS
+
+Checking ramped parameter scheduling
+  PASS
+
+Test MIDI
+  PASS
+
+* * PASS
+--------------------------------------------------
+AU VALIDATION SUCCEEDED.
+--------------------------------------------------
