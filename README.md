@@ -1,7 +1,11 @@
-# TSR Q — Precision Dynamic EQ · TSR Audio · v0.4.0
+# TSR Q — Precision Dynamic EQ · TSR Audio · v0.4.1
 
 Plugin JUCE 8 (C++17). Formati: **AU + VST3 + Standalone su macOS** (universale Apple Silicon + Intel, macOS 11+), VST3 + Standalone su Linux/Windows.
 Produttore: **TSR Audio** (codice produttore `Tsra`, codice plugin `Tsrq`, bundle `com.tsraudio.tsrq`).
+
+## Novità 0.4.1
+- Niente cornice in alto: il display tocca il bordo della finestra (la barra del Mac fa da bordo). In basso la cornice è sottile come a sinistra (10 px). Finestra 1180 × 542.
+- L'isola della banda compare subito al suo posto (prima "volava" dall'angolo in alto a sinistra alla prima comparsa).
 
 ## Novità 0.4.0 (implementazione dei gap del master)
 **Correttezza (P0)**

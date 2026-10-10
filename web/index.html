@@ -6,7 +6,7 @@
 html,body{height:100%}
 body{background:#0a0b0c;margin:0;display:flex;align-items:center;justify-content:center;overflow:auto;font-family:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
 #fit{position:relative;flex:none}
-#ed{position:absolute;left:0;top:0;width:1180px;height:600px;transform-origin:0 0;border:1px solid #cfccc5;border-radius:10px;box-sizing:border-box;overflow:hidden;
+#ed{position:absolute;left:0;top:0;width:1180px;height:542px;transform-origin:0 0;border:1px solid #cfccc5;border-radius:10px;box-sizing:border-box;overflow:hidden;
  background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0 1px,transparent 1px 3px),linear-gradient(180deg,#f7f6f3,#e6e4df);
  box-shadow:inset 0 1px 0 rgba(255,255,255,1),0 24px 60px rgba(0,0,0,.55)}
 #ed>*{position:absolute;box-sizing:border-box}
@@ -242,6 +242,13 @@ body{background:radial-gradient(ellipse at 50% 30%,#1c1d20,#030304 72%)}
 
 /* pillola 'TSR Q \b7  N bande \b7  SCALE' eliminata */
 #ed .dpill{display:none!important}
+
+/* cornice: in alto niente (il display tocca il bordo della finestra), in basso 10 px come a sinistra: tutto il contenuto sale di 34 px */
+#ed{border-top:0;border-top-left-radius:0;border-top-right-radius:0}
+#ed>:not(.veins):not(.outp):not(svg){margin-top:-34px}
+#ed.kb .bisl.bp,#ed.kb .dpill{margin-top:-52px}
+body.plugin{align-items:flex-start;overflow:hidden}
+#ed .bisl.nt{transition:none!important}
 </style></head><body>
 <div id="fit"><div id="ed"></div></div>
 <script>window.THEME={"screen": "#0f1012", "ink": "#eef2f6", "dim": "#8b939d", "spec": "#9aa1aa", "dyn": "#7cc4ff", "lightPanel": 1, "pInk": "#1b1b1b", "pDim": "#7a7873", "logo": "#1b1b1b", "title": "#111111", "disInk": "rgba(27,27,27,.25)", "sep": "rgba(27,27,27,.1)", "edge": "#cfccc5", "accent": "#ffffff", "kArcBg": "rgba(27,27,27,.1)", "kArc": "#1b1b1b", "kBody0": "#ffffff", "kBody1": "#d5d3ce", "kFace0": "#fbfaf8", "kFace1": "#e6e4df", "kRim": "rgba(0,0,0,.06)", "kInd": "#1b1b1b", "kShadow": "rgba(60,55,45,.22)"};</script>
@@ -641,7 +648,7 @@ if (typeof module !== 'undefined') module.exports = TSRQ;
 </script>
 <script>'use strict';
 /* ====== TSR Q \u00b7 editor (riproduzione 1:1 dell'editor JUCE v0.1.0) ====== */
-const EW = 1180, EH = 600;
+const EW = 1180, EH = 542;   /* niente cornice in alto (c'e il bordo della finestra del Mac), sotto sottile come a sinistra (10 px) */
 const T0 = { panelTop: '#2c3035', panelBot: '#1b1e22', edge: '#3d434a', silver: '#c9ced6', ink: '#eef2f6', dim: '#8b939d', screen: '#0d1014', accent: '#ffd23f', dyn: '#5ac8fa', spec: '#9aa1aa', pInk: '#c9ced6', pDim: '#8b939d', logo: '#c9ced6', title: '#eef2f6', disInk: 'rgba(139,147,157,.4)',
   kArcBg: 'rgba(255,255,255,.15)', kArc: '#c9ced6', kBody0: '#6c737c', kBody1: '#23272c', kFace0: '#3a4048', kFace1: '#1a1d21', kRim: 'rgba(255,255,255,.19)', kInd: '#ffffff', kShadow: 'rgba(0,0,0,.55)', sep: 'rgba(255,255,255,.08)', name: 'PRECISION DYNAMIC EQ' };
 const C = Object.assign({}, T0, window.THEME || {});
@@ -680,7 +687,7 @@ let autoGainDb = 0;
 
 /* ---------- DOM: editor a scala fissa ---------- */
 const fit = document.getElementById('fit'), ed = document.getElementById('ed');
-function doFit() { const s = Math.min((innerWidth - 16) / EW, (innerHeight - 16) / EH, 1.3); fit.style.width = EW * s + 'px'; fit.style.height = EH * s + 'px'; ed.style.transform = `scale(${s})`; }
+function doFit() { const pl = document.body.classList.contains('plugin'), m = pl ? 0 : 16, s = Math.min((innerWidth - m) / EW, (innerHeight - m) / EH, pl ? 4 : 1.3); fit.style.width = EW * s + 'px'; fit.style.height = EH * s + 'px'; ed.style.transform = `scale(${s})`; }
 addEventListener('resize', doFit); doFit();
 const scaleNow = () => ed.getBoundingClientRect().width / EW;
 function el(tag, cls, parent, css) { const e = document.createElement(tag); if (cls) e.className = cls; if (css) Object.assign(e.style, css); (parent || ed).appendChild(e); return e; }
@@ -1428,7 +1435,8 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 
   const pillEl = document.querySelector('.dpill');
   let lastKey = '';
-  function place() { const i = graph.primary, b = B(), on = !!b; bi.classList.toggle('show', on); bub.classList.toggle('show', on); if (pillEl) pillEl.classList.toggle('away', on);
+  function place() { const i = graph.primary, b = B(), on = !!b; if (on && !bi.classList.contains('show')) { bi.classList.add('nt'); requestAnimationFrame(() => requestAnimationFrame(() => bi.classList.remove('nt'))); }   /* prima comparsa: subito al suo posto, senza volare dall'angolo */
+    bi.classList.toggle('show', on); bub.classList.toggle('show', on); if (pillEl) pillEl.classList.toggle('away', on);
     if (!on) { lastKey = ''; return; }
     const n = graph.nodePos(i), dynOn = !!b.dyn && canDyn(b.type), H2 = (dynOn ? H + 30 : H) * S; bi.classList.toggle('dyn', dynOn);
     const iL = Math.max(X0, GX + graph.X(20)), iR = Math.min(X1, GX + graph.X(10000)), left = clamp(GX + n.x - W * S / 2, iL, iR - W * S); /* l'isola resta tra 20 Hz e 10 kHz */ Object.assign(bi.style, { left: left + 'px', top: (window.__islTop ? window.__islTop(left, W * S, H2, SB - H2) : SB - H2) + 'px', width: W * S + 'px', height: H2 + 'px' });
@@ -1552,7 +1560,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 'use strict';
 /* ====== ponte con il plugin (JUCE WebView): attivo solo dentro il plugin, nel browser non fa niente ====== */
 (() => { const J = window.__JUCE__; if (!(J && J.backend)) return;
-  const be = J.backend; document.body.classList.add('plugin');
+  const be = J.backend; document.body.classList.add('plugin'); doFit();
   for (const b of document.querySelectorAll('#ed > button.tb')) if (b.textContent === 'AUDIO' || b.textContent === 'PLAY') b.style.display = 'none';   // l'audio arriva dalla DAW
   playing = true; engineKind = 'plugin'; fileName = 'TSR Q';
   let ready = false, lastSent = '';

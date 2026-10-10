@@ -20,7 +20,7 @@ async def main():
 
         print('== 1. Struttura ==')
         r = await ev("(()=>{const e=document.querySelector('#ed').getBoundingClientRect();return {w:e.width,h:e.height}})()")
-        ok(abs(r['w'] / r['h'] - 1180 / 600) < 0.01, f"proporzioni del plugin 1180×600 (rapporto {r['w']/r['h']:.3f})")
+        ok(abs(r['w'] / r['h'] - 1180 / 542) < 0.01, f"proporzioni del plugin 1180×542, senza cornice in alto (rapporto {r['w']/r['h']:.3f})")
         out = await ev("""(()=>{const E=document.querySelector('#ed').getBoundingClientRect();return [...document.querySelectorAll('#ed *')].filter(x=>{const s=getComputedStyle(x);if(s.display==='none'||s.visibility==='hidden'||x.offsetParent===null)return false;const r=x.getBoundingClientRect();return r.width>0&&(r.bottom>E.bottom+1||r.right>E.right+1||r.left<E.left-1)}).length})()""")
         ok(out == 0, f'nessun elemento fuori dal plugin ({out})')
         vis = await ev("[...document.querySelectorAll('#ed>button.tb')].filter(b=>getComputedStyle(b).display!=='none').map(b=>b.textContent)")
@@ -38,7 +38,7 @@ async def main():
         await pg.mouse.dblclick(*S(await X(1000), await Y(6))); await pg.wait_for_timeout(250)
         bs = await bands(); ok(len(bs) == 1 and bs[0]['t'] == 0 and abs(bs[0]['f'] - 1000) < 15 and abs(bs[0]['g'] - 6) < 0.3, f'doppio clic → Bell 1 kHz +6 dB ({bs})')
         isl = await pg.locator('.bisl.bp').bounding_box(); x20 = g['x'] + await X(20) / 1160 * g['width']; x10k = g['x'] + await X(10000) / 1160 * g['width']
-        ok(isl and isl['x'] >= x20 - 1 and isl['x'] + isl['width'] <= x10k + 1, 'isola della banda tra 20 Hz e 10 kHz')
+        ok(isl and isl['x'] >= x20 - 1 and isl['x'] + isl['width'] <= x10k + 1, f'isola della banda tra 20 Hz e 10 kHz ({isl}, {x20:.1f}, {x10k:.1f})')
         n = await ev("window.__tsrq.graph.nodePos(window.__tsrq.graph.primary)"); sx, sy = S(n['x'], n['y'])
         # nel Chromium headless (senza GPU) un evento può arrivare >350 ms dopo la pressione e diventare "tieni premuto": riprovo fino a 3 volte e lo dichiaro
         for att in range(1, 4):

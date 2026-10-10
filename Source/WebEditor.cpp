@@ -45,9 +45,9 @@ TsrqWebEditor::TsrqWebEditor (TsrqProcessor& p) : AudioProcessorEditor (p), proc
     addAndMakeVisible (*web);
     web->goToURL (WebBrowserComponent::getResourceProviderRoot());
     setResizable (true, true);
-    setResizeLimits (708, 372, 2360, 1238);
-    if (auto* c = getConstrainer()) c->setFixedAspectRatio (1220.0 / 640.0);
-    setSize (1220, 640);
+    setResizeLimits (708, 325, 2360, 1084);   // stesse proporzioni dell'interfaccia (1180 x 542): il display tocca il bordo della finestra
+    if (auto* c = getConstrainer()) c->setFixedAspectRatio (1180.0 / 542.0);
+    setSize (1180, 542);
     startTimerHz (30);
 }
 TsrqWebEditor::~TsrqWebEditor() { stopTimer(); endGesture(); }
@@ -80,7 +80,7 @@ void TsrqWebEditor::runSelfTest() {
             if (auto* p = proc.apvts.getParameter ("b1_gain")) p->setValueNotifyingHost (p->convertTo0to1 (-4.5f));     // automazione dalla DAW
             st->step = 2; st->t0 = Time::getMillisecondCounterHiRes(); break;
         case 2: if (t < 1200) break; js ("JSON.stringify({g: P.bands[0].gain, f: P.bands[0].freq, d: P.bands[0].dyn})", 1); st->step = 3; st->t0 = Time::getMillisecondCounterHiRes(); break;
-        case 3: { if (t < 600) break; const var r = JSON::parse (st->res[1]);
+        case 3: { if (t < 600 || (st->res[1].isEmpty() && t < 4000)) break; /* attende la risposta dell interfaccia (fino a 4 s) */ const var r = JSON::parse (st->res[1]);
             log (std::abs ((double) r["g"] + 4.5) < 0.02, "automazione DAW -> interfaccia: gain banda 1 = " + st->res[1]);
             proc.prepareToPlay (48000, 512); AudioBuffer<float> b (2, 512); MidiBuffer mb; double ph = 0; float outPk = 0; bool fin = true;
             for (int k = 0; k < 94; ++k) { for (int i = 0; i < 512; ++i) { const float v = 0.5f * (float) std::sin (ph); ph += 2 * MathConstants<double>::pi * 1000 / 48000; b.setSample (0, i, v); b.setSample (1, i, v); }
@@ -89,7 +89,7 @@ void TsrqWebEditor::runSelfTest() {
             log (fin, "motore: 1 s di sinusoide 1 kHz -6 dBFS attraverso il plugin, uscita finita, picco " + String (st->outDb, 2) + " dBFS");
             st->step = 4; st->t0 = Time::getMillisecondCounterHiRes(); break; }
         case 4: if (t < 800) break; js ("JSON.stringify({pkMax: window.__tsrqMax || 0, pinMax: window.__tsrqMaxIn || 0, d: meter.bands && meter.bands[0] ? meter.bands[0].delta : null, spec: graph.specCount || 0})", 2); st->step = 5; st->t0 = Time::getMillisecondCounterHiRes(); break;
-        case 5: { if (t < 600) break; const var r = JSON::parse (st->res[2]);
+        case 5: { if (t < 600 || (st->res[2].isEmpty() && t < 4000)) break; const var r = JSON::parse (st->res[2]);
             log (r["spec"].isInt() || r["spec"].isDouble() ? (int) r["spec"] > 0 : false, "spettro plugin -> interfaccia: " + r["spec"].toString() + " fotogrammi ricevuti");
             log ((double) r["pkMax"] > 0.1 && (double) r["pinMax"] > 0.5 && (double) r["d"] < -1.4, "meter plugin -> interfaccia (picco out/in lineare, intervento dinamico dB): " + st->res[2]);
             // atteso: -6 dBFS + 3 (INPUT) - 4.5 (banda) + intervento dinamico (≤ 0, RANGE di default -1.5)
@@ -107,7 +107,7 @@ void TsrqWebEditor::runSelfTest() {
             if (auto* p = proc.apvts.getParameter ("b1_gain")) p->removeListener (g);
             log (gb == 1 && ge == 1 && gv >= 5 && std::abs (par ("b1_gain") - 5.0f) < 0.02f, "gesto di automazione: 5 valori in un trascinamento -> inizio " + String (gb) + ", fine " + String (ge) + ", valori " + String (gv) + ", finale " + String (par ("b1_gain"), 2) + " dB (attesi 1/1/>=5/5)");
             js ("window.__tsrqMidiLearn('out'); graph.fftOrder = 11; window.__tsrqFFT(11); 'ok'", 6); st->step = 9; st->t0 = Time::getMillisecondCounterHiRes(); break; }
-        case 9: { if (t < 600) break;
+        case 9: { if (t < 600 || (proc.midiLearnTarget() < 0 && t < 4000)) break;
             log (proc.midiLearnTarget() >= 0, "MIDI Learn dall'interfaccia: parametro OUTPUT in ascolto (" + String (proc.midiLearnTarget()) + ")");
             AudioBuffer<float> b (2, 512); b.clear(); MidiBuffer mb; mb.addEvent (MidiMessage::controllerEvent (1, 21, 127), 10); proc.processBlock (b, mb);
             st->step = 10; st->t0 = Time::getMillisecondCounterHiRes(); break; }
@@ -119,7 +119,7 @@ void TsrqWebEditor::runSelfTest() {
             AudioBuffer<float> b (2, 512); b.clear(); MidiBuffer mb; mb.addEvent (MidiMessage::controllerEvent (1, 21, 0), 0); proc.processBlock (b, mb);
             js ("JSON.stringify({midi: window.__tsrqMidi, wave: window.__tsrqWaveCount || 0, head: window.__tsrq.wave.state().head, specN: graph._specPost() ? graph._specPost().length : 0})", 7);
             st->step = 11; st->t0 = Time::getMillisecondCounterHiRes(); break; }
-        case 11: { if (t < 700) break; const var r = JSON::parse (st->res[7]);
+        case 11: { if (t < 700 || (st->res[7].isEmpty() && t < 4000)) break; const var r = JSON::parse (st->res[7]);
             log (std::abs (par ("out") + 60.0f) < 0.01f, "CC 21 valore 0 -> OUTPUT = " + String (par ("out"), 2) + " dB (atteso -60 = -inf)");
             log ((int) r["wave"] > 5 && (int) r["head"] > 100, "waveform plugin -> interfaccia: " + r["wave"].toString() + " pacchetti, " + r["head"].toString() + " gruppi da 64 campioni");
             log ((int) r["specN"] == 1024, "risoluzione analizzatore scelta nell'interfaccia (2048 punti) usata dal plugin: " + r["specN"].toString() + " bin");
