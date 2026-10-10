@@ -1,0 +1,46 @@
+clip: 148.3 s, picco -3.92 dBFS, RMS -19.3 dBFS
+== 1. NULL TEST sull intera clip: plugin appena caricato (nessuna banda) ==
+PASS uscita = ingresso bit per bit su 148 s: differenza massima -600.0 dBFS
+PASS nessun NaN/inf
+== 2. BYPASS sull intera clip con 3 bande forti ==
+PASS bypass: uscita = ingresso, differenza massima -600.0 dBFS
+== 3. PLUGIN = MOTORE C++: ogni tipo di banda sulla clip (12 s), confronto campione per campione (parametri letti dal plugin) ==
+   Bell 1000 Hz +6 dB                                           plugin - motore:  -600.0 dBFS   picco uscita -3.3 dBFS
+   Low Shelf 150 Hz -6 dB                                       plugin - motore:  -144.5 dBFS   picco uscita -6.4 dBFS
+   High Shelf 6000 Hz +4 dB                                     plugin - motore:  -144.5 dBFS   picco uscita -4.4 dBFS
+   Low Cut 80 Hz                                                plugin - motore:  -600.0 dBFS   picco uscita -5.3 dBFS
+   High Cut 10000 Hz                                            plugin - motore:  -126.0 dBFS   picco uscita -4.7 dBFS
+   Notch 3000 Hz                                                plugin - motore:  -144.5 dBFS   picco uscita -4.5 dBFS
+   Band Pass 2000 Hz                                            plugin - motore:  -600.0 dBFS   picco uscita -11.8 dBFS
+   Tilt Shelf 1000 Hz +3 dB                                     plugin - motore:  -600.0 dBFS   picco uscita -5.3 dBFS
+   Flat Tilt 1000 Hz -3 dB                                      plugin - motore:  -600.0 dBFS   picco uscita -3.9 dBFS
+   All Pass 500 Hz                                              plugin - motore:  -600.0 dBFS   picco uscita -4.2 dBFS
+   Bell 400 Hz -4 dB Mid + Bell 4000 Hz +3 dB Side              plugin - motore:  -600.0 dBFS   picco uscita -4.9 dBFS
+   Bell 800 Hz +5 dB Left + High Shelf 5000 Hz -3 dB Right      plugin - motore:  -600.0 dBFS   picco uscita -3.2 dBFS
+   Bell 200 Hz +0 dB dinamico                                   plugin - motore:  -600.0 dBFS   picco uscita -4.7 dBFS
+   Low Shelf 100 Hz +3 dB dinamico                              plugin - motore:  -150.5 dBFS   picco uscita -2.1 dBFS
+PASS plugin = motore C++ in 14 configurazioni (differenza peggiore -126.0 dBFS, soglia -100)
+== 4. CLICK sul plugin vero: cambi di stato dall host mentre la clip suona (blocchi da 256), energia sopra 6 kHz vs clip con parametri fermi ==
+   parametri fermi                      -94.1 dB   (riferimento fermo -94.1 dB)
+   frequenza 200 Hz -> 2 kHz            -91.9 dB   (riferimento fermo -94.1 dB)
+   guadagno -12 -> +12 dB               -94.4 dB   (riferimento fermo -94.1 dB)
+   Q 0.3 -> 10                          -92.5 dB   (riferimento fermo -94.1 dB)
+   banda bypass on/off ogni 0,5 s       -94.2 dB   (riferimento fermo -94.1 dB)
+   banda used on/off ogni 0,5 s         -94.2 dB   (riferimento fermo -94.1 dB)
+   tipo Bell/Notch ogni 0,5 s           -94.3 dB   (riferimento fermo -94.1 dB)
+   pendenza 12/48 (Low Cut 300 Hz)      -94.2 dB   (riferimento fermo -94.1 dB)
+   collocazione Stereo/Side             -94.1 dB   (riferimento fermo -94.1 dB)
+   dinamica on/off                      -94.1 dB   (riferimento fermo -94.1 dB)
+   bypass globale on/off                -94.2 dB   (riferimento fermo -94.1 dB)
+   Character Clean/Subtle               -70.9 dB   (riferimento fermo -70.9 dB)
+   OUTPUT 0/-12 dB a gradino            -97.6 dB   (riferimento fermo -94.1 dB)
+   INPUT 0/-12 dB a gradino             -97.6 dB   (riferimento fermo -94.1 dB)
+   polarita                             -94.1 dB   (riferimento fermo -94.1 dB)
+   pan 0/-100                           -94.1 dB   (riferimento fermo -94.1 dB)
+PASS nessun click sul plugin vero: ogni cambio di stato resta entro 2.2 dB dal pavimento della clip ferma (-94.1 dB); soglia +3 dB
+== 5. STRESS: 32 bande (16 dinamiche) sull intera clip, plugin = motore, nessun NaN, CPU ==
+PASS 32 bande su 148 s: uscita finita, picco -8.2 dBFS
+PASS CPU: 148 s di clip in 3.12 s = 2.1 % di un core (blocchi da 512)
+PASS 32 bande, 20 s: plugin = motore C++ (differenza max -104.0 dBFS)
+
+RISULTATO plugin vero sulla clip: 8 PASS, 0 FAIL

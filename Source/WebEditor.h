@@ -16,7 +16,7 @@ private:
     void sendLoad();
     void sendSpectrum();
     void runSelfTest();
-    struct SelfTest { juce::File file; int step = 0, fails = 0; double t0 = 0; float outDb = -200; juce::String res[8], out; void* gl = nullptr; int sent0 = 0; double sentT = 0; };
+    struct SelfTest { juce::File file; int step = 0, fails = 0; double t0 = 0; float outDb = -200; juce::String res[9], out; void* gl = nullptr; int sent0 = 0; double sentT = 0; };
     std::unique_ptr<SelfTest> selfTest;
     TsrqProcessor& proc;
     std::unique_ptr<juce::WebBrowserComponent> web;

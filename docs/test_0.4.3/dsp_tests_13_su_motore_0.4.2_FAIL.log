@@ -1,0 +1,23 @@
+== 13. CLICK: ogni cambio di stato misurato come energia sopra 6 kHz su un segnale senza contenuto sopra 1,5 kHz (blocchi da 256) ==
+   static          -137.9 dB  (parametri fermi)
+   drag            -137.6 dB  (frequenza 200 Hz -> 2 kHz)
+   solo_static     -148.8 dB  (solo fermo)
+   solo_drag        -87.7 dB  (solo mentre la banda si sposta)
+   solo_q           -78.7 dB  (solo mentre la banda si allarga)
+   solo_toggle      -12.6 dB  (solo acceso/spento)
+   bypass_band      -23.2 dB  (banda bypass on/off)
+   used             -23.2 dB  (banda attivata/disattivata)
+   type             -23.3 dB  (cambio di tipo Bell/LowShelf/HighShelf/Notch)
+   slope            -12.7 dB  (cambio di pendenza 12/24/48)
+   place            -20.6 dB  (cambio di collocazione Stereo/Mid/Side)
+   dyn              -90.3 dB  (dinamica on/off)
+   gbypass          -73.5 dB  (bypass globale on/off)
+   subtle           -10.1 dB  (Character Clean/Subtle)
+   outstep          -76.1 dB  (OUTPUT a gradino 0/-12 dB)
+   instep           -77.5 dB  (INPUT a gradino 0/-12 dB)
+   polarity         -59.6 dB  (inversione di polarita)
+   pan             -137.9 dB  (pan a gradino)
+   pavimento (parametri fermi) -137.9 dB
+FAIL nessun click: energia sopra 6 kHz al massimo -10.1 dB rispetto al segnale in tutti gli scenari (< -90 dB)
+
+RISULTATO: 1 FAIL

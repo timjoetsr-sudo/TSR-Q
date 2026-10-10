@@ -255,6 +255,9 @@ struct Oversampled8x {   // x -> 8 campioni -> saturazione -> 1 campione (3 stad
 };
 
 // ---------- motore ----------
+// dissolvenza (crossfade) di 15 ms per tutto cio che non si puo interpolare: banda attivata/disattivata, cambio di tipo/pendenza/collocazione,
+// solo acceso/spento, cambio di Character. Curva a coseno rialzato (inizio e fine morbidi). Prima della prima elaborazione: nessuna dissolvenza.
+inline double fadeW (double u) { return u >= 1 ? 1.0 : 0.5 - 0.5 * std::cos (kPi * u); }
 class Engine {
 public:
     struct Global { double inDb = 0, outDb = 0, autoGainDb = 0, scale = 1; int character = 0; bool bypass = false; int solo = -1;
@@ -264,24 +267,30 @@ public:
     Engine() { for (int i = 0; i < kMaxBands; ++i) { meterDelta[i] = 0; meterLevel[i] = -120; } }
     void prepare (double sampleRate, int maxBlock) {
         fs = sampleRate; grid.init (fs); N = std::max (maxBlock, 32);
-        for (auto* v : { &L, &R, &M, &S, &dL, &dR, &sL, &sR, &sM, &sS }) v->assign ((size_t) N, 0.0);
-        for (auto& b : st) { b = BandState(); }
-        outG = 1; inG = 1; byp = 0; std::memset (dc, 0, sizeof (dc)); soloSt = SoloState(); os[0].reset(); os[1].reset(); panA = panB = 1; pol = 1;
+        for (auto* v : { &L, &R, &M, &S, &dL, &dR, &sL, &sR, &sM, &sS, &xL, &xR, &oL, &oR, &pL, &pR }) v->assign ((size_t) N, 0.0);
+        for (auto& b : st) { b = BandState(); } for (auto& b : old) { b = BandState(); }
+        fadeLen = std::max (1, (int) std::lround (0.015 * fs)); primed = false; soloW = 0; chPrev = 0; chPos = 2 * fadeLen;
+        for (auto& m : osm) for (auto& o : m) o.reset(); std::memset (dcm, 0, sizeof (dcm));
+        outG = outG1 = 1; inG = inG1 = 1; byp = 0; soloSt = SoloState(); lastChm = 0; panA = panB = panA1 = panB1 = 1; pol = 0;
     }
     // chiamato all'inizio di ogni blocco, dal thread audio
     void setBand (int i, const BandParams& p) {
         BandState& s = st[i]; const bool active = p.used && ! p.bypass;
-        const bool sameShape = s.active && active && s.p.type == p.type && s.p.slope == p.slope && s.p.place == p.place;
+        if (! active) { if (s.active) fadeOut (i); s.active = false; s.dynOn = false; s.p = p; meterDelta[i] = 0; meterLevel[i] = -120; return; }
         const bool changed = ! same (s.p, p) || s.scale != glob.scale;
-        s.dynOn = active && p.dyn && canDyn (p.type);
-        if (! active) { s.active = false; s.p = p; meterDelta[i] = 0; meterLevel[i] = -120; return; }
         if (! changed && s.active) return;
-        s.p = p; s.scale = glob.scale; s.g = hasGain (p.type) ? p.gain * glob.scale : 0;
-        designBand (p, s.g + (s.dynOn ? s.delta : 0), grid, s.tgt);
+        const bool dynOn = p.dyn && canDyn (p.type); const double g = hasGain (p.type) ? p.gain * glob.scale : 0;
+        BandCoefs nc; designBand (p, g + (dynOn && s.active ? s.delta : 0), grid, nc);
+        // stessa forma = stesso tipo, stessa collocazione, stesso numero di sezioni: si interpola. Altrimenti dissolvenza vecchia -> nuova.
+        const bool sameShape = s.active && s.p.type == p.type && s.p.slope == p.slope && s.p.place == p.place && nc.n == s.tgt.n && s.dynOn == dynOn;   // dinamica on/off: dissolvenza (il salto di guadagno non si interpola bene)
+        if (s.active && ! sameShape) fadeOut (i);
+        const bool fresh = ! sameShape;
+        s.dynOn = dynOn; s.p = p; s.scale = glob.scale; s.g = g; s.tgt = nc;
         BandParams dp; detShape (p, dp); designBand (dp, 0, grid, s.det);
         if (s.dynOn) { s.aA = std::exp (-1 / (std::max (0.05, p.att) * 1e-3 * fs)); s.aR = std::exp (-1 / (std::max (1.0, p.rel) * 1e-3 * fs)); }
         else s.delta = 0;
-        if (! sameShape) { s.cur = s.tgt; s.fr0 = s.tgt; s.phase = 0; std::memset (s.z, 0, sizeof (s.z)); }
+        if (fresh) { if (s.dynOn) { s.delta = 0; designBand (p, g, grid, s.tgt); } s.cur = s.tgt; s.fr0 = s.tgt; s.phase = 0; std::memset (s.z, 0, sizeof (s.z)); std::memset (s.dz, 0, sizeof (s.dz)); s.env[0] = s.env[1] = 1e-12;
+                     s.fpos = 0; s.flen = primed ? fadeLen : 0; }
         s.active = true;
     }
     void setGlobal (const Global& g) { glob = g; }
@@ -290,6 +299,7 @@ public:
 
     // L/R in place; scL/scR = sidechain (o nullptr)
     void process (float* Lio, float* Rio, const float* scL, const float* scR, int n) {
+        primed = true;
         for (int i0 = 0; i0 < n; i0 += N) processChunk (Lio + i0, Rio + i0, scL ? scL + i0 : nullptr, scR ? scR + i0 : nullptr, std::min (N, n - i0));
     }
 
@@ -297,8 +307,9 @@ private:
     struct BandState {
         BandParams p; bool active = false, dynOn = false; double scale = 1, g = 0, delta = 0, aA = 0, aR = 0; int phase = 0;   // phase: posizione nel frame dinamico da 32 campioni (indipendente dal blocco della DAW)
         BandCoefs cur, tgt, det, fr0; double z[2][kMaxSecs * 2] = {}; double dz[2][2] = {}; double env[2] = { 1e-12, 1e-12 };
+        int fpos = 0, flen = 0; double w0 = 1;   // dissolvenza: in entrata (banda nuova) o in uscita (copia in old[])
     };
-    struct SoloState { int id = -1; BandParams src; BandCoefs c; double z[2][kMaxSecs * 2] = {}; };
+    struct SoloState { int id = -1; BandParams src; BandCoefs c, tgt; double z[2][kMaxSecs * 2] = {}; int place = 0; };
     static bool same (const BandParams& a, const BandParams& b) {
         return a.used == b.used && a.bypass == b.bypass && a.type == b.type && a.f == b.f && a.gain == b.gain && a.q == b.q && a.slope == b.slope && a.place == b.place
             && a.dyn == b.dyn && a.thr == b.thr && a.range == b.range && a.att == b.att && a.rel == b.rel && a.knee == b.knee && a.det == b.det && a.sc == b.sc && a.gq == b.gq;
@@ -354,6 +365,28 @@ private:
             default:    ch[0] = L.data(); ch[1] = R.data(); sc[0] = srcL; sc[1] = srcR; return 2;
         }
     }
+    void fadeOut (int i) {   // la banda attuale continua a suonare in old[i] e sfuma a zero in 15 ms
+        if (! primed) { old[i].active = false; return; }
+        const BandState& s = st[i]; const double w = s.flen > 0 ? fadeW ((double) s.fpos / s.flen) : 1.0;
+        old[i] = s; old[i].w0 = w; old[i].fpos = 0; old[i].flen = fadeLen; old[i].active = true;
+    }
+    void bandStep (int bi, int n, bool haveSC) {
+        BandState& s = st[bi]; BandState& o = old[bi];
+        const bool fin = s.active && s.flen > 0, fout = o.active;
+        if (! fin && ! fout) { if (s.active) bandProcess (bi, s, n, haveSC); return; }
+        for (int i = 0; i < n; ++i) { xL[(size_t) i] = L[(size_t) i]; xR[(size_t) i] = R[(size_t) i]; }
+        if (fout) { bandProcess (-1, o, n, haveSC); for (int i = 0; i < n; ++i) { oL[(size_t) i] = L[(size_t) i]; oR[(size_t) i] = R[(size_t) i]; L[(size_t) i] = xL[(size_t) i]; R[(size_t) i] = xR[(size_t) i]; } }
+        if (s.active) bandProcess (bi, s, n, haveSC);
+        for (int i = 0; i < n; ++i) {
+            const double wi = s.active ? (s.flen > 0 ? fadeW ((double) (s.fpos + i + 1) / s.flen) : 1.0) : 0.0;
+            const double wo = fout ? o.w0 * (1 - fadeW ((double) (o.fpos + i + 1) / o.flen)) : 0.0;
+            const double xl = xL[(size_t) i], xr = xR[(size_t) i];
+            L[(size_t) i] = xl + wi * (L[(size_t) i] - xl) + (fout ? wo * (oL[(size_t) i] - xl) : 0.0);
+            R[(size_t) i] = xr + wi * (R[(size_t) i] - xr) + (fout ? wo * (oR[(size_t) i] - xr) : 0.0);
+        }
+        if (fin) { s.fpos += n; if (s.fpos >= s.flen) { s.fpos = 0; s.flen = 0; } }
+        if (fout) { o.fpos += n; if (o.fpos >= o.flen) o.active = false; }
+    }
     void bandProcess (int bi, BandState& s, int n, bool haveSC) {
         const int place = s.p.place; const bool ms = place == Mid || place == Side;
         if (ms) for (int i = 0; i < n; ++i) { M[(size_t) i] = 0.5 * (L[(size_t) i] + R[(size_t) i]); S[(size_t) i] = 0.5 * (L[(size_t) i] - R[(size_t) i]); }
@@ -383,66 +416,91 @@ private:
                     for (int c = 0; c < nc; ++c) lvl = std::max (lvl, 10 * std::log10 (s.env[c] + 1e-20));
                     const double delta = dynDelta (lvl, s.p) * s.scale;
                     if (std::abs (delta - s.delta) > 0.02) { s.delta = delta; designBand (s.p, s.g + delta, grid, s.tgt); }
-                    meterLevel[bi].store ((float) lvl, std::memory_order_relaxed);
+                    if (bi >= 0) meterLevel[bi].store ((float) lvl, std::memory_order_relaxed);
                 }
             }
-            meterDelta[bi].store ((float) s.delta, std::memory_order_relaxed);
+            if (bi >= 0) meterDelta[bi].store ((float) s.delta, std::memory_order_relaxed);
         }
         if (ms) for (int i = 0; i < n; ++i) { L[(size_t) i] = M[(size_t) i] + S[(size_t) i]; R[(size_t) i] = M[(size_t) i] - S[(size_t) i]; }
     }
     void processChunk (float* Lio, float* Rio, const float* scL, const float* scR, int n) {
         {   // INPUT: guadagno d'ingresso con rampa di 20 ms; dL/dR restano il segnale originale (per il BYPASS)
-            const double tgi = std::pow (10.0, glob.inDb / 20.0), gia = 1 - std::exp (-1 / (0.02 * fs)); double gi = inG;
-            for (int i = 0; i < n; ++i) { gi += (tgi - gi) * gia; dL[(size_t) i] = Lio[i]; dR[(size_t) i] = Rio[i]; L[(size_t) i] = Lio[i] * gi; R[(size_t) i] = Rio[i] * gi; }
-            inG = gi; }
+            const double tgi = std::pow (10.0, glob.inDb / 20.0), gia = 1 - std::exp (-1 / (0.01 * fs)); double gi = inG, gi1 = inG1;
+            for (int i = 0; i < n; ++i) { gi1 += (tgi - gi1) * gia; gi += (gi1 - gi) * gia; dL[(size_t) i] = Lio[i]; dR[(size_t) i] = Rio[i]; L[(size_t) i] = Lio[i] * gi; R[(size_t) i] = Rio[i] * gi; }
+            inG = gi; inG1 = gi1; }
         const bool haveSC = scL != nullptr && scR != nullptr;
         if (haveSC) for (int i = 0; i < n; ++i) { sL[(size_t) i] = scL[i]; sR[(size_t) i] = scR[i]; sM[(size_t) i] = 0.5 * (scL[i] + scR[i]); sS[(size_t) i] = 0.5 * (scL[i] - scR[i]); }
-        if (glob.solo >= 0 && glob.solo < kMaxBands && st[glob.solo].active) {
-            const BandState& b = st[glob.solo];
-            const bool newId = soloSt.id != glob.solo || soloSt.c.n == 0;
-            if (newId || ! same (soloSt.src, b.p)) {   // il filtro del SOLO segue la banda: spostando o allargando la banda (anche durante il solo) cambia quello che si ascolta
-                BandParams sp; sp.used = true; sp.f = b.p.f; sp.slope = 12;
-                if (b.p.type == LowCut || b.p.type == LowShelf) { sp.type = HighCut; sp.q = std::sqrt (0.5); }
-                else if (b.p.type == HighCut || b.p.type == HighShelf || b.p.type == TiltShelf) { sp.type = LowCut; sp.q = std::sqrt (0.5); }
-                else { sp.type = BandPass; sp.q = std::max (0.3, b.p.q); }
-                const int nOld = soloSt.c.n; designBand (sp, 0, grid, soloSt.c); soloSt.src = b.p;
-                if (newId || soloSt.c.n != nOld) std::memset (soloSt.z, 0, sizeof (soloSt.z));
-                soloSt.id = glob.solo;
+        // SOLO: il percorso solo lavora su una copia del segnale; le bande continuano a girare sotto (nessun salto all'uscita dal solo).
+        // Accensione/spegnimento con dissolvenza di 15 ms; filtro del solo interpolato quando la banda si muove o si allarga.
+        const bool soloOn = glob.solo >= 0 && glob.solo < kMaxBands && st[glob.solo].active;
+        const bool soloRun = soloOn || soloW > 0;
+        if (soloRun) {
+            if (soloOn) {
+                const BandState& b = st[glob.solo];
+                const bool newId = soloSt.id != glob.solo || soloSt.c.n == 0;
+                if (newId || ! same (soloSt.src, b.p)) {
+                    BandParams sp; sp.used = true; sp.f = b.p.f; sp.slope = 12;
+                    if (b.p.type == LowCut || b.p.type == LowShelf) { sp.type = HighCut; sp.q = std::sqrt (0.5); }
+                    else if (b.p.type == HighCut || b.p.type == HighShelf || b.p.type == TiltShelf) { sp.type = LowCut; sp.q = std::sqrt (0.5); }
+                    else { sp.type = BandPass; sp.q = std::max (0.3, b.p.q); }
+                    designBand (sp, 0, grid, soloSt.tgt); soloSt.src = b.p; soloSt.place = b.p.place;
+                    if (newId || soloSt.tgt.n != soloSt.c.n) { soloSt.c = soloSt.tgt; std::memset (soloSt.z, 0, sizeof (soloSt.z)); }
+                    soloSt.id = glob.solo;
+                }
             }
-            const int pl = b.p.place;
+            const int pl = soloSt.place;
             for (int i = 0; i < n; ++i) {
-                const double m = 0.5 * (L[(size_t) i] + R[(size_t) i]), sd = 0.5 * (L[(size_t) i] - R[(size_t) i]);
-                if (pl == Mid) L[(size_t) i] = R[(size_t) i] = m; else if (pl == Side) L[(size_t) i] = R[(size_t) i] = sd;
-                else if (pl == Left) R[(size_t) i] = 0; else if (pl == Right) L[(size_t) i] = 0;
+                const double l = L[(size_t) i], r = R[(size_t) i], m = 0.5 * (l + r), sd = 0.5 * (l - r);
+                pL[(size_t) i] = l; pR[(size_t) i] = r;
+                if (pl == Mid) pL[(size_t) i] = pR[(size_t) i] = m; else if (pl == Side) pL[(size_t) i] = pR[(size_t) i] = sd;
+                else if (pl == Left) pR[(size_t) i] = 0; else if (pl == Right) pL[(size_t) i] = 0;
             }
-            run (soloSt.c, soloSt.z[0], L.data(), n); run (soloSt.c, soloSt.z[1], R.data(), n);
-        } else {
-            soloSt.id = -1;
-            for (int b = 0; b < kMaxBands; ++b) if (st[b].active) bandProcess (b, st[b], n, haveSC);
+            if (! coefEq (soloSt.c, soloSt.tgt)) { runLerp (soloSt.c, soloSt.tgt, soloSt.z[0], pL.data(), 0, n); runLerp (soloSt.c, soloSt.tgt, soloSt.z[1], pR.data(), 0, n); soloSt.c = soloSt.tgt; }
+            else { run (soloSt.c, soloSt.z[0], pL.data(), n); run (soloSt.c, soloSt.z[1], pR.data(), n); }
+        }
+        for (int b = 0; b < kMaxBands; ++b) if (st[b].active || old[b].active) bandStep (b, n, haveSC);
+        if (soloRun) {
+            const double tgt = soloOn ? 1.0 : 0.0, stp = primed ? 1.0 / fadeLen : 1.0; double w = soloW;
+            for (int i = 0; i < n; ++i) {
+                w = tgt > w ? std::min (tgt, w + stp) : std::max (tgt, w - stp); const double k = fadeW (w);
+                L[(size_t) i] += k * (pL[(size_t) i] - L[(size_t) i]); R[(size_t) i] += k * (pR[(size_t) i] - R[(size_t) i]);
+            }
+            soloW = w; if (! soloOn && soloW <= 0) soloSt.id = -1;
         }
         // uscita: OUTPUT (−∞ sotto −60 dB) → Character (oversampling 8x) → DC → pan → polarità → bypass morbido
-        const bool mute = glob.outDb <= -60; const double tg = mute ? 0.0 : std::pow (10.0, (glob.outDb + glob.autoGainDb) / 20.0), ga = 1 - std::exp (-1 / (0.02 * fs));
-        const double bt = glob.bypass ? 1 : 0, ba = 1 - std::exp (-1 / (0.008 * fs)), dcA = std::exp (-2 * kPi * 5 / fs);
+        const bool mute = glob.outDb <= -60; const double tg = mute ? 0.0 : std::pow (10.0, (glob.outDb + glob.autoGainDb) / 20.0), ga = 1 - std::exp (-1 / (0.01 * fs));   // smoother a due poli (10 + 10 ms)
+        const double bt = glob.bypass ? 1 : 0, dcA = std::exp (-2 * kPi * 5 / fs), stp = primed ? 1.0 / fadeLen : 1.0;   // bypass e polarita: coseno rialzato in 15 ms
         // legge del pan (bilanciamento lineare, centro = 0 dB su entrambi): A = min(1, 1 − p), B = min(1, 1 + p); L/R: A→L, B→R; M/S: A→Mid, B→Side
-        const double p = std::clamp (glob.pan, -1.0, 1.0), tA = std::min (1.0, 1 - p), tB = std::min (1.0, 1 + p), tP = glob.invert ? -1.0 : 1.0; const bool ms = glob.panMS;
-        double g = outG, by = byp, pa = panA, pb = panB, po = pol; const int chm = glob.character;
-        if (chm != lastChm) { os[0].reset(); os[1].reset(); lastChm = chm; }   // cambio di Character: stato dell'oversampling pulito
+        const double p = std::clamp (glob.pan, -1.0, 1.0), tA = std::min (1.0, 1 - p), tB = std::min (1.0, 1 + p), tP = glob.invert ? 1.0 : 0.0; const bool ms = glob.panMS;
+        double g = outG, g1 = outG1, by = byp, pa = panA, pb = panB, pa1 = panA1, pb1 = panB1, po = pol; const int chm = glob.character;
+        if (chm != lastChm) {   // cambio di Character: il nuovo modo parte pulito, gira 15 ms a vuoto (i filtri dell'oversampling si caricano: senza, transiente a -62 dB misurato) e poi si dissolve sul vecchio in 15 ms
+            if (chm) { osm[chm][0].reset(); osm[chm][1].reset(); std::memset (dcm[chm], 0, sizeof (dcm[chm])); }
+            chPrev = lastChm; chPos = primed ? 0 : 2 * fadeLen; lastChm = chm; }
         for (int i = 0; i < n; ++i) {
-            g += (tg - g) * ga; if (mute && g < 1e-7) g = 0; by += (bt - by) * ba; pa += (tA - pa) * ga; pb += (tB - pb) * ga; po += (tP - po) * ba;
+            g1 += (tg - g1) * ga; g += (g1 - g) * ga; if (mute && g < 1e-7) g = g1 = 0; pa1 += (tA - pa1) * ga; pa += (pa1 - pa) * ga; pb1 += (tB - pb1) * ga; pb += (pb1 - pb) * ga;
+            by = bt > by ? std::min (bt, by + stp) : std::max (bt, by - stp); po = tP > po ? std::min (tP, po + stp) : std::max (tP, po - stp);
             double l = L[(size_t) i] * g, r = R[(size_t) i] * g;
-            if (chm) { l = os[0].run (chm, l); r = os[1].run (chm, r);
-                const double yl = l - dc[0] + dcA * dc[1]; dc[0] = l; dc[1] = yl; const double yr = r - dc[2] + dcA * dc[3]; dc[2] = r; dc[3] = yr; l = yl; r = yr; }
+            if (chm || chPos < 2 * fadeLen) {
+                double nl, nr; chPath (chm, l, r, nl, nr, dcA);
+                if (chPos < 2 * fadeLen) { double ol, orr; chPath (chPrev, l, r, ol, orr, dcA); ++chPos; const double k = chPos <= fadeLen ? 0.0 : fadeW ((double) (chPos - fadeLen) / fadeLen); nl = ol + k * (nl - ol); nr = orr + k * (nr - orr); }
+                l = nl; r = nr; }
             if (ms) { const double m = 0.5 * (l + r) * pa, sd = 0.5 * (l - r) * pb; l = m + sd; r = m - sd; } else { l *= pa; r *= pb; }
-            l *= po; r *= po;
-            l += (dL[(size_t) i] - l) * by; r += (dR[(size_t) i] - r) * by;
+            const double kp = 1 - 2 * fadeW (po), kb = fadeW (by); l *= kp; r *= kp;
+            l += (dL[(size_t) i] - l) * kb; r += (dR[(size_t) i] - r) * kb;
             Lio[i] = (float) l; Rio[i] = (float) r;
         }
-        outG = g; byp = by; panA = pa; panB = pb; pol = po;
+        outG = g; outG1 = g1; byp = by; panA = pa; panB = pb; panA1 = pa1; panB1 = pb1; pol = po;
     }
 
+    void chPath (int m, double l, double r, double& ol, double& orr, double dcA) {   // Character del modo m (0 = Clean, passa invariato)
+        if (! m) { ol = l; orr = r; return; }
+        double* d = dcm[m]; l = osm[m][0].run (m, l); r = osm[m][1].run (m, r);
+        const double yl = l - d[0] + dcA * d[1]; d[0] = l; d[1] = yl; const double yr = r - d[2] + dcA * d[3]; d[2] = r; d[3] = yr; ol = yl; orr = yr;
+    }
     double fs = 48000; int N = 512; Grid grid; Global glob;
-    std::vector<double> L, R, M, S, dL, dR, sL, sR, sM, sS;
-    BandState st[kMaxBands]; SoloState soloSt; double outG = 1, inG = 1, byp = 0, dc[4] = {}, panA = 1, panB = 1, pol = 1; Oversampled8x os[2]; int lastChm = 0;
+    std::vector<double> L, R, M, S, dL, dR, sL, sR, sM, sS, xL, xR, oL, oR, pL, pR;
+    BandState st[kMaxBands], old[kMaxBands]; SoloState soloSt; double outG = 1, outG1 = 1, inG = 1, inG1 = 1, byp = 0, panA = 1, panB = 1, panA1 = 1, panB1 = 1, pol = 0, soloW = 0;
+    Oversampled8x osm[3][2]; double dcm[3][4] = {}; int lastChm = 0, chPrev = 0, chPos = 1440, fadeLen = 720; bool primed = false;
 };
 
 } // namespace tsrq

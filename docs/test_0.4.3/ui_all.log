@@ -1,0 +1,58 @@
+== 1. Struttura ==
+PASS proporzioni del plugin 1180×542, senza cornice in alto (rapporto 2.177)
+PASS nessun elemento fuori dal plugin (0)
+PASS vecchi tasti nascosti (visibili: ['12 dB'])
+PASS barra preset: "Default Setting"
+PASS solo il knob OUTPUT visibile (1)
+PASS nessun vetro sotto il nome
+PASS meter OUT in asse con il knob OUTPUT (scarto -0.00 px)
+== 2. Bande: creazione, isola, trascinamento ==
+PASS doppio clic → Bell 1 kHz +6 dB ([{'i': 0, 't': 0, 'f': 999.7095771492754, 'g': 6.000338639146404, 'q': 1, 's': 3, 'd': 0, 'r': -1.5}])
+PASS isola della banda tra 20 Hz e 10 kHz ({'x': 489.0919494628906, 'y': 490.5704040527344, 'width': 441.7830505371094, 'height': 114.25424194335938}, 130.3, 1051.3)
+PASS trascinamento: frequenza e guadagno cambiano, Q no (1499 Hz 7.32 dB Q 1.00, tentativo 1)
+PASS tieni premuto + destra: Bell più largo (Q 1.00 → 0.59), frequenza ferma
+PASS rotella sul Bell: Q 0.59 → 0.66
+PASS undo dalla barra
+PASS redo dalla barra
+== 3. Tipi, pendenze, Low/High Cut ==
+PASS clic sull'icona del fumetto → elenco verticale dei tipi
+PASS Low Cut: Q bloccato a 0.707 (0.7071)
+PASS Low Cut: manopole GAIN e Q spente
+PASS Low Cut con Q 8 tentato: la curva non supera mai 0 dB (picco 0.0000 dB, tutte le pendenze)
+PASS clic sulla pendenza → elenco verticale 6…96 dB/oct (9 voci)
+PASS pendenza scelta dall'elenco: 48 dB/oct
+PASS Band Pass: parte da 6 dB/oct
+PASS Band Pass: rotella → 24 dB/oct (indice 3)
+PASS Band Pass 24 dB/oct: picco 0.01 dB, fianco 24.0 dB/oct
+PASS tornando a Bell dal Band Pass
+== 4. Dinamica ==
+PASS DYN acceso → range -1.5 dB (-1.5)
+PASS range -8 → DYN spento e riacceso → -1.5 dB
+PASS triplo clic → banda con dinamica, range -1.5 ([{'i': 0, 't': 0, 'f': 2982.835571140759, 'g': -5.998166303917031, 'q': 1, 's': 3, 'd': 1, 'r': -1.5}])
+== 5. Proposte sulla linea ==
+PASS passando sulla linea a 15 Hz → proposta Low Cut
+PASS passando sulla linea a 30 Hz → proposta Low Shelf
+PASS passando sulla linea a 800 Hz → proposta Bell
+PASS passando sulla linea a 17000 Hz → proposta High Shelf
+PASS passando sulla linea a 22000 Hz → proposta High Cut
+PASS lontano dalla linea → nessuna proposta
+PASS clic sulla proposta (mouse a 15 Hz) → Low Cut a 10 Hz ([{'i': 0, 't': 3, 'f': 10, 'g': 0, 'q': 0.7071067811865476, 's': 3, 'd': 0, 'r': -1.5}])
+== 6. Tastiera e matita ==
+PASS tastiera: 1/2/3 clic su A4 → un solo Bell 440 Hz, 0 dB, senza dinamica ([{'i': 0, 't': 0, 'f': 440, 'g': 0, 'q': 1, 's': 3, 'd': 0, 'r': -1.5}])
+PASS tastiera: fuori da 20 Hz–10 kHz nessuna banda
+PASS matita: disegno +6 dB a 100 Hz → Bell creato ([(100, 6.0)])
+== 7. Preset, impostazioni, scala ==
+PASS preset salvato → "Preset 3"
+PASS Init → nessuna banda, "Default Setting"
+PASS freccia › → ricarica Preset 3 (1 bande)
+PASS tasto scala cambia la scala del grafico
+PASS impostazioni dal menu: Peak Hold attivato
+== 8. Audio (motore nel browser) ==
+PASS audio in riproduzione: picco d'uscita -8.4 dBFS
+PASS knob OUTPUT trascinato in giù → P.out -21.17 dB
+PASS Ctrl+Z riporta OUTPUT a 0 dB
+PASS motore con OUTPUT -6 dB: sinusoide misurata -6.00 dB
+PASS meter: valori finiti
+PASS nessun errore JavaScript ([])
+
+RISULTATO interfaccia: 48 PASS, 0 FAIL

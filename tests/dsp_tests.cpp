@@ -185,6 +185,39 @@ int main() {
       ok (wide > narrow + 6, "solo su 1 kHz, tono a 2,5 kHz: Q 4 -> %.1f dB, allargata a Q 0.3 -> %.1f dB (si sente di piu)", narrow, wide);
       ok (moved > narrow + 6, "spostata a 2,5 kHz durante il solo: %.1f dB (prima %.1f dB)", moved, narrow); }
 
+    std::printf ("== 13. CLICK: ogni cambio di stato misurato come energia sopra 6 kHz su un segnale senza contenuto sopra 1,5 kHz (blocchi da 256) ==\n");
+    { const double fs = 48000; const int n = 48000 * 6, bl = 256;
+      auto scen = [&] (const std::string& sc) {
+          std::vector<float> L ((size_t) n), R ((size_t) n);
+          for (int i = 0; i < n; ++i) { const double t = i / fs, env = 0.6 + 0.4 * std::sin (2 * kPi * 0.5 * t);
+              const double v = env * (0.3 * std::sin (2 * kPi * 110 * t) + 0.25 * std::sin (2 * kPi * 220 * t + 1) + 0.2 * std::sin (2 * kPi * 330 * t + 2) + 0.15 * std::sin (2 * kPi * 440 * t)
+                                   + 0.1 * std::sin (2 * kPi * 660 * t) + 0.08 * std::sin (2 * kPi * 880 * t) + 0.05 * std::sin (2 * kPi * 1320 * t)); L[(size_t) i] = (float) v; R[(size_t) i] = (float) (0.8 * v); }
+          Engine e; e.prepare (fs, 4096); Engine::Global g; BandParams b = band (Bell, 500, 6, 2); if (sc == "slope") b = band (LowCut, 300, 0, .71, 12);
+          for (int i0 = 0; i0 < n; i0 += bl) { const double u = (double) i0 / n; const int ph = (i0 / 12000) % 2, k = i0 / 12000;
+              if (sc == "drag" || sc == "solo_drag") b.f = 200 * std::pow (10.0, u);
+              if (sc == "solo_q") b.q = 0.3 * std::pow (10 / 0.3, u);
+              g.solo = sc.rfind ("solo", 0) == 0 ? 0 : -1; if (sc == "solo_toggle") g.solo = ph ? 0 : -1;
+              if (sc == "bypass_band") b.bypass = ph; if (sc == "used") b.used = ! ph;
+              if (sc == "type") { const int t[4] = { Bell, LowShelf, HighShelf, Notch }; b.type = t[k % 4]; b.f = 800; }
+              if (sc == "slope") { const int sl[3] = { 12, 24, 48 }; b.slope = sl[k % 3]; }
+              if (sc == "place") { const int pl[3] = { Stereo, Mid, Side }; b.place = pl[k % 3]; }
+              if (sc == "dyn") { b.dyn = ph; b.thr = -40; b.range = -1.5; }
+              if (sc == "gbypass") g.bypass = ph; if (sc == "subtle") g.character = ph ? 1 : 0; if (sc == "outstep") g.outDb = ph ? -12 : 0; if (sc == "instep") g.inDb = ph ? -12 : 0;
+              if (sc == "polarity") g.invert = ph; if (sc == "pan") g.pan = ph ? -1 : 0;
+              e.setGlobal (g); e.setBand (0, b); e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, std::min (bl, n - i0)); }
+          // misura: passa-alto 6 kHz 96 dB/oct (il motore stesso, fermo), picco RMS su finestre da 64 campioni, rispetto all'RMS del segnale
+          Engine hp; hp.prepare (fs, 4096); Engine::Global gh; hp.setGlobal (gh); hp.setBand (0, band (LowCut, 6000, 0, .71, 96)); hp.process (L.data(), R.data(), nullptr, nullptr, n);
+          double pk = 0; for (int i0 = 4800; i0 + 64 <= n; i0 += 64) { double s = 0; for (int i = i0; i < i0 + 64; ++i) s += L[(size_t) i] * L[(size_t) i]; pk = std::max (pk, s / 64); }
+          return 10 * std::log10 (pk / 0.0338 + 1e-30); };   // 0.0338 = potenza media del segnale di prova (misurata)
+      const char* names[] = { "static", "drag", "solo_static", "solo_drag", "solo_q", "solo_toggle", "bypass_band", "used", "type", "slope", "place", "dyn", "gbypass", "subtle", "outstep", "instep", "polarity", "pan" };
+      const char* desc[] = { "parametri fermi", "frequenza 200 Hz -> 2 kHz", "solo fermo", "solo mentre la banda si sposta", "solo mentre la banda si allarga", "solo acceso/spento", "banda bypass on/off", "banda attivata/disattivata",
+                             "cambio di tipo Bell/LowShelf/HighShelf/Notch", "cambio di pendenza 12/24/48", "cambio di collocazione Stereo/Mid/Side", "dinamica on/off", "bypass globale on/off", "Character Clean/Subtle",
+                             "OUTPUT a gradino 0/-12 dB", "INPUT a gradino 0/-12 dB", "inversione di polarita", "pan a gradino" };
+      double worst = -999; const double flo = scen ("static");
+      for (size_t i = 0; i < sizeof (names) / sizeof (*names); ++i) { const double v = scen (names[i]); worst = std::max (worst, v); std::printf ("   %-14s %7.1f dB  (%s)\n", names[i], v, desc[i]); }
+      std::printf ("   pavimento (parametri fermi) %.1f dB\n", flo);
+      ok (worst < -90, "nessun click: energia sopra 6 kHz al massimo %.1f dB rispetto al segnale in tutti gli scenari (< -90 dB)", worst); }
+
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;
 }

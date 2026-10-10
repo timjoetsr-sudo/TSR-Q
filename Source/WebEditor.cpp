@@ -64,6 +64,10 @@ void TsrqWebEditor::runSelfTest() {
     auto& st = selfTest; const double t = Time::getMillisecondCounterHiRes() - st->t0;
     auto log = [&st] (bool ok, const String& m) { st->out << (ok ? "PASS " : "FAIL ") << m << "\n"; st->fails += ok ? 0 : 1; };
     auto par = [this] (const String& id) { auto* p = proc.apvts.getParameter (id); return p ? p->convertFrom0to1 (p->getValue()) : -999.0f; };
+    auto toneDb = [this] (double f) { AudioBuffer<float> b (2, 512); MidiBuffer mb; double ph = 0, acc = 0; int cnt = 0;
+        for (int k = 0; k < 94; ++k) { for (int i = 0; i < 512; ++i) { const float v = 0.5f * (float) std::sin (ph); ph += 2 * MathConstants<double>::pi * f / 48000; b.setSample (0, i, v); b.setSample (1, i, v); }
+            proc.processBlock (b, mb); if (k > 65) for (int i = 0; i < 512; ++i) { acc += b.getSample (0, i) * b.getSample (0, i); ++cnt; } }
+        return (float) (10 * std::log10 (acc / cnt / 0.125 + 1e-30)); };
     auto js = [this, &st] (const String& code, int slot) { web->evaluateJavascript (code, [&st, slot] (WebBrowserComponent::EvaluationResult r) {
         st->res[slot] = r.getResult() != nullptr ? r.getResult()->toString() : String ("ERRORE JS: ") + (r.getError() ? r.getError()->message : String()); }); };
     switch (st->step) {
@@ -131,6 +135,15 @@ void TsrqWebEditor::runSelfTest() {
             log ((int) r["wave"] > 5 && (int) r["head"] > 100, "waveform plugin -> interfaccia: " + r["wave"].toString() + " pacchetti, " + r["head"].toString() + " gruppi da 64 campioni");
             log ((int) r["specN"] == 1024, "risoluzione analizzatore scelta nell'interfaccia (2048 punti) usata dal plugin: " + r["specN"].toString() + " bin");
             log (r["midi"]["map"]["out"].toString() == "21", "interfaccia informata della mappa MIDI: " + st->res[7].substring (0, 60));
+            /* OUTPUT di nuovo a 0 dB dall'interfaccia (era a -inf dopo il test MIDI) e solo sulla banda 1 */
+            js ("P.out = 0; solo = 0; dirty = true; flush(); 'ok'", 8); st->step = 16; st->t0 = Time::getMillisecondCounterHiRes(); break; }
+        case 16: { if (t < 500 || ((proc.solo.load() != 0 || std::abs (par ("out")) > 0.01f) && t < 4000)) break;   // SOLO end-to-end: interfaccia -> processore -> motore, e il solo segue la banda
+            log (proc.solo.load() == 0, "UI: solo sulla banda 1 -> processore solo = " + String (proc.solo.load()));
+            st->outDb = toneDb (2500.0); log (st->outDb < -8.0f, "solo su banda 500 Hz (Q 1): tono a 2,5 kHz attenuato a " + String (st->outDb, 1) + " dB (atteso circa -13)");
+            js ("P.bands[0].freq = 2500; dirty = true; flush(); 'ok'", 8); st->step = 17; st->t0 = Time::getMillisecondCounterHiRes(); break; }
+        case 17: { if (t < 500 || (std::abs (par ("b1_freq") - 2500.0f) > 1.0f && t < 4000)) break;
+            const float lv = toneDb (2500.0); log (std::abs (par ("b1_freq") - 2500.0f) < 1.0f && lv > st->outDb + 8.0f, "banda spostata a 2,5 kHz durante il solo: il tono ora passa a " + String (lv, 1) + " dB (prima " + String (st->outDb, 1) + "): il solo segue la banda");
+            js ("solo = -1; dirty = true; flush(); 'ok'", 8);
             st->out << "RISULTATO " << (st->fails ? "FAIL" : "PASS") << "\n"; st->file.replaceWithText (st->out); st->step = 99;
             MessageManager::callAsync ([] { if (auto* app = JUCEApplicationBase::getInstance()) app->systemRequestedQuit(); }); break; }
         default: break;

@@ -1,7 +1,18 @@
-# TSR Q — Precision Dynamic EQ · TSR Audio · v0.4.2
+# TSR Q — Precision Dynamic EQ · TSR Audio · v0.4.3
 
 Plugin JUCE 8 (C++17). Formati: **AU + VST3 + Standalone su macOS** (universale Apple Silicon + Intel, macOS 11+), VST3 + Standalone su Linux/Windows.
 Produttore: **TSR Audio** (codice produttore `Tsra`, codice plugin `Tsrq`, bundle `com.tsraudio.tsrq`).
+
+## Novità 0.4.3 (test sulla clip "ESO – SAFE": click eliminati)
+- **Dissolvenza di 15 ms** (coseno rialzato) per tutto ciò che non si può interpolare: banda attivata/disattivata o bypass, cambio di tipo/pendenza/collocazione, dinamica on/off, **solo acceso/spento**, cambio di Character.
+  Misurato sulla clip (energia sopra 6 kHz prodotta dal cambio, rispetto alla clip ferma): prima solo on/off −15 dB, cambio tipo −17 dB, pendenza −13 dB, attiva/disattiva −25 dB, Character −15 dB; ora tutti al pavimento (−94 dB).
+- **Solo senza salto**: il percorso solo lavora su una copia del segnale e le bande continuano a girare sotto; il filtro del solo è interpolato mentre la banda si muove o si allarga.
+- **Character**: al cambio il nuovo modo gira 15 ms a vuoto (i filtri dell'oversampling si caricano: senza, transiente a −62 dB misurato) e poi si dissolve sul vecchio.
+- **Bypass e polarità** con rampa a coseno rialzato (prima esponenziale: −60 dB di click sull'inversione di polarità, ora al pavimento). **INPUT, OUTPUT e pan** con smoother a due poli (10 + 10 ms): niente spigolo all'inizio della rampa (−76 → −98 dB).
+- Test C++ n. 13: 18 scenari di cambio di stato su un segnale senza contenuto sopra 1,5 kHz; **fallisce sul motore 0.4.2 (−10 dB) e passa sul nuovo (−109 dB)**. Il prototipo nel browser è identico al C++ in tutti i 21 scenari dinamici (differenza ≤ −151 dBFS).
+- Self-test del plugin: nuovo passo end-to-end **interfaccia → processore → motore** per il solo che segue la banda (solo su 500 Hz: tono a 2,5 kHz a −15,5 dB; banda spostata a 2,5 kHz: +3,0 dB).
+- Test sul **plugin VST3 vero con la clip** (pedalboard): null test bit per bit su 148 s, bypass, plugin = motore C++ campione per campione per ogni tipo di banda (≤ −126 dBFS), 16 cambi di stato dall'host senza click, 32 bande (16 dinamiche) su tutta la clip (2,0 % di un core).
+- **Correzione di misura**: pedalboard quantizza i parametri (10 000 Hz diventa 10 017 Hz); il confronto con l'analogico ora usa i valori reali letti dal plugin: High Cut 12 kHz 24 dB/oct a 44,1 kHz = 0,98 dB (prima dichiarato 1,10: 0,12 dB erano del banco di prova).
 
 ## Novità 0.4.2
 - **Solo**: con il solo attivo, spostando o allargando la banda si sente subito la nuova zona (prima il plugin restava sul filtro del momento in cui si era premuto solo; il prototipo nel browser era già corretto). Test C++ che falliva sul motore vecchio e passa sul nuovo.

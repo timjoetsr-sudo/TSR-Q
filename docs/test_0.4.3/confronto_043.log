@@ -1,0 +1,64 @@
+== 1. RISPOSTA IN FREQUENZA misurata sul plugin vero: errore massimo rispetto al filtro analogico ideale (20 Hz-20 kHz, sopra -30 dB; TSR Q confrontato ai parametri reali letti dal plugin) ==
+banda                                    fs |      TSR Q    JUCE EQ        RBJ
+Bell 1000 Hz +12 dB Q2                44100 |    0.004 dB   0.024 dB   0.024 dB
+Bell 5000 Hz +9 dB Q1                 44100 |    0.132 dB   0.807 dB   0.807 dB
+Bell 10000 Hz +12 dB Q2               44100 |    0.287 dB   2.490 dB   2.490 dB
+Bell 15000 Hz -12 dB Q4               44100 |    0.167 dB   5.101 dB   5.101 dB
+Bell 16000 Hz +6 dB Q0.7              44100 |    0.059 dB   4.147 dB   4.147 dB
+Low Shelf 100 Hz +6 dB Q0.71          44100 |    0.000 dB   0.006 dB          —
+High Shelf 8000 Hz +6 dB Q0.71        44100 |    0.024 dB   0.473 dB          —
+High Shelf 15000 Hz -9 dB Q0.71       44100 |    0.115 dB   2.382 dB          —
+Low Cut 50 Hz 24 dB/oct               44100 |    0.047 dB          —          —
+High Cut 12000 Hz 24 dB/oct           44100 |    0.978 dB          —          —
+High Cut 16000 Hz 12 dB/oct           44100 |    0.479 dB   4.956 dB          —
+Low Cut 30 Hz 12 dB/oct               44100 |    0.004 dB   2.706 dB          —
+Bell 1000 Hz +12 dB Q2                48000 |    0.003 dB   0.021 dB   0.021 dB
+Bell 5000 Hz +9 dB Q1                 48000 |    0.069 dB   0.687 dB   0.687 dB
+Bell 10000 Hz +12 dB Q2               48000 |    0.138 dB   2.095 dB   2.095 dB
+Bell 15000 Hz -12 dB Q4               48000 |    0.066 dB   4.218 dB   4.218 dB
+Bell 16000 Hz +6 dB Q0.7              48000 |    0.067 dB   2.908 dB   2.908 dB
+Low Shelf 100 Hz +6 dB Q0.71          48000 |    0.000 dB   0.001 dB          —
+High Shelf 8000 Hz +6 dB Q0.71        48000 |    0.007 dB   0.401 dB          —
+High Shelf 15000 Hz -9 dB Q0.71       48000 |    0.026 dB   2.049 dB          —
+Low Cut 50 Hz 24 dB/oct               48000 |    0.055 dB          —          —
+High Cut 12000 Hz 24 dB/oct           48000 |    0.243 dB          —          —
+High Cut 16000 Hz 12 dB/oct           48000 |    0.311 dB   2.148 dB          —
+Low Cut 30 Hz 12 dB/oct               48000 |    0.005 dB   2.704 dB          —
+Bell 1000 Hz +12 dB Q2                96000 |    0.001 dB   0.005 dB   0.005 dB
+Bell 5000 Hz +9 dB Q1                 96000 |    0.009 dB   0.181 dB   0.181 dB
+Bell 10000 Hz +12 dB Q2               96000 |    0.015 dB   0.517 dB   0.517 dB
+Bell 15000 Hz -12 dB Q4               96000 |    0.009 dB   0.984 dB   0.984 dB
+Bell 16000 Hz +6 dB Q0.7              96000 |    0.015 dB   0.359 dB   0.359 dB
+Low Shelf 100 Hz +6 dB Q0.71          96000 |    0.001 dB   0.018 dB          —
+High Shelf 8000 Hz +6 dB Q0.71        96000 |    0.000 dB   0.102 dB          —
+High Shelf 15000 Hz -9 dB Q0.71       96000 |    0.006 dB   0.446 dB          —
+Low Cut 50 Hz 24 dB/oct               96000 |    0.230 dB          —          —
+High Cut 12000 Hz 24 dB/oct           96000 |    0.022 dB          —          —
+High Cut 16000 Hz 12 dB/oct           96000 |    0.005 dB   0.948 dB          —
+Low Cut 30 Hz 12 dB/oct               96000 |    0.021 dB   2.699 dB          —
+PASS TSR Q @44100: errore massimo 0.978 dB (< 1 dB) | JUCE EQ 5.10 dB
+PASS TSR Q @48000: errore massimo 0.311 dB (< 1 dB) | JUCE EQ 4.22 dB
+PASS TSR Q @96000: errore massimo 0.230 dB (< 1 dB) | JUCE EQ 2.70 dB
+PASS TSR Q piu vicino all analogico (o uguale) del JUCE EQ in 30 casi su 30
+== 2. LATENZA, NULL TEST, BYPASS sul plugin vero ==
+PASS latenza: picco della risposta all impulso al campione 0 (0 = nessuna latenza)
+PASS latenza dichiarata all host: 0 campioni
+PASS null test: 3 bande a 0 dB, residuo -600.0 dBFS
+PASS bypass: uscita = ingresso, residuo -600.0 dBFS
+== 3. AUTOMAZIONE: click misurati come energia sopra 4 kHz (il segnale e una sinusoide a 440 Hz: tutto cio che sta sopra 4 kHz e prodotto dal cambio di parametri) ==
+   pavimento (parametri fermi): -147.3 dB
+   frequenza 100 Hz -> 10 kHz in 2 s, Bell +12 dB Q2: TSR Q -102.7 dB | EQ a scatti (RBJ) -54.6 dB
+PASS frequenza 100 Hz -> 10 kHz in 2 s, Bell +12 dB Q2: energia da click TSR Q -102.7 dB contro -54.6 dB di un EQ a scatti (< -80 dB e almeno 20 dB meno)
+   guadagno 0 -> +12 dB a gradino a meta, Bell 440 Hz Q2: TSR Q -88.9 dB | EQ a scatti (RBJ) -44.9 dB
+PASS guadagno 0 -> +12 dB a gradino a meta, Bell 440 Hz Q2: energia da click TSR Q -88.9 dB contro -44.9 dB di un EQ a scatti (< -80 dB e almeno 20 dB meno)
+   Q 0.3 -> 10 in 2 s, Bell 600 Hz +12 dB: TSR Q -124.6 dB | EQ a scatti (RBJ) -75.4 dB
+PASS Q 0.3 -> 10 in 2 s, Bell 600 Hz +12 dB: energia da click TSR Q -124.6 dB contro -75.4 dB di un EQ a scatti (< -80 dB e almeno 20 dB meno)
+== 4. CHARACTER: aliasing sul plugin vero (tono ~15 kHz centrato su un bin, 0.99 di ampiezza, 44.1 kHz) ==
+PASS Subtle: componente spuria piu forte sotto 20 kHz -157.1 dB rispetto alla fondamentale (aliasing; < -80 dB)
+PASS Warm: componente spuria piu forte sotto 20 kHz -142.3 dB rispetto alla fondamentale (aliasing; < -80 dB)
+== 5. DINAMICA sul plugin vero: Bell dinamico, range -1.5 dB, tono sopra soglia ==
+PASS riduzione misurata -1.50 dB (attesa -1.50)
+== 6. CPU sul plugin vero: 32 bande (16 dinamiche), stereo 48 kHz, blocchi 128 ==
+PASS 10 s di audio in 207 ms = 2.1 % di un core (x48 tempo reale)
+
+RISULTATO confronto e plugin vero: 15 PASS, 0 FAIL

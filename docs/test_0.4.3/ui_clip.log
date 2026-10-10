@@ -1,0 +1,10 @@
+PASS clip incorporata nella pagina: 7909120 byte base64
+PASS PLAY: suona ESO - SAFE.mp3 (148 s) con motore AudioWorklet a 44100 Hz
+PASS audio reale nel motore: picco in 0.13, picco out 0.13 (lineare)
+PASS spettro post cambia nel tempo (musica, non segnale fisso)
+PASS solo segue la banda spostata 200 Hz -> 2 kHz: energia a 2 kHz -97.9 -> -66.2 dB, a 200 Hz -67.9 -> -105.5 dB
+PASS solo allargando la banda (Q 4 -> 0.3): energia a 200 Hz -105.5 -> -84.3 dB (si sente di piu)
+PASS dopo 8 cambi di stato in riproduzione: ancora in play, picco out 0.20
+PASS waveform sulla clip: 0 passi indietro, 691 gruppi/s (attesi 689 a 44100 Hz), irregolarita 3.2 %
+PASS nessun errore JavaScript (0): 
+RISULTATO pagina clip: 9 PASS, 0 FAIL

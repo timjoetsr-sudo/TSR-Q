@@ -534,28 +534,43 @@ var TSRQ = (function () {
     for (i = 0; i < 4; i++) { s2[i] = 0.5 * (apRun(d[2][0], s3[2 * i]) + apRun(d[2][1], p[2])); p[2] = s3[2 * i + 1]; }
     for (i = 0; i < 2; i++) { s1[i] = 0.5 * (apRun(d[1][0], s2[2 * i]) + apRun(d[1][1], p[1])); p[1] = s2[2 * i + 1]; }
     var y = 0.5 * (apRun(d[0][0], s1[0]) + apRun(d[0][1], p[0])); p[0] = s1[1]; return y; };
+  /* dissolvenza (crossfade) di 15 ms per tutto cio che non si puo interpolare: banda attivata/disattivata, cambio di tipo/pendenza/collocazione,
+     solo acceso/spento, cambio di Character. Curva a coseno rialzato. Prima della prima elaborazione: nessuna dissolvenza. Identico al C++. */
+  function fadeW(u) { return u >= 1 ? 1 : 0.5 - 0.5 * Math.cos(PI * u); }
   function Engine(fs, maxBlock) {
     this.fs = fs; this.N = maxBlock || 4096;
     this.L = new Float64Array(this.N); this.R = new Float64Array(this.N);
     this.M = new Float64Array(this.N); this.S = new Float64Array(this.N);
     this.dL = new Float64Array(this.N); this.dR = new Float64Array(this.N);
-    this.bands = []; this.map = {};
+    this.xL = new Float64Array(this.N); this.xR = new Float64Array(this.N); this.oL = new Float64Array(this.N); this.oR = new Float64Array(this.N);
+    this.pL = new Float64Array(this.N); this.pR = new Float64Array(this.N);
+    this.bands = []; this.map = {}; this.old = {}; this.order = [];
     this.st = { inGain: 0, out: 0, autoGainDb: 0, scale: 1, character: 0, bypass: false, solo: -1 };
-    this.outG = 1; this.inG = 1; this.byp = 0; this.dc = [0, 0, 0, 0];
-    this.solo = null; this.peak = [0, 0]; this.pin = [0, 0]; this.os = [new OS8(), new OS8()]; this.lastChm = 0; this.panA = 1; this.panB = 1; this.pol = 1;
+    this.outG = 1; this.outG1 = 1; this.inG = 1; this.inG1 = 1; this.byp = 0; this.panA = 1; this.panB = 1; this.panA1 = 1; this.panB1 = 1; this.pol = 0;
+    this.solo = null; this.soloOn = false; this.soloW = 0; this.peak = [0, 0]; this.pin = [0, 0];
+    this.fadeLen = Math.max(1, Math.round(0.015 * fs)); this.primed = false;
+    this.osm = [null, [new OS8(), new OS8()], [new OS8(), new OS8()]]; this.dcm = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]; this.lastChm = 0; this.chPrev = 0; this.chPos = 2 * this.fadeLen;
   }
+  Engine.prototype._fadeOut = function (id, r) {   // la banda attuale continua a suonare in old[id] e sfuma a zero in 15 ms
+    if (!this.primed) { delete this.old[id]; return; }
+    r.w0 = r.flen > 0 ? fadeW(r.fpos / r.flen) : 1; r.fpos = 0; r.flen = this.fadeLen; this.old[id] = r;
+  };
   Engine.prototype.setState = function (st) {
-    var self = this, keep = {}, fs = this.fs, sc = typeof st.scale === 'number' ? st.scale : 1;
+    var self = this, keep = {}, fs = this.fs, sc = typeof st.scale === 'number' ? st.scale : 1, seen = {};
     if (!st || !Array.isArray(st.bands)) throw new Error('TSRQ: stato senza bande');
     if (typeof st.inGain !== 'number') throw new Error('TSRQ: stato senza inGain');
     st.bands.forEach(validateBand);
     this.st = st;
-    this.bands = st.bands.filter(function (b) { return b.on; }).map(function (b) {
-      var r = self.map[b.id], g = GAIN_TYPES[b.type] ? b.g * sc : 0, dyn = !!(b.dyn && b.dyn.on && DYN_TYPES[b.type]);
+    st.bands.forEach(function (b) {
+      var r = self.map[b.id]; seen[b.id] = 1;
+      if (!b.on) { if (r) self._fadeOut(b.id, r); return; }
+      var g = GAIN_TYPES[b.type] ? b.g * sc : 0, dyn = !!(b.dyn && b.dyn.on && DYN_TYPES[b.type]);
       var c = designBand(b, g + (dyn && r ? r.delta : 0), fs);
-      var sig = b.type + '|' + c.length + '|' + b.place;
+      var sig = b.type + '|' + c.length + '|' + b.place + '|' + b.slope + '|' + (dyn ? 1 : 0);   // stessa forma = stesso tipo, pendenza, collocazione, numero di sezioni: si interpola; altrimenti dissolvenza
       if (!r || r.sig !== sig) {
-        r = { sig: sig, cur: c, st: [new Float64Array(c.length / 5 * 2), new Float64Array(c.length / 5 * 2)], env: [1e-12, 1e-12], dst: [new Float64Array(2), new Float64Array(2)], delta: 0, lvl: -120 };
+        if (r) self._fadeOut(b.id, r);
+        if (dyn) c = designBand(b, g, fs);
+        r = { sig: sig, cur: c, st: [new Float64Array(c.length / 5 * 2), new Float64Array(c.length / 5 * 2)], env: [1e-12, 1e-12], dst: [new Float64Array(2), new Float64Array(2)], delta: 0, lvl: -120, fpos: 0, flen: self.primed ? self.fadeLen : 0, w0: 1 };
       }
       r.cfg = b; r.tgt = c; r.dyn = dyn; r.g = g; r.sc = sc;
       r.dc = designBand(detSection(b), 0, fs);
@@ -563,15 +578,20 @@ var TSRQ = (function () {
         r.aA = Math.exp(-1 / (Math.max(0.05, b.dyn.att) * 1e-3 * fs));
         r.aR = Math.exp(-1 / (Math.max(1, b.dyn.rel) * 1e-3 * fs));
       } else r.delta = 0;
-      keep[b.id] = r; return r;
+      keep[b.id] = r;
     });
+    for (var k in this.map) if (!seen[k]) this._fadeOut(+k, this.map[k]);   // bande sparite dallo stato: sfumano
     this.map = keep;
-    var sb = st.solo >= 0 ? st.bands.filter(function (b) { return b.id === st.solo; })[0] : null;
+    var ids = {}; for (k in keep) ids[k] = 1; for (k in this.old) ids[k] = 1;
+    this.order = Object.keys(ids).map(Number).sort(function (a, b) { return a - b; });   // stesso ordine del C++ (indice di banda)
+    this.bands = this.order.map(function (id) { return keep[id]; }).filter(Boolean);
+    var sb = st.solo >= 0 ? st.bands.filter(function (b) { return b.id === st.solo && b.on; })[0] : null;
+    this.soloOn = !!sb;
     if (sb) {
-      var cs = designBand(soloSection(sb), 0, fs);
-      if (!this.solo || this.solo.id !== sb.id || this.solo.c.length !== cs.length) this.solo = { id: sb.id, c: cs, st: [new Float64Array(cs.length / 5 * 2), new Float64Array(cs.length / 5 * 2)], place: sb.place };
-      else { this.solo.c = cs; this.solo.place = sb.place; }
-    } else this.solo = null;
+      var cs = designBand(soloSection(sb), 0, fs), so = this.solo;
+      if (!so || so.id !== sb.id || so.c.length !== cs.length) this.solo = { id: sb.id, c: cs, tgt: cs, st: [new Float64Array(cs.length / 5 * 2), new Float64Array(cs.length / 5 * 2)], place: sb.place };
+      else { so.tgt = cs; so.place = sb.place; }
+    }
   };
   Engine.prototype._chan = function (place) {      // buffer da filtrare per collocazione
     if (place === 1) return [this.L]; if (place === 2) return [this.R];
@@ -610,36 +630,76 @@ var TSRQ = (function () {
     }
     if (ms) for (i = 0; i < n; i++) { L[i] = M[i] + S[i]; R[i] = M[i] - S[i]; }
   };
+  Engine.prototype._bandStep = function (id, n) {
+    var r = this.map[id], o = this.old[id], fin = !!(r && r.flen > 0), fout = !!o, L = this.L, R = this.R, xL = this.xL, xR = this.xR, oL = this.oL, oR = this.oR, i;
+    if (!fin && !fout) { if (r) this._band(r, n); return; }
+    for (i = 0; i < n; i++) { xL[i] = L[i]; xR[i] = R[i]; }
+    if (fout) { this._band(o, n); for (i = 0; i < n; i++) { oL[i] = L[i]; oR[i] = R[i]; L[i] = xL[i]; R[i] = xR[i]; } }
+    if (r) this._band(r, n);
+    for (i = 0; i < n; i++) {
+      var wi = r ? (r.flen > 0 ? fadeW((r.fpos + i + 1) / r.flen) : 1) : 0;
+      var wo = fout ? o.w0 * (1 - fadeW((o.fpos + i + 1) / o.flen)) : 0;
+      var xl = xL[i], xr = xR[i];
+      L[i] = xl + wi * (L[i] - xl) + (fout ? wo * (oL[i] - xl) : 0);
+      R[i] = xr + wi * (R[i] - xr) + (fout ? wo * (oR[i] - xr) : 0);
+    }
+    if (fin) { r.fpos += n; if (r.fpos >= r.flen) { r.fpos = 0; r.flen = 0; } }
+    if (fout) { o.fpos += n; if (o.fpos >= o.flen) delete this.old[id]; }
+  };
+  Engine.prototype._ch = function (m, v, c, dcA) {   // Character del modo m su un canale (0 = Clean, passa invariato)
+    if (!m) return v; var d = this.dcm[m], y = this.osm[m][c].run(m, v), o = y - d[2 * c] + dcA * d[2 * c + 1]; d[2 * c] = y; d[2 * c + 1] = o; return o;
+  };
   Engine.prototype.process = function (Lio, Rio, n) {
     if (n > this.N) throw new Error('TSRQ: blocco troppo lungo');
-    var L = this.L, R = this.R, dL = this.dL, dR = this.dR, i, st = this.st;
-    var tgi = Math.pow(10, st.inGain / 20), gia = 1 - Math.exp(-1 / (0.02 * this.fs)), gi = this.inG;
-    for (i = 0; i < n; i++) { gi += (tgi - gi) * gia; dL[i] = Lio[i]; dR[i] = Rio[i]; L[i] = Lio[i] * gi; R[i] = Rio[i] * gi; var al = L[i] < 0 ? -L[i] : L[i], ar = R[i] < 0 ? -R[i] : R[i]; if (al > this.pin[0]) this.pin[0] = al; if (ar > this.pin[1]) this.pin[1] = ar; }
-    this.inG = gi;
-    if (this.solo) {
-      var so = this.solo, pl = so.place;
-      if (pl === 3 || pl === 4) { for (i = 0; i < n; i++) { var m = 0.5 * (L[i] + R[i]), s = 0.5 * (L[i] - R[i]); L[i] = R[i] = pl === 3 ? m : s; } }
-      else if (pl === 1) R.fill(0, 0, n); else if (pl === 2) L.fill(0, 0, n);
-      run(so.c, so.st[0], L, n); run(so.c, so.st[1], R, n);
-    } else for (var b = 0; b < this.bands.length; b++) this._band(this.bands[b], n);
-    /* uscita: OUTPUT (\u2212\u221e sotto \u221260 dB) \u2192 Character (oversampling 8x) \u2192 DC \u2192 pan \u2192 polarit\u00e0 \u2192 bypass morbido (uguale al C++) */
-    var mute = (st.out || 0) <= -60, tg = mute ? 0 : Math.pow(10, ((st.out || 0) + (st.autoGainDb || 0)) / 20), ga = 1 - Math.exp(-1 / (0.02 * this.fs)), g = this.outG;
-    var ch = st.character || 0, bt = st.bypass ? 1 : 0, by = this.byp, ba = 1 - Math.exp(-1 / (0.008 * this.fs));
-    var dc = this.dc, dcA = Math.exp(-2 * PI * 5 / this.fs), pL = 0, pR = 0;
-    var pn = Math.max(-1, Math.min(1, st.pan || 0)), tA = Math.min(1, 1 - pn), tB = Math.min(1, 1 + pn), tP = st.invert ? -1 : 1, ms = !!st.panMS, pa = this.panA, pb = this.panB, po = this.pol;
-    if (ch !== this.lastChm) { this.os = [new OS8(), new OS8()]; this.lastChm = ch; }
-    for (i = 0; i < n; i++) {
-      g += (tg - g) * ga; if (mute && g < 1e-7) g = 0; by += (bt - by) * ba; pa += (tA - pa) * ga; pb += (tB - pb) * ga; po += (tP - po) * ba;
-      var l = L[i] * g, r = R[i] * g;
-      if (ch) { l = this.os[0].run(ch, l); r = this.os[1].run(ch, r);
-        var yl = l - dc[0] + dcA * dc[1]; dc[0] = l; dc[1] = yl; var yr = r - dc[2] + dcA * dc[3]; dc[2] = r; dc[3] = yr; l = yl; r = yr; }
-      if (ms) { var mm = 0.5 * (l + r) * pa, ss = 0.5 * (l - r) * pb; l = mm + ss; r = mm - ss; } else { l *= pa; r *= pb; }
-      l *= po; r *= po;
-      l = l + (dL[i] - l) * by; r = r + (dR[i] - r) * by;
-      Lio[i] = l; Rio[i] = r;
-      if (l > pL) pL = l; else if (-l > pL) pL = -l; if (r > pR) pR = r; else if (-r > pR) pR = -r;
+    this.primed = true;
+    var L = this.L, R = this.R, dL = this.dL, dR = this.dR, pL = this.pL, pR = this.pR, i, st = this.st, fadeLen = this.fadeLen;
+    var tgi = Math.pow(10, st.inGain / 20), gia = 1 - Math.exp(-1 / (0.01 * this.fs)), gi = this.inG, gi1 = this.inG1;   // smoother a due poli (10 + 10 ms)
+    for (i = 0; i < n; i++) { gi1 += (tgi - gi1) * gia; gi += (gi1 - gi) * gia; dL[i] = Lio[i]; dR[i] = Rio[i]; L[i] = Lio[i] * gi; R[i] = Rio[i] * gi; var al = L[i] < 0 ? -L[i] : L[i], ar = R[i] < 0 ? -R[i] : R[i]; if (al > this.pin[0]) this.pin[0] = al; if (ar > this.pin[1]) this.pin[1] = ar; }
+    this.inG = gi; this.inG1 = gi1;
+    /* SOLO: su una copia del segnale; le bande continuano a girare sotto. Acceso/spento con dissolvenza, filtro interpolato quando la banda si muove. */
+    var soloOn = this.soloOn && !!this.solo, soloRun = soloOn || this.soloW > 0, so = this.solo;
+    if (soloRun && so) {
+      var pl = so.place;
+      for (i = 0; i < n; i++) {
+        var l0 = L[i], r0 = R[i], m0 = 0.5 * (l0 + r0), s0 = 0.5 * (l0 - r0); pL[i] = l0; pR[i] = r0;
+        if (pl === 3) pL[i] = pR[i] = m0; else if (pl === 4) pL[i] = pR[i] = s0; else if (pl === 1) pR[i] = 0; else if (pl === 2) pL[i] = 0;
+      }
+      if (so.c !== so.tgt) { runLerp(so.c, so.tgt, so.st[0], pL, 0, n); runLerp(so.c, so.tgt, so.st[1], pR, 0, n); so.c = so.tgt; }
+      else { run(so.c, so.st[0], pL, n); run(so.c, so.st[1], pR, n); }
     }
-    this.outG = g; this.byp = by; this.panA = pa; this.panB = pb; this.pol = po; this.peak[0] = Math.max(this.peak[0], pL); this.peak[1] = Math.max(this.peak[1], pR);
+    for (var b = 0; b < this.order.length; b++) this._bandStep(this.order[b], n);
+    if (soloRun && so) {
+      var tgt = soloOn ? 1 : 0, stp0 = this.primed ? 1 / fadeLen : 1, w = this.soloW;
+      for (i = 0; i < n; i++) {
+        w = tgt > w ? Math.min(tgt, w + stp0) : Math.max(tgt, w - stp0); var kk = fadeW(w);
+        L[i] += kk * (pL[i] - L[i]); R[i] += kk * (pR[i] - R[i]);
+      }
+      this.soloW = w; if (!soloOn && this.soloW <= 0) this.solo = null;
+    }
+    /* uscita: OUTPUT (\u2212\u221e sotto \u221260 dB) \u2192 Character (oversampling 8x, dissolvenza al cambio) \u2192 DC \u2192 pan \u2192 polarit\u00e0 \u2192 bypass morbido (uguale al C++) */
+    var mute = (st.out || 0) <= -60, tg = mute ? 0 : Math.pow(10, ((st.out || 0) + (st.autoGainDb || 0)) / 20), ga = 1 - Math.exp(-1 / (0.01 * this.fs)), g = this.outG, g1 = this.outG1;
+    var ch = st.character || 0, bt = st.bypass ? 1 : 0, by = this.byp, stp = this.primed ? 1 / fadeLen : 1;
+    var dcA = Math.exp(-2 * PI * 5 / this.fs), pK = 0, pR2 = 0;
+    var pn = Math.max(-1, Math.min(1, st.pan || 0)), tA = Math.min(1, 1 - pn), tB = Math.min(1, 1 + pn), tP = st.invert ? 1 : 0, ms = !!st.panMS, pa = this.panA, pb = this.panB, pa1 = this.panA1, pb1 = this.panB1, po = this.pol;
+    if (ch !== this.lastChm) {   // cambio di Character: il nuovo modo parte pulito, gira 15 ms a vuoto (i filtri si caricano) e poi si dissolve sul vecchio in 15 ms
+      if (ch) { this.osm[ch] = [new OS8(), new OS8()]; this.dcm[ch] = [0, 0, 0, 0]; }
+      this.chPrev = this.lastChm; this.chPos = this.primed ? 0 : 2 * fadeLen; this.lastChm = ch; }
+    var chPos = this.chPos, chPrev = this.chPrev;
+    for (i = 0; i < n; i++) {
+      g1 += (tg - g1) * ga; g += (g1 - g) * ga; if (mute && g < 1e-7) g = g1 = 0; pa1 += (tA - pa1) * ga; pa += (pa1 - pa) * ga; pb1 += (tB - pb1) * ga; pb += (pb1 - pb) * ga;
+      by = bt > by ? Math.min(bt, by + stp) : Math.max(bt, by - stp); po = tP > po ? Math.min(tP, po + stp) : Math.max(tP, po - stp);
+      var l = L[i] * g, r = R[i] * g;
+      if (ch || chPos < 2 * fadeLen) {
+        var nl = this._ch(ch, l, 0, dcA), nr = this._ch(ch, r, 1, dcA);
+        if (chPos < 2 * fadeLen) { var ol = this._ch(chPrev, l, 0, dcA), orr = this._ch(chPrev, r, 1, dcA); chPos++; var k = chPos <= fadeLen ? 0 : fadeW((chPos - fadeLen) / fadeLen); nl = ol + k * (nl - ol); nr = orr + k * (nr - orr); }
+        l = nl; r = nr; }
+      if (ms) { var mm = 0.5 * (l + r) * pa, ss = 0.5 * (l - r) * pb; l = mm + ss; r = mm - ss; } else { l *= pa; r *= pb; }
+      var kp = 1 - 2 * fadeW(po), kb = fadeW(by); l *= kp; r *= kp;
+      l = l + (dL[i] - l) * kb; r = r + (dR[i] - r) * kb;
+      Lio[i] = l; Rio[i] = r;
+      if (l > pK) pK = l; else if (-l > pK) pK = -l; if (r > pR2) pR2 = r; else if (-r > pR2) pR2 = -r;
+    }
+    this.chPos = chPos; this.outG = g; this.outG1 = g1; this.byp = by; this.panA = pa; this.panB = pb; this.panA1 = pa1; this.panB1 = pb1; this.pol = po; this.peak[0] = Math.max(this.peak[0], pK); this.peak[1] = Math.max(this.peak[1], pR2);
   };
   Engine.prototype.meter = function () {
     var o = { peak: this.peak.slice(), pin: this.pin.slice(), bands: {} };
