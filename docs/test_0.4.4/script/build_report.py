@@ -39,10 +39,10 @@ P0, P1 = B['precision'], N['precision']; X0, X1 = B['precisionx'], N['precisionx
 SUM = [
  ('Precisione, 17.880 progetti (5 fs, 9 tipi): casi con errore &gt; 1 dB', P0['gt1'], P1['gt1'], 'errore massimo 20 Hz-20 kHz vs prototipo analogico, maschera -30 dB'),
  ('&nbsp;&nbsp;casi &gt; 0,5 dB / errore massimo', f"{P0['gt05']} / {f(P0['max'])} dB", f"{P1['gt05']} / {f(P1['max'])} dB", ''),
- ('Griglia estesa 19.200 progetti (Bell e shelf, Q fino a 40, &plusmn;30 dB): casi &gt; 1 dB', X0['gt1'], X1['gt1'], ''),
+ ('Griglia estesa 19.200 progetti (Bell e shelf, Q fino a 40, &plusmn;30 dB): casi &gt; 1 dB (&gt; 0,5 dB)', f"{X0['gt1']} ({X0['gt05']})", f"{X1['gt1']} ({X1['gt05']})", ''),
  ('&nbsp;&nbsp;errore massimo', f"{f(X0['max'])} dB", f"{f(X1['max'])} dB", 'High Shelf 16 kHz +18 dB Q 20 a 44,1 kHz era +19 dB a 20 kHz'),
- ('Lettura del detector RMS, sinusoide a -20 dBFS (100 Hz-5 kHz, 44,1-96 kHz)', f"+{f(det_err('base','RMS'))} dB", f"&plusmn;{f(det_err('new','RMS'),3)} dB", 'scarto massimo dal livello vero'),
- ('Lettura del detector Peak', f"+{f(det_err('base','Peak'))} dB", f"&plusmn;{f(det_err('new','Peak'),3)} dB", 'picco - 3,01 dB, tenuto per un periodo della banda'),
+ ('Lettura del detector RMS, sinusoide a -20 dBFS (100 Hz-5 kHz, 48 kHz, attacco 0,1-50 ms)', f"+{f(det_err('base','RMS'))} dB", f"&plusmn;{f(det_err('new','RMS'),3)} dB", 'scarto massimo dal livello vero'),
+ ('Lettura del detector Peak', f"+{f(det_err('base','Peak'))} dB", f"&plusmn;{f(det_err('new','Peak'),3)} dB", 'valore atteso = picco - 3,01 dB (RMS della sinusoide), tenuto per un periodo della banda'),
  ('Guadagno dinamico a regime vs atteso (162 casi)', f"{f(B['dynacc']['worst_err_db'],3)} dB", f"{f(N['dynacc']['worst_err_db'],4)} dB", 'scarto massimo'),
  ('Bell dinamico 200 Hz, tono a 5 kHz -10 dBFS: riduzione', f"{f(db[5000]['red'])} dB", f"{f(dn[5000]['red'])} dB", 'detector 0.4.3 = passa-alto'),
  ('Un NaN in ingresso: campioni d’uscita non validi (4 s)', nanb[0]['bad_samples'], nann[0]['bad_samples'], '0.4.3: uscita NaN per sempre'),
@@ -50,7 +50,7 @@ SUM = [
  ('CPU, 16 bande dinamiche in movimento', f"{f(pick('16 dinamiche in movimento (range 12, att 1 ms)')['old'],2)} %", f"{f(pick('16 dinamiche in movimento (range 12, att 1 ms)')['new'],2)} %", ''),
  ('CPU, 32 bande automatizzate a ogni blocco da 128', f"{f(B['cpuauto']['core_pct'],2)} %", f"{f(N['cpuauto']['core_pct'],2)} %", ''),
  ('CPU, Character Warm (oversampling 8x, solo uscita)', B['cpuchar'][2].split(': ')[1].split(' %')[0] + ' %', N['cpuchar'][2].split(': ')[1].split(' %')[0] + ' %', ''),
- ('Configurazioni CPU più veloci', '', f"{faster} su {len(CPU)}", f"media geometrica &times;{f(gm(speed),2)}"),
+ ('Scenari della tabella CPU più veloci', '', f"{faster} su {len(CPU)}", f"media geometrica &times;{f(gm(speed),2)}; fuori tabella Character Clean è più lento: " + B['cpuchar'][0].split(': ')[1].split(' %')[0] + ' &rarr; ' + N['cpuchar'][0].split(': ')[1].split(' %')[0] + ' %'),
  ('Interfaccia: ricalcolo del fantasma "clic per creare" (12 bande)', f"{hv[0]} ms", f"{hv[2]} ms", 'a ogni movimento del mouse'),
 ]
 def tr(r): return f"<tr><th scope='row'>{r[0]}</th><td class='old'>{r[1]}</td><td class='new'>{r[2]}</td><td class='how'>{r[3]}</td></tr>"
@@ -68,7 +68,7 @@ def ab_html():
         elif diff: pl.append(f"<div><span class='tag dif'>DIFF</span><audio controls preload='none' src='audio/{k}_diff.wav'></audio></div>")
         else: pl.append(f"<div><span class='tag dif'>DIFF</span><span class='muted'>residuo a {s_['residuo_picco_dbfs']:.0f} dBFS di picco: arrotondamento, niente da ascoltare</span></div>")
         res = f"{s_['residuo_rms_rel_db']:.1f} dB RMS rispetto al segnale &middot; picco {s_['residuo_picco_dbfs']:.1f} dBFS"
-        if al: res = f"grezzo {s_['residuo_rms_rel_db']:.1f} dB (domina un ritardo di {tau:+.2f} campioni dei nuovi filtri dell'oversampling); allineato <b>{s_['residuo_allineato_rms_rel_db']:.1f} dB</b> RMS rispetto al segnale"
+        if al: res = f"grezzo {s_['residuo_rms_rel_db']:.1f} dB (domina un ritardo di {tau:+.2f} campioni dei nuovi filtri dell'oversampling, cercato a passi di 0,05); allineato <b>{s_['residuo_allineato_rms_rel_db']:.1f} dB</b> RMS rispetto al segnale"
         if w: res += f" &middot; finestre da 50 ms: mediana {w['median']:.1f} dB, peggiore {w['max']:.1f} dB"
         out.append(f"<article class='abcase' id='ab-{k}'><h3>{e(s_['desc']).replace(' d uscita', ' d’uscita')}</h3><div class='players'>{''.join(pl)}</div><div class='mini-wrap'><table class='mini'>"
                    f"<tr><th>loudness prima della normalizzazione</th><td>0.4.3 <b class='num'>{f(s_['lufs_043'],1)}</b> LUFS</td><td>0.4.4 <b class='num'>{f(s_['lufs_044'],1)}</b> LUFS</td><td>DRY <span class='num'>{f(s_['lufs_dry'],1)}</span></td></tr>"
@@ -108,11 +108,14 @@ page = page.replace('%%DESIGN%%', ''.join(f"<tr><th scope='row'>{k}</th><td clas
 # ---- verità scomode: anche queste dai file di misura ----
 import csv
 def it(x, d=1): s = ('%.' + str(d) + 'f') % x; return s.replace('-', '−').replace('.', ',')
+def det_worst(v, det):   # scarto peggiore di ogni caso (min o max letto), come nella tabella
+    xs = [max(abs(r['lo'] + 20), abs(r['hi'] + 20)) for r in D[v]['detector_cal'] if r['det'] == det]
+    return min(xs), max(xs)
 def det_off(v, det, att=None):   # scarto del valore a regime (centro tra min e max) dal livello vero -20 dB
     xs = [(r['lo'] + r['hi']) / 2 + 20 for r in D[v]['detector_cal'] if r['det'] == det and (att is None or r['att'] == att)]
     if not xs: raise SystemExit(f'manca detector_cal {v} {det} {att}')
     return min(xs), max(xs), sum(xs) / len(xs)
-rl, rh, _ = det_off('base', 'RMS'); pl, ph, _ = det_off('base', 'Peak'); r5 = det_off('base', 'RMS', 5.0)[2]; p5 = det_off('base', 'Peak', 5.0)[2]
+rl, rh = det_worst('base', 'RMS'); pl, ph = det_worst('base', 'Peak'); r5 = det_off('base', 'RMS', 5.0)[2]; p5 = det_off('base', 'Peak', 5.0)[2]
 CH = json.load(open(R + '/char_sub0.json'))['Warm']
 NM = {'LowShelf': 'Low Shelf', 'HighShelf': 'High Shelf', 'LowCut': 'Low Cut', 'HighCut': 'High Cut', 'BandPass': 'Band Pass', 'Bell': 'Bell', 'Notch': 'Notch', 'TiltShelf': 'Tilt Shelf', 'FlatTilt': 'Flat Tilt'}
 def gt1(path):
@@ -133,8 +136,9 @@ def cmpgrid(nm):   # confronto caso per caso 0.4.3 vs 0.4.4 sulla stessa griglia
     if set(b) != set(n): raise SystemExit('griglie diverse tra 0.4.3 e 0.4.4: ' + nm)
     worse = sorted(((n[k] - b[k], k, b[k], n[k]) for k in n if n[k] > b[k] + 0.005), reverse=True)
     same = sum(1 for k in n if n[k] > 1 and abs(n[k] - b[k]) < 0.005)
-    return worse, same
-W1, S1 = cmpgrid('precision.csv'); WX, SX = cmpgrid('precisionx.csv')
+    anyw = sum(1 for k in n if n[k] > b[k])
+    return worse, same, anyw
+W1, S1, A1 = cmpgrid('precision.csv'); WX, SX, AX = cmpgrid('precisionx.csv')
 w0 = W1[0]; wk = w0[1]
 k1 = lambda x: it(x, 1).replace(',0', '')
 WDESC = f"{NM.get(wk[1], wk[1])} {k1(float(wk[2]) / 1000)} kHz Q {k1(float(wk[4]))} {wk[5]} dB/oct a {k1(int(wk[0]) / 1000)} kHz: {it(w0[2], 3)} → {it(w0[3], 3)} dB"
@@ -143,12 +147,13 @@ th = lambda n: f'{n:,}'.replace(',', '.')
 jsr = {r['scen']: r for r in D['new']['cpu_js']}; jso = {r['scen']: r for r in D['base']['cpu_js']}
 sp = lambda k: (min(jsr[k]['runs']), max(jsr[k]['runs']))
 TRUTH = [
- f"<b>La dinamica della 0.4.4 interviene meno della 0.4.3 a parità di impostazioni.</b> Non è un peggioramento: la 0.4.3 leggeva il livello più alto del vero, di +{it(rl)}…+{it(rh)} dB in RMS e +{it(pl)}…+{it(ph)} dB in Peak a seconda dell'attacco (con attacco 5 ms: +{it(r5)} e +{it(p5)} dB). Una sessione salvata con la 0.4.3 suonerà diversa: per riavere lo stesso intervento la soglia va abbassata di altrettanto.",
- f"<b>Con Character attivo l'uscita non è identica al bit alla 0.4.3 nemmeno sotto 0 dBFS:</b> i nuovi filtri dell'oversampling (46 passa-tutto calcolati per campione in ogni direzione invece di 84) anticipano il segnale di {it(CH['anticipo_044_campioni'], 2)} campioni ({it(CH['anticipo_044_campioni'] / 48000 * 1e6, 1)} µs a 48 kHz). Sulla clip con Warm e picco sotto 0 dBFS il residuo grezzo è {it(CH['residuo_grezzo_db'])} dB, ma spostando la 0.4.3 dello stesso ritardo scende a {it(CH['residuo_allineato_db'])} dB: è un ritardo, non un cambio di suono. Sopra 0 dBFS invece il suono cambia davvero (la curva della 0.4.3 ripiegava): sezione Character.",
+ f"<b>La dinamica della 0.4.4 interviene meno della 0.4.3 a parità di impostazioni.</b> Non è un peggioramento: la 0.4.3 leggeva il livello più alto del vero, di +{it(rl)}…+{it(rh)} dB in RMS e +{it(pl)}…+{it(ph)} dB in Peak a seconda dell'attacco (con attacco 5 ms circa +{it(r5)} e +{it(p5)} dB; per il Peak il valore giusto è picco − 3,01 dB, cioè l'RMS della sinusoide). Una sessione salvata con la 0.4.3 suonerà diversa: per riavere lo stesso intervento la soglia va abbassata di altrettanto.",
+ f"<b>Con Character attivo l'uscita non è identica al bit alla 0.4.3 nemmeno sotto 0 dBFS:</b> i nuovi filtri dell'oversampling (46 passa-tutto calcolati per campione in ogni direzione invece di 84) anticipano il segnale di {it(CH['anticipo_044_campioni'], 2)} campioni ({it(CH['anticipo_044_campioni'] / 48000 * 1e6, 1)} µs a 48 kHz). Sulla clip con Warm e picco sotto 0 dBFS il residuo grezzo è {it(CH['residuo_grezzo_db'])} dB, ma spostando la 0.4.3 dello stesso ritardo scende a {it(CH['residuo_allineato_db'])} dB: è un ritardo, non un cambio di suono, ma conta se si somma l'uscita a una copia diretta o elaborata dalla 0.4.3 (parallelo, null test). Sopra 0 dBFS invece il suono cambia davvero (la curva della 0.4.3 ripiegava): sezione Character.",
  f"<b>Il progetto preciso dei filtri costa di più</b> (media sulla griglia a 48 kHz: Bell da {it(dg('base','Bell'))} a {it(dg('new','Bell'))} µs, Band Pass da {it(dg('base','BandPass'))} a {it(dg('new','BandPass'))} µs). Per questo il plugin usa il progetto veloce mentre un parametro si muove (Bell {it(dgf('Bell'))} µs, Band Pass {it(dgf('BandPass'))} µs, meno della 0.4.3) e passa al preciso 50 ms dopo l'ultimo cambio, al massimo 2 bande per blocco.",
- f"<b>Restano errori sopra 1 dB</b> in {n1} progetti su {th(P1['n'])} della griglia principale (massimo {it(m1, 2)} dB): {'; '.join(d1)}; e in {nx} su {th(X1['n'])} della griglia estesa (massimo {it(mx, 2)} dB): {'; '.join(dx)}. Tutti a {fsl(sorted(set(f1) | set(fx)))}; {S1} dei {n1} casi della griglia principale sono identici alla 0.4.3: lì la 0.4.4 non migliora. <b>Peggiorati:</b> {len(W1)} progetti su {th(P1["n"])} hanno un errore un po’ più alto che nella 0.4.3, al massimo +{it(w0[0], 3)} dB ({WDESC}); nella griglia estesa {len(WX)}. Sezione Precisione.",
+ f"<b>Restano errori sopra 1 dB</b> in {n1} progetti su {th(P1['n'])} della griglia principale (massimo {it(m1, 2)} dB): {'; '.join(d1)}; e in {nx} su {th(X1['n'])} della griglia estesa (massimo {it(mx, 2)} dB): {'; '.join(dx)}. Tutti a {fsl(sorted(set(f1) | set(fx)))}; {S1} dei {n1} casi della griglia principale sono identici alla 0.4.3: lì la 0.4.4 non migliora. <b>Peggiorati:</b> {len(W1)} progetti su {th(P1["n"])} hanno un errore più alto di oltre 0,005 dB rispetto alla 0.4.3 ({A1} se si conta qualunque differenza, anche di millesimi di dB), al massimo +{it(w0[0], 3)} dB ({WDESC}); nella griglia estesa {len(WX)}. Sezione Precisione.",
  f"<b>Il detector del Bell è un passa-banda del 2° ordine:</b> fianchi da 6 dB/oct. Un tono forte fuori banda può ancora far intervenire un po' la banda: Bell dinamico a 200 Hz e tono a 5 kHz a −10 dBFS, riduzione {it(dn[5000]['red'], 2)} dB (0.4.3: {it(db[5000]['red'], 2)} dB, tutto il RANGE).",
  f"<b>Nel motore JS (prototipo e pagina di ascolto) le bande statiche non sono più veloci:</b> 1 Bell {it(jso['1 Bell']['core_pct'], 3)} → {it(jsr['1 Bell']['core_pct'], 3)} %, 32 statiche {it(jso['32 statiche']['core_pct'], 2)} → {it(jsr['32 statiche']['core_pct'], 2)} % di un core (minimo di 7 processi; tra un processo e l'altro la 0.4.4 varia da {it(sp('32 statiche')[0], 2)} a {it(sp('32 statiche')[1], 2)} %). Il guadagno nel JS è sulla dinamica, sul Mid/Side e sul Character.",
+ f"<b>Il ricalcolo delle curve nell'interfaccia scende da {it(float(hv[0]), 1)} a {it(float(hv[2]), 1)} ms grazie alla memoizzazione aggiunta all'interfaccia, non al motore:</b> con il motore 0.4.4 e senza memoizzazione costerebbe {it(float(hv[1]), 1)} ms per movimento del mouse, {it(float(hv[1]) / float(hv[0]), 1)} volte la 0.4.3, perché il progetto preciso dei filtri costa di più.",
  "<b>Non ho potuto ascoltare né provare su Mac o in una DAW:</b> i test qui sono su Linux (plugin VST3), in Chromium (interfaccia e motore JS) e sul build Mac fatto dalla CI. Il confronto con FabFilter Pro-Q non è eseguibile qui (licenza e macOS/Windows).",
 ]
 page = page.replace('%%TRUTH%%', '\n      '.join('<li>' + t + '</li>' for t in TRUTH))
