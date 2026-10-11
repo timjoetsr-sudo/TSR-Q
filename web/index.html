@@ -252,7 +252,7 @@ body.plugin{align-items:flex-start;overflow:hidden}
 </style></head><body>
 <div id="fit"><div id="ed"></div></div>
 <script>window.THEME={"screen": "#0f1012", "ink": "#eef2f6", "dim": "#8b939d", "spec": "#9aa1aa", "dyn": "#7cc4ff", "lightPanel": 1, "pInk": "#1b1b1b", "pDim": "#7a7873", "logo": "#1b1b1b", "title": "#111111", "disInk": "rgba(27,27,27,.25)", "sep": "rgba(27,27,27,.1)", "edge": "#cfccc5", "accent": "#ffffff", "kArcBg": "rgba(27,27,27,.1)", "kArc": "#1b1b1b", "kBody0": "#ffffff", "kBody1": "#d5d3ce", "kFace0": "#fbfaf8", "kFace1": "#e6e4df", "kRim": "rgba(0,0,0,.06)", "kInd": "#1b1b1b", "kShadow": "rgba(60,55,45,.22)"};</script>
-<script id="dsp">/* ===== TSR Q \u00b7 DSP CORE ===== (analog-matched biquads, dynamic EQ, M/S, character) */
+<script id="dsp">/* ===== TSR Q \u00b7 DSP CORE ===== (analog-matched biquads, dynamic EQ, M/S, character) \u2014 0.4.4, specchio 1:1 di Source/TsrqDsp.h */
 var TSRQ = (function () {
   'use strict';
   var PI = Math.PI;
@@ -281,7 +281,7 @@ var TSRQ = (function () {
       case 'tilt': return { k: 1, s: [{ f0: f, n: [1, A, 0], d: [A, 1, 0] }] };
       case 'allpass': return { k: 1, s: [{ f0: f, n: [1, -1 / Q, 1], d: [1, 1 / Q, 1] }] };
       case 'notch': return { k: 1, s: [{ f0: f, n: [1, 0, 1], d: [1, 1 / Q, 1] }] };
-      case 'bpass': {   // 6 dB/oct = una sezione; 12\u202648 dB/oct = passa-alto + passa-basso Butterworth di ordine slope/6 ai bordi della banda, picco a 0 dB
+      case 'bpass': {   // 6 dB/oct = una sezione; 12\u202696 dB/oct = passa-alto + passa-basso Butterworth di ordine slope/6 ai bordi della banda, picco a 0 dB
         var NBP = Math.max(1, Math.min(16, Math.round((b.slope || 6) / 6)));
         if (NBP === 1) return { k: 1, s: [{ f0: f, n: [0, 1 / Q, 0], d: [1, 1 / Q, 1] }] };
         var rr2 = Math.sqrt(1 + 1 / (4 * Q * Q)), fl = f * (rr2 - 1 / (2 * Q)), fh = f * (rr2 + 1 / (2 * Q)), qb = butterQs(NBP);
@@ -291,7 +291,6 @@ var TSRQ = (function () {
       }
       case 'lcut': case 'hcut': {
         var N = Math.max(1, Math.min(16, Math.round(b.slope / 6))), qs = butterQs(N), hp = b.type === 'lcut';
-        // Low/High Cut: solo taglio Butterworth, nessuna risonanza (la curva non supera mai 0 dB): il Q non si usa
         if (N % 2) out.push({ f0: f, n: hp ? [0, 1, 0] : [1, 0, 0], d: [1, 1, 0] });
         for (i = 0; i < qs.length; i++) out.push({ f0: f, n: hp ? [0, 0, 1] : [1, 0, 0], d: [1, 1 / qs[i], 1] });
         return { k: 1, s: out };
@@ -311,7 +310,33 @@ var TSRQ = (function () {
   }
   function anaMag2(set, fr) { var m = set.k * set.k; for (var i = 0; i < set.s.length; i++) m *= secMag2(set.s[i], fr); return m; }
 
-  /* ---------- mappatura esatta dei poli + numeratore con modulo analogico imposto in 3 punti ---------- */
+  /* ---------- modulo del biquad in forma phi (p1 = sin^2(w/2), p0 = cos^2(w/2), p2 = 4 p0 p1): nessuna cancellazione catastrofica ---------- */
+  function phiAt(fr, fs) { var h = PI * fr / fs, s = Math.sin(h), c = Math.cos(h), p1 = s * s, p0 = c * c; return [p0, p1, 4 * p0 * p1]; }
+  function mag2phi(c, o, p0, p1, p2) {
+    var s0 = c[o] + c[o + 1] + c[o + 2], s1 = c[o] - c[o + 1] + c[o + 2], d0 = 1 + c[o + 3] + c[o + 4], d1 = 1 - c[o + 3] + c[o + 4];
+    return (s0 * s0 * p0 + s1 * s1 * p1 - 4 * c[o] * c[o + 2] * p2) / (d0 * d0 * p0 + d1 * d1 * p1 - 4 * c[o + 4] * p2);
+  }
+  function magDC(c) { var s0 = c[0] + c[1] + c[2], d0 = 1 + c[3] + c[4]; return (s0 * s0) / (d0 * d0); }
+  function magNy(c) { var s1 = c[0] - c[1] + c[2], d1 = 1 - c[3] + c[4]; return (s1 * s1) / (d1 * d1); }
+  /* risposta digitale effettiva (quello che si vede = quello che si sente) */
+  function digMag2(c, fr, fs) { var q = phiAt(fr, fs), m = 1; for (var i = 0; i < c.length; i += 5) m *= mag2phi(c, i, q[0], q[1], q[2]); return m; }
+
+  var KEVAL = 64, KOUT = 5, KFITMAX = KEVAL + 17 + KOUT, KNARROW = 26, KFITCAP = KFITMAX + KNARROW, KCAS = 112, KCASFIT = KFITMAX + 9 - KOUT, KDENSE = 160;
+  var KOCT = [0.7071067811865476, 0.7384130729697497, 0.7711054127039704, 0.8052451659746271, 0.8408964152537145, 0.8781260801866497, 0.9170040432046712, 0.9576032806985737, 1.0,
+              1.0442737824274138, 1.0905077326652577, 1.1387886347566916, 1.189207115002721, 1.241857812073484, 1.2968395546510096, 1.3542555469368927, 1.4142135623730951];
+  var GRID = {};
+  function grid(fs) {
+    if (GRID[fs]) return GRID[fs];
+    var top = Math.min(20000, fs / 2 * 0.98), g = { fs: fs, top: top, ef: new Float64Array(KEVAL), e0: new Float64Array(KEVAL), e1: new Float64Array(KEVAL), e2: new Float64Array(KEVAL),
+      of: new Float64Array(KOUT), o0: new Float64Array(KOUT), o1: new Float64Array(KOUT), o2: new Float64Array(KOUT), df: new Float64Array(KDENSE), d0: new Float64Array(KDENSE), d1: new Float64Array(KDENSE), d2: new Float64Array(KDENSE), f32: new Float64Array(32), q0: new Float64Array(32), q1: new Float64Array(32), q2: new Float64Array(32) }, i, q;
+    for (i = 0; i < 32; i++) { g.f32[i] = 10 * Math.pow(fs / 2 * 0.999 / 10, i / 31); q = phiAt(g.f32[i], fs); g.q0[i] = q[0]; g.q1[i] = q[1]; g.q2[i] = q[2]; }
+    for (i = 0; i < KEVAL; i++) { g.ef[i] = 20 * Math.pow(top / 20, i / (KEVAL - 1)); q = phiAt(g.ef[i], fs); g.e0[i] = q[0]; g.e1[i] = q[1]; g.e2[i] = q[2]; }
+    for (i = 0; i < KOUT; i++) { g.of[i] = top + (fs / 2 * 0.999 - top) * (i + 1) / KOUT; q = phiAt(g.of[i], fs); g.o0[i] = q[0]; g.o1[i] = q[1]; g.o2[i] = q[2]; }
+    for (i = 0; i < KDENSE; i++) { g.df[i] = 20 * Math.pow(top / 20, (i + 0.5) / KDENSE); q = phiAt(g.df[i], fs); g.d0[i] = q[0]; g.d1[i] = q[1]; g.d2[i] = q[2]; }   // griglia fitta per la scelta finale
+    return (GRID[fs] = g);
+  }
+
+  /* ---------- mappatura esatta dei poli + candidati ---------- */
   function poles(d, w0) {
     var d0 = d[0], d1 = d[1], d2 = d[2];
     if (d2 === 0) { var p = -d0 / d1 * w0; return [-Math.exp(p), 0]; }
@@ -325,7 +350,7 @@ var TSRQ = (function () {
     return [-(Math.exp(p1) + Math.exp(p2)), Math.exp(p1 + p2)];
   }
   function fromB(B0, B1, B2) {           // fattorizzazione spettrale (fase minima) di |N|^2
-    if (B0 < 0 && B0 > -1e-12) B0 = 0;   // zero numerico (es. passa-alto: |N(1)|^2 = 0): stesso esito in JS e C++
+    if (B0 < 0 && B0 > -1e-12) B0 = 0;
     if (B1 < 0 && B1 > -1e-12) B1 = 0;
     if (!(B0 >= 0) || !(B1 >= 0)) return null;
     var s0 = Math.sqrt(B0), s1 = Math.sqrt(B1), W = 0.5 * (s0 + s1), d = W * W + B2;
@@ -333,7 +358,12 @@ var TSRQ = (function () {
     var b0 = 0.5 * (W + Math.sqrt(d));
     return [b0, 0.5 * (s0 - s1), b0 > 0 ? -B2 / (4 * b0) : 0];
   }
-  /* candidato A: 3 punti (DC, Nyquist, f0) con poli mappati esattamente */
+  /* come fromB ma proiettato sul numeratore fattorizzabile piu vicino (B0, B1 >= 0; se serve zeri sul cerchio unitario): usato dal fit minimax */
+  function fromBp(B0, B1, B2) {
+    B0 = Math.max(B0, 0); B1 = Math.max(B1, 0);
+    var s0 = Math.sqrt(B0), s1 = Math.sqrt(B1), W = 0.5 * (s0 + s1), d = W * W + B2; if (d < 0) { d = 0; B2 = -W * W; }
+    var b0 = 0.5 * (W + Math.sqrt(d)); return [b0, 0.5 * (s0 - s1), b0 > 0 ? -B2 / (4 * b0) : 0];
+  }
   function design3pt(sc, fs) {
     var w0 = 2 * PI * sc.f0 / fs, pa = poles(sc.d, w0), a1 = pa[0], a2 = pa[1];
     var A0 = (1 + a1 + a2) * (1 + a1 + a2), A1 = (1 - a1 + a2) * (1 - a1 + a2), A2 = -4 * a2;
@@ -346,120 +376,222 @@ var TSRQ = (function () {
     var b0 = 0.5 * (W + Math.sqrt(disc));
     return [b0, 0.5 * (s0 - s1), b0 > 0 ? -B2 / (4 * b0) : 0, a1, a2];
   }
-  /* candidato B: matched-z completo (poli e zeri mappati esattamente), guadagno al riferimento */
   function zerosPoly(n, w0) {
-    if (n[0] === 0 && n[1] === 0) return [1, -2, 1];                     // s^2
-    if (n[0] === 0 && n[2] === 0) return [1, -1, 0];                     // s
-    if (n[0] === 0) { var e = Math.exp(-n[1] / n[2] * w0); return [1, -(1 + e), e]; }   // s(s+a)
-    if (n[1] === 0 && n[2] === 0) return [1, 0, 0];                      // costante
+    if (n[0] === 0 && n[1] === 0) return [1, -2, 1];
+    if (n[0] === 0 && n[2] === 0) return [1, -1, 0];
+    if (n[0] === 0) { var e = Math.exp(-n[1] / n[2] * w0); return [1, -(1 + e), e]; }
+    if (n[1] === 0 && n[2] === 0) return [1, 0, 0];
     var z = poles(n, w0); return [1, z[0], z[1]];
   }
-  function designMZ(sc, fs) {
+  function designMZ(sc, fs) {   // matched-z; guadagno allineato esattamente a DC (o a Nyquist per i passa-alto)
     var w0 = 2 * PI * sc.f0 / fs, pa = poles(sc.d, w0), z = zerosPoly(sc.n, w0), c = [z[0], z[1], z[2], pa[0], pa[1]];
-    var ref = secMag2(sc, 0) > 1e-12 ? 1e-3 : fs / 2 * 0.999, dg = digMag2(c, ref, fs);
-    var g = dg > 0 ? Math.sqrt(secMag2(sc, ref) / dg) : 1;
+    var dc = secMag2(sc, 0) > 1e-12, dg = dc ? magDC(c) : magNy(c), ag = dc ? secMag2(sc, 0) : secMag2(sc, fs / 2);
+    var g = dg > 0 ? Math.sqrt(ag / dg) : 1;
     return [c[0] * g, c[1] * g, c[2] * g, c[3], c[4]];
   }
-  /* candidato C: fit del modulo ai minimi quadrati ripesati (IRLS) + fattorizzazione spettrale */
-  var GRID = {};
-  function grid(fs) {
-    if (GRID[fs]) return GRID[fs];
-    var NP = 32, g = { f: new Float64Array(NP), p0: new Float64Array(NP), p1: new Float64Array(NP), p2: new Float64Array(NP), ef: [] };
-    for (var i = 0; i < NP; i++) {
-      var f = 10 * Math.pow(fs / 2 * 0.999 / 10, i / (NP - 1)), w = 2 * PI * f / fs, p1 = Math.sin(w / 2); p1 *= p1;
-      g.f[i] = f; g.p0[i] = 1 - p1; g.p1[i] = p1; g.p2[i] = 4 * (1 - p1) * p1;
+  function solveN(M, v, N) {
+    var i, r, c, t;
+    for (i = 0; i < N; i++) {
+      var p = i; for (r = i + 1; r < N; r++) if (Math.abs(M[r * N + i]) > Math.abs(M[p * N + i])) p = r;
+      if (p !== i) { for (c = 0; c < N; c++) { t = M[i * N + c]; M[i * N + c] = M[p * N + c]; M[p * N + c] = t; } t = v[i]; v[i] = v[p]; v[p] = t; }
+      var dd = M[i * N + i]; if (!(Math.abs(dd) > 1e-300)) return null;
+      for (r = i + 1; r < N; r++) { var fct = M[r * N + i] / dd; for (c = i; c < N; c++) M[r * N + c] -= fct * M[i * N + c]; v[r] -= fct * v[i]; }
     }
-    var top = Math.min(20000, fs / 2 * 0.98);
-    for (i = 0; i < 24; i++) g.ef.push(20 * Math.pow(top / 20, i / 23));
-    return (GRID[fs] = g);
-  }
-  function solve5(M, v) {
-    var n = 5, i, r, c;
-    for (i = 0; i < n; i++) {
-      var p = i; for (r = i + 1; r < n; r++) if (Math.abs(M[r * 5 + i]) > Math.abs(M[p * 5 + i])) p = r;
-      if (p !== i) { for (c = 0; c < n; c++) { var t = M[i * 5 + c]; M[i * 5 + c] = M[p * 5 + c]; M[p * 5 + c] = t; } t = v[i]; v[i] = v[p]; v[p] = t; }
-      var dd = M[i * 5 + i]; if (!(Math.abs(dd) > 1e-300)) return null;
-      for (r = i + 1; r < n; r++) { var fct = M[r * 5 + i] / dd; for (c = i; c < n; c++) M[r * 5 + c] -= fct * M[i * 5 + c]; v[r] -= fct * v[i]; }
-    }
-    var x = [0, 0, 0, 0, 0];
-    for (i = n - 1; i >= 0; i--) { var s = v[i]; for (c = i + 1; c < n; c++) s -= M[i * 5 + c] * x[c]; x[i] = s / M[i * 5 + i]; }
+    var x = new Float64Array(N);
+    for (i = N - 1; i >= 0; i--) { var s = v[i]; for (c = i + 1; c < N; c++) s -= M[i * N + c] * x[c]; x[i] = s / M[i * N + i]; }
     return x;
   }
-  var MM = new Float64Array(25), VV = new Float64Array(5), PF = new Float64Array(40), P0 = new Float64Array(40), P1 = new Float64Array(40), P2 = new Float64Array(40), TT = new Float64Array(40);
-  function pts(sc, fs) {                   // griglia: 24 punti log su tutta la banda + 9 attorno a f0
-    var g = grid(fs), n = 0, i, ny = fs / 2 * 0.999;
-    for (i = 0; i < 32; i += 1) if (i % 4 !== 3) PF[n++] = g.f[i];
-    for (i = -4; i <= 4; i++) { var f = sc.f0 * Math.pow(2, i / 8); if (f > 5 && f < ny) PF[n++] = f; }
-    for (i = 0; i < n; i++) { var w = 2 * PI * PF[i] / fs, p1 = Math.sin(w / 2); p1 *= p1; P0[i] = 1 - p1; P1[i] = p1; P2[i] = 4 * (1 - p1) * p1; TT[i] = secMag2(sc, PF[i]); }
-    return n;
+  function stable(c) { return isFinite(c[0] + c[1] + c[2] + c[3] + c[4]) && Math.abs(c[4]) < 1 && Math.abs(c[3]) < 1 + c[4]; }
+  function withZeros(c, sc, fs) {
+    var w0 = 2 * PI * sc.f0 / fs * Math.sqrt(sc.n[0] / sc.n[2]), q = [1, -2 * Math.cos(w0), 1, c[3], c[4]];
+    var g = Math.sqrt(secMag2(sc, 0) / magDC(q)); return [g, q[1] * g, g, c[3], c[4]];
   }
-  function designIRLS(sc, fs, init) {
-    var NP = pts(sc, fs), a1 = init[3], a2 = init[4], best = null, i, r, c, rw = [0, 0, 0, 0, 0];
-    for (var it = 0; it < 4; it++) {
+  /* errore massimo |dB|: punti sopra -30 dB pieni, sotto (banda attenuata) solo oltre una tolleranza di 6 dB */
+  function Err() { this.rmax = 1; this.rmin = 1; this.deep = 1; this.bad = false; }
+  Err.prototype.add = function (d, a) {
+    if (!(d === d)) { this.bad = true; return; }
+    if (a < 1e-3) { var r = Math.max(d, 1e-6) / Math.max(a, 1e-6), x = (r > 1 ? r : 1 / r) / 3.981071705534973; if (x > this.deep) this.deep = x; return; }
+    var r2 = Math.max(d, 1e-12) / a; if (!(r2 > 0 && r2 < 1e300)) { this.bad = true; return; } if (r2 > this.rmax) this.rmax = r2; if (r2 < this.rmin) this.rmin = r2;
+  };
+  Err.prototype.db = function () { return this.bad ? 1e9 : 10 * Math.log10(Math.max(Math.max(this.rmax, 1 / this.rmin), this.deep)); };
+  /* risonanze strette (Q > 4): 13 punti attorno alla frequenza dei poli e, se e diversa, 13 attorno a quella degli zeri, a passi di 1/(4Q) di ottava
+     (shelf con Q alto: il buco degli zeri sta lontano dai poli, a f0/sqrt(A) o f0*sqrt(A)) */
+  function narrowPts(sc) {
+    var Qd = sc.d[2] > 0 && sc.d[1] > 0 ? Math.sqrt(sc.d[0] * sc.d[2]) / sc.d[1] : 0, Qn = sc.n[2] > 0 && sc.n[1] > 0 ? Math.sqrt(sc.n[0] * sc.n[2]) / sc.n[1] : 0;
+    var Q = Math.max(Qd, Qn), fp = sc.d[2] > 0 ? sc.f0 * Math.sqrt(sc.d[0] / sc.d[2]) : 0, out = [], k;
+    if (Q > 4 && sc.d[2] > 0) for (k = -6; k <= 6; k++) out.push(fp * Math.pow(2, k / (4 * Q)));
+    if (Qn > 4) { var fz = sc.f0 * Math.sqrt(sc.n[0] / sc.n[2]); if (!(fp > 0 && Math.abs(fz / fp - 1) < 0.02)) for (k = -6; k <= 6; k++) out.push(fz * Math.pow(2, k / (4 * Qn))); }
+    return out;
+  }
+  function Pts(n) { this.n = 0; this.q0 = new Float64Array(n); this.q1 = new Float64Array(n); this.q2 = new Float64Array(n); this.T = new Float64Array(n); this.W = new Float64Array(n); }
+  function buildEval(sc, g) {   // punti di valutazione di una sezione: calcolati una volta per progetto
+    var E = new Pts(KEVAL + 17 + KNARROW), i, k, fr, q;
+    for (i = 0; i < KEVAL; i++) { E.q0[E.n] = g.e0[i]; E.q1[E.n] = g.e1[i]; E.q2[E.n] = g.e2[i]; E.T[E.n] = secMag2(sc, g.ef[i]); E.n++; }
+    for (k = 0; k < 17; k++) { fr = sc.f0 * KOCT[k]; if (fr > 20 && fr < g.top) { q = phiAt(fr, g.fs); E.q0[E.n] = q[0]; E.q1[E.n] = q[1]; E.q2[E.n] = q[2]; E.T[E.n] = secMag2(sc, fr); E.n++; } }
+    var nf = narrowPts(sc); for (k = 0; k < nf.length; k++) if (nf[k] > 20 && nf[k] < g.top) { q = phiAt(nf[k], g.fs); E.q0[E.n] = q[0]; E.q1[E.n] = q[1]; E.q2[E.n] = q[2]; E.T[E.n] = secMag2(sc, nf[k]); E.n++; }
+    return E;
+  }
+  function evalErr(c, E) { var e = new Err(); for (var i = 0; i < E.n; i++) e.add(mag2phi(c, 0, E.q0[i], E.q1[i], E.q2[i]), E.T[i]); return e.db(); }
+  function secErr(c, sc, fs) { return evalErr(c, buildEval(sc, grid(fs))); }
+  /* peso nel fit: sopra -30 dB 1; tra -30 e -40 dB 0,1; sotto 0,001 (uguale al C++) */
+  function deepW(T) { return T > 1e-3 ? 1 : T > 1e-4 ? 0.1 : 1e-3; }
+  function addPt(P, p0, p1, p2, T, w) { if (P.n < KFITCAP && T > 1e-6 && T < 1e12) { P.q0[P.n] = p0; P.q1[P.n] = p1; P.q2[P.n] = p2; P.T[P.n] = T; P.W[P.n] = w; P.n++; } }
+  function secFit(sc, g, E) {
+    var P = new Pts(KFITCAP), i;
+    for (i = 0; i < E.n; i++) addPt(P, E.q0[i], E.q1[i], E.q2[i], E.T[i], deepW(E.T[i]));
+    for (i = 0; i < KOUT; i++) addPt(P, g.o0[i], g.o1[i], g.o2[i], secMag2(sc, g.of[i]), 0.02);
+    return P;
+  }
+  function secFitOld(sc, g) {   // griglia della 0.4.3 (24 punti fino a 0.999 Nyquist + 9 attorno a f0, peso 1): candidato "0.4.3"
+    var P = new Pts(KFITCAP), ny = g.fs / 2 * 0.999, i;
+    for (i = 0; i < 32; i++) if (i % 4 !== 3) { if (P.n < KFITMAX) { P.q0[P.n] = g.q0[i]; P.q1[P.n] = g.q1[i]; P.q2[P.n] = g.q2[i]; P.T[P.n] = secMag2(sc, g.f32[i]); P.W[P.n] = 1; P.n++; } }
+    for (i = -4; i <= 4; i++) { var fr = sc.f0 * KOCT[8 + 2 * i]; if (fr > 5 && fr < ny && P.n < KFITMAX) { var q = phiAt(fr, g.fs); P.q0[P.n] = q[0]; P.q1[P.n] = q[1]; P.q2[P.n] = q[2]; P.T[P.n] = secMag2(sc, fr); P.W[P.n] = 1; P.n++; } }
+    return P;
+  }
+  var LE = new Float64Array(KFITCAP);
+  function lawson(P, c, wl) {   // errore per punto come rapporto + aggiornamento dei pesi di Lawson; restituisce il massimo in banda
+    var emax = 0, esum = 0, nin = 0, i;
+    for (i = 0; i < P.n; i++) { var r = mag2phi(c, 0, P.q0[i], P.q1[i], P.q2[i]) / P.T[i], ei = r >= 1 ? r - 1 : 1 / r - 1; if (!(ei >= 0 && ei < 1e300)) return 1e300; LE[i] = ei; if (P.W[i] >= 1) { if (ei > emax) emax = ei; esum += ei; nin++; } }
+    if (nin === 0) return 1e300;
+    var em = esum / nin + 1e-12, wsum = 0;
+    for (i = 0; i < P.n; i++) { var wn = wl[i] * (LE[i] / em + 1e-3); if (P.W[i] < 1 && wn > P.W[i]) wn = P.W[i]; wl[i] = wn; if (P.W[i] >= 1) wsum += wn; }
+    var wm = wsum / nin; for (i = 0; i < P.n; i++) wl[i] /= wm;
+    return emax;
+  }
+  var MM = new Float64Array(25), VV = new Float64Array(5), RW = new Float64Array(5);
+  function fitIRLS(P, init, iters, law) {
+    var a1 = init[3], a2 = init[4], wl = new Float64Array(P.n), out = null, outErr = 1e300, stall = 0, i, r, c;
+    for (i = 0; i < P.n; i++) wl[i] = P.W[i];
+    for (var it = 0; it < iters; it++) {
       var A0 = (1 + a1 + a2) * (1 + a1 + a2); if (!(A0 > 1e-14)) break;
       var A1 = (1 - a1 + a2) * (1 - a1 + a2) / A0, A2 = -4 * a2 / A0;
       MM.fill(0); VV.fill(0);
-      for (i = 0; i < NP; i++) {
-        var p0 = P0[i], p1 = P1[i], p2 = P2[i], T = TT[i], D = p0 + A1 * p1 + A2 * p2, td = T * D, w = 1 / (td * td + 1e-24), y = T * p0;
-        rw[0] = p0; rw[1] = p1; rw[2] = p2; rw[3] = -T * p1; rw[4] = -T * p2;
-        for (r = 0; r < 5; r++) { var wr = w * rw[r]; VV[r] += wr * y; for (c = 0; c < 5; c++) MM[r * 5 + c] += wr * rw[c]; }
+      for (i = 0; i < P.n; i++) {
+        var p0 = P.q0[i], p1 = P.q1[i], p2 = P.q2[i], T = P.T[i], D = p0 + A1 * p1 + A2 * p2, td = T * D, w = wl[i] / (td * td + (law ? 1e-300 : 1e-24)), y = T * p0;
+        RW[0] = p0; RW[1] = p1; RW[2] = p2; RW[3] = -T * p1; RW[4] = -T * p2;
+        for (r = 0; r < 5; r++) { var wr = w * RW[r]; VV[r] += wr * y; for (c = r; c < 5; c++) MM[r * 5 + c] += wr * RW[c]; }
       }
-      var x = solve5(MM, VV); if (!x) break;
-      var den = fromB(1, x[3], x[4]), num = fromB(x[0], x[1], x[2]); if (!den || !num) break;
-      var a0 = den[0]; a1 = den[1] / a0; a2 = den[2] / a0;
-      if (!(Math.abs(a2) < 0.99999 && Math.abs(a1) < 1 + a2)) break;
-      best = [num[0] / a0, num[1] / a0, num[2] / a0, a1, a2];
+      for (r = 1; r < 5; r++) for (c = 0; c < r; c++) MM[r * 5 + c] = MM[c * 5 + r];
+      var x = solveN(MM, VV, 5); if (!x) break;
+      var den = fromB(1, x[3], x[4]); if (!den) break;
+      var num = law ? fromBp(x[0], x[1], x[2]) : fromB(x[0], x[1], x[2]); if (!num) break;   // 0.4.3 (law = false): invariato
+      var na1 = den[1] / den[0], na2 = den[2] / den[0];
+      if (!(Math.abs(na2) < 0.99999 && Math.abs(na1) < 1 + na2)) break;
+      a1 = na1; a2 = na2; var cc = [num[0] / den[0], num[1] / den[0], num[2] / den[0], a1, a2];
+      if (!law) { out = cc; continue; }
+      var em = lawson(P, cc, wl); if (!(em < 1e300)) break;
+      if (em < outErr) { outErr = em; out = cc; stall = 0; } else if (++stall >= 2) break;
+      if (outErr < 0.0023) break;
     }
-    return best;
+    return out;
   }
-  function secErr(c, sc, fs) {            // errore max in dB: 24 punti 20 Hz..20 kHz + 9 attorno a f0 (pavimento -60 dB)
-    var ef = grid(fs).ef, m = 0, top = ef[ef.length - 1], i, f;
-    for (i = 0; i < 33; i++) {
-      if (i < 24) f = ef[i]; else { f = sc.f0 * Math.pow(2, (i - 28) / 8); if (f < 20 || f > top) continue; }
-      var d = Math.max(digMag2(c, f, fs), 1e-6), a = Math.max(secMag2(sc, f), 1e-6), e = Math.abs(10 * Math.log10(d / a));
-      if (!(e < 1e9)) return 1e9; if (e > m) m = e;
+  var M9 = new Float64Array(9), V3 = new Float64Array(3), RW3 = new Float64Array(3);
+  function fitIRLSz(P, cz, init, iters) {   // zeri fissati sul cerchio unitario (Notch): numeratore g (1, -2 cz, 1)
+    var s0 = 2 - 2 * cz, s1 = 2 + 2 * cz, a1 = init[3], a2 = init[4], wl = new Float64Array(P.n), out = null, outErr = 1e300, stall = 0, i, r, c;
+    for (i = 0; i < P.n; i++) wl[i] = P.W[i];
+    for (var it = 0; it < iters; it++) {
+      var A0 = (1 + a1 + a2) * (1 + a1 + a2); if (!(A0 > 1e-14)) break;
+      var A1 = (1 - a1 + a2) * (1 - a1 + a2) / A0, A2 = -4 * a2 / A0;
+      M9.fill(0); V3.fill(0);
+      for (i = 0; i < P.n; i++) {
+        var p0 = P.q0[i], p1 = P.q1[i], p2 = P.q2[i], T = P.T[i], N0 = s0 * s0 * p0 + s1 * s1 * p1 - 4 * p2, D = p0 + A1 * p1 + A2 * p2, td = T * D, w = wl[i] / (td * td + 1e-300), y = T * p0;
+        RW3[0] = N0; RW3[1] = -T * p1; RW3[2] = -T * p2;
+        for (r = 0; r < 3; r++) { var wr = w * RW3[r]; V3[r] += wr * y; for (c = 0; c < 3; c++) M9[r * 3 + c] += wr * RW3[c]; }
+      }
+      var x = solveN(M9, V3, 3); if (!x || !(x[0] > 0)) break;
+      var den = fromB(1, x[1], x[2]); if (!den) break;
+      var na1 = den[1] / den[0], na2 = den[2] / den[0];
+      if (!(Math.abs(na2) < 0.99999 && Math.abs(na1) < 1 + na2)) break;
+      a1 = na1; a2 = na2; var gg = Math.sqrt(x[0]) / den[0], cc = [gg, -2 * cz * gg, gg, a1, a2];
+      var em = lawson(P, cc, wl); if (!(em < 1e300)) break;
+      if (em < outErr) { outErr = em; out = cc; stall = 0; } else if (++stall >= 2) break;
+      if (outErr < 0.0023) break;
     }
-    return m;
+    return out;
   }
-  function withZeros(c, sc, fs) {          // stessi poli, zeri esatti sull'asse jw (notch), guadagno a DC
-    var w0 = 2 * PI * sc.f0 / fs * Math.sqrt(sc.n[0] / sc.n[2]), z = [1, -2 * Math.cos(w0), 1], q = [z[0], z[1], z[2], c[3], c[4]];
-    var g = Math.sqrt(secMag2(sc, 0) / digMag2(q, 1e-3, fs)); return [g, z[1] * g, g, c[3], c[4]];
-  }
-  function stable(c) { return isFinite(c[0] + c[1] + c[2] + c[3] + c[4]) && Math.abs(c[4]) < 1 && Math.abs(c[3]) < 1 + c[4]; }
-  /* TSR MATCH: tre progetti indipendenti, vince quello con il minor errore massimo rispetto all'analogico */
-  function designSec(sc, fs) {
-    var jw = sc.n[1] === 0 && sc.n[0] > 0 && sc.n[2] > 0;          // zeri sull'asse jw: notch
-    var mz = designMZ(sc, fs), best = mz, be = stable(mz) ? secErr(mz, sc, fs) : 1e9;
+  /* una sezione: candidati veloci (matched-z, 3 punti, IRLS della 0.4.3) e, solo se servono e precise, il fit minimax nella banda udibile */
+  function designSec(sc, g, precise) {
+    var fs = g.fs, jw = sc.n[1] === 0 && sc.n[0] > 0 && sc.n[2] > 0, E = buildEval(sc, g);
+    var mz = designMZ(sc, fs), best = mz, be = stable(mz) ? evalErr(mz, E) : 1e9;
     if (be < 0.01) return best;
     var c3 = design3pt(sc, fs); if (jw) c3 = withZeros(c3, sc, fs);
-    var e3 = stable(c3) ? secErr(c3, sc, fs) : 1e9;
-    if (e3 < be) { best = c3; be = e3; }
-    if (sc.n[0] === 0 && sc.n[1] === 0) return best;   // passa-alto puro: il fit IRLS \u00e8 mal condizionato (|N(1)|^2 = 0) e darebbe risultati diversi tra JS e C++
-    var ci = designIRLS(sc, fs, stable(mz) ? mz : c3);
-    if (ci && jw) ci = withZeros(ci, sc, fs);
-    if (ci && stable(ci)) { var ei = secErr(ci, sc, fs); if (ei < be) { best = ci; be = ei; } }
+    var e3 = stable(c3) ? evalErr(c3, E) : 1e9; if (e3 < be) { best = c3; be = e3; }
+    if (be < 0.01) return best;
+    if (sc.n[0] === 0 && sc.n[1] === 0) return best;   // passa-alto puro: il fit e mal condizionato
+    var ci = fitIRLS(secFitOld(sc, g), stable(mz) ? mz : c3, 4, false), ei;
+    if (ci) { if (jw) ci = withZeros(ci, sc, fs); if (stable(ci)) { ei = evalErr(ci, E); if (ei < be) { best = ci; be = ei; } } }
+    if (!precise && be < 1.0) return best;   // veloce: qualita e costo della 0.4.3, salvo errori grossi (poli analogici oltre Nyquist)
+    if (be < 0.03 || !stable(best)) return best;
+    var P = secFit(sc, g, E), cz = jw ? Math.cos(2 * PI * sc.f0 / fs * Math.sqrt(sc.n[0] / sc.n[2])) : 0, cand = [best];
+    function fit(init) { var c = jw ? fitIRLSz(P, cz, init, 10) : fitIRLS(P, init, 10, true); if (c && stable(c)) { cand.push(c); var e = evalErr(c, E); if (e < be) { best = c; be = e; } } }
+    fit(best);   // 1) dai poli del candidato migliore
+    if (be > 0.05) { var z0 = best.slice(); z0[3] = 0; z0[4] = 0; fit(z0); }   // 2) da poli nulli (pesi iniziali uniformi): non dipende dalla mappatura dei poli
+    if (cand.length < 2 || be < 0.03) return best;
+    var Td = new Float64Array(KDENSE), k, i; for (i = 0; i < KDENSE; i++) Td[i] = secMag2(sc, g.df[i]);   // scelta finale su E + griglia fitta di 160 punti
+    var bd = 1e300;
+    for (k = 0; k < cand.length; k++) { var e = new Err(), c = cand[k]; for (i = 0; i < E.n; i++) e.add(mag2phi(c, 0, E.q0[i], E.q1[i], E.q2[i]), E.T[i]); for (i = 0; i < KDENSE; i++) e.add(mag2phi(c, 0, g.d0[i], g.d1[i], g.d2[i]), Td[i]);
+      var ek = e.db(); if (ek < bd) { bd = ek; best = c; } }
     return best;
   }
-  function designBand(b, gainDb, fs) {
+  /* cascate: scelta dei candidati sull'errore del TOTALE, poi (High Cut, Band Pass) raffinamento congiunto */
+  function designCascade(set, g, refine) {
+    var n = set.s.length, fs = g.fs, i, j, k, q, ne = 0, E0 = new Float64Array(KCAS), E1 = new Float64Array(KCAS), E2 = new Float64Array(KCAS), Et = new Float64Array(KCAS);
+    for (i = 0; i < KEVAL; i++) { E0[ne] = g.e0[i]; E1[ne] = g.e1[i]; E2[ne] = g.e2[i]; Et[ne] = anaMag2(set, g.ef[i]); ne++; }
+    for (k = 0; k < n && ne < KCAS; k++) {
+      var dup = set.s[k].d[2] === 0; for (j = 0; j < k; j++) if (set.s[j].f0 === set.s[k].f0) dup = true; if (dup) continue;
+      for (q = 0; q < 17 && ne < KCAS; q++) { var fr = set.s[k].f0 * KOCT[q]; if (fr > 20 && fr < g.top) { var ph = phiAt(fr, fs); E0[ne] = ph[0]; E1[ne] = ph[1]; E2[ne] = ph[2]; Et[ne] = anaMag2(set, fr); ne++; } }
+      var nf = narrowPts(set.s[k]); for (q = 0; q < nf.length && ne < KCAS; q++) if (nf[q] > 20 && nf[q] < g.top) { var ph2 = phiAt(nf[q], fs); E0[ne] = ph2[0]; E1[ne] = ph2[1]; E2[ne] = ph2[2]; Et[ne] = anaMag2(set, nf[q]); ne++; }
+    }
+    var To = new Float64Array(KOUT); for (i = 0; i < KOUT; i++) To[i] = anaMag2(set, g.of[i]);
+    var cand = [], ok = [], mg = [];
+    for (k = 0; k < n; k++) {
+      var sc = set.s[k], hp = sc.n[0] === 0 && sc.n[1] === 0;
+      cand[k] = [designMZ(sc, fs), design3pt(sc, fs), null]; ok[k] = [false, false, false]; mg[k] = [null, null, null];
+      if (!hp) { var ci = fitIRLS(secFitOld(sc, g), stable(cand[k][0]) ? cand[k][0] : cand[k][1], 4, false); if (ci) { cand[k][2] = ci; ok[k][2] = stable(ci); } }
+      for (j = 0; j < 3; j++) {
+        if (j < 2) ok[k][j] = stable(cand[k][j]);
+        if (!ok[k][j]) continue;
+        if (k === 0) { cand[k][j] = cand[k][j].slice(); cand[k][j][0] *= set.k; cand[k][j][1] *= set.k; cand[k][j][2] *= set.k; }
+        var arr = new Float64Array(ne); for (i = 0; i < ne; i++) arr[i] = mag2phi(cand[k][j], 0, E0[i], E1[i], E2[i]); mg[k][j] = arr;
+      }
+    }
+    var sel = new Int32Array(n);
+    function tot(sl) { var e = new Err(); for (var ii = 0; ii < ne; ii++) { var d = 1; for (var kk = 0; kk < n; kk++) d *= mg[kk][sl[kk]][ii]; e.add(d, Et[ii]); } return e.db(); }
+    var best = 1e300, sl = new Int32Array(n);
+    for (j = 0; j < 3; j++) { var all = true; for (k = 0; k < n; k++) { sl[k] = ok[k][j] ? j : (ok[k][0] ? 0 : 1); all = all && (ok[k][0] || ok[k][1]); }
+      if (!all) continue; var e = tot(sl); if (e < best) { best = e; sel.set(sl); } }
+    var out = new Float64Array(n * 5);
+    if (!(best < 1e300)) { for (k = 0; k < n; k++) out.set(cand[k][0], k * 5); return out; }
+    for (var pass = 0; pass < 2; pass++) { var moved = false; for (k = 0; k < n; k++) for (j = 0; j < 3; j++) {
+        if (j === sel[k] || !ok[k][j]) continue; var keep = sel[k]; sel[k] = j; var e2 = tot(sel); if (e2 < best) { best = e2; moved = true; } else sel[k] = keep; }
+      if (!moved) break; }
+    for (k = 0; k < n; k++) out.set(cand[k][sel[k]], k * 5);
+    if (!refine || best < 0.05) return out;
+    function err(b) { var e = new Err(); for (var ii = 0; ii < ne; ii++) { var d = 1; for (var kk = 0; kk < n; kk++) d *= mag2phi(b, kk * 5, E0[ii], E1[ii], E2[ii]); e.add(d, Et[ii]); } return e.db(); }
+    var e0 = best;
+    for (pass = 0; pass < 2; pass++) { if (pass === 1 && e0 < 0.2) break; for (k = 0; k < n; k++) {
+        if (set.s[k].n[0] === 0 && set.s[k].n[1] === 0) continue;
+        var P = new Pts(KFITCAP), o, jj;
+        for (i = 0; i < ne && P.n < KCASFIT; i++) if (Et[i] > 1e-6) { o = 1; for (jj = 0; jj < n; jj++) if (jj !== k) o *= mag2phi(out, jj * 5, E0[i], E1[i], E2[i]); addPt(P, E0[i], E1[i], E2[i], Et[i] / o, deepW(Et[i])); }
+        for (i = 0; i < KOUT; i++) if (To[i] > 1e-6) { o = 1; for (jj = 0; jj < n; jj++) if (jj !== k) o *= mag2phi(out, jj * 5, g.o0[i], g.o1[i], g.o2[i]); addPt(P, g.o0[i], g.o1[i], g.o2[i], To[i] / o, 0.02); }
+        var cf = fitIRLS(P, Array.prototype.slice.call(out, k * 5, k * 5 + 5), 8, true); if (!cf || !stable(cf)) continue;
+        var t = out.slice(); t.set(cf, k * 5); var e1 = err(t); if (e1 < e0) { out = t; e0 = e1; }
+    } }
+    return out;
+  }
+  /* precise = false: progetto veloce (qualita e costo della 0.4.3), usato mentre i parametri cambiano; il motore passa al preciso dopo 50 ms fermi */
+  function designBand(b, gainDb, fs, precise) {
+    if (precise === undefined) precise = true;
     if (b.type === 'allpass') { var w0 = 2 * PI * Math.min(b.f, fs * 0.49) / fs, pa = poles([1, 1 / b.q, 1], w0); return Float64Array.from([pa[1], pa[0], 1, pa[0], pa[1]]); }
-    var set = sectionsFor(b, gainDb), n = set.s.length, c = new Float64Array(n * 5);
-    for (var i = 0; i < n; i++) { var q = designSec(set.s[i], fs); for (var j = 0; j < 5; j++) c[i * 5 + j] = q[j]; }
+    var g = grid(fs), set = sectionsFor(b, gainDb), n = set.s.length;
+    if (n > 1 && precise) return designCascade(set, g, b.type === 'hcut' || b.type === 'bpass');
+    var c = new Float64Array(n * 5);
+    for (var i = 0; i < n; i++) { var q = designSec(set.s[i], g, precise); for (var j = 0; j < 5; j++) c[i * 5 + j] = q[j]; }
     c[0] *= set.k; c[1] *= set.k; c[2] *= set.k;
     return c;
   }
-  /* risposta digitale effettiva (quello che si vede = quello che si sente) */
-  function digMag2(c, fr, fs) {
-    var w = 2 * PI * fr / fs, cw = Math.cos(w), c2w = Math.cos(2 * w), m = 1;
-    for (var i = 0; i < c.length; i += 5) {
-      var b0 = c[i], b1 = c[i + 1], b2 = c[i + 2], a1 = c[i + 3], a2 = c[i + 4];
-      var num = b0 * b0 + b1 * b1 + b2 * b2 + 2 * (b0 * b1 + b1 * b2) * cw + 2 * b0 * b2 * c2w;
-      var den = 1 + a1 * a1 + a2 * a2 + 2 * (a1 + a1 * a2) * cw + 2 * a2 * c2w;
-      m *= num / den;
-    }
-    return m;
-  }
 
-  /* ---------- filtraggio: TDF-II in doppia precisione, coefficienti interpolati per campione ---------- */
+  /* ---------- filtraggio: TDF-II in doppia precisione ---------- */
   function run(c, st, x, n) {
     for (var k = 0, ns = c.length / 5; k < ns; k++) {
       var o = k * 5, b0 = c[o], b1 = c[o + 1], b2 = c[o + 2], a1 = c[o + 3], a2 = c[o + 4], z1 = st[2 * k], z2 = st[2 * k + 1];
@@ -467,14 +599,13 @@ var TSRQ = (function () {
       st[2 * k] = z1; st[2 * k + 1] = z2;
     }
   }
-  // come runLerp ma su un frame fisso di F campioni: il primo campione \u00e8 alla posizione pos del frame (risultato indipendente dal blocco)
+  // frame fisso di F campioni; coefficienti dalla posizione assoluta nel frame (stesso risultato comunque il frame sia diviso tra blocchi)
   function runFrame(c0, c1, st, x, i0, i1, pos, F) {
     for (var k = 0, ns = c1.length / 5; k < ns; k++) {
       var o = k * 5, z1 = st[2 * k], z2 = st[2 * k + 1];
       var db0 = (c1[o] - c0[o]) / F, db1 = (c1[o + 1] - c0[o + 1]) / F, db2 = (c1[o + 2] - c0[o + 2]) / F, da1 = (c1[o + 3] - c0[o + 3]) / F, da2 = (c1[o + 4] - c0[o + 4]) / F;
-      var b0 = c0[o] + db0 * pos, b1 = c0[o + 1] + db1 * pos, b2 = c0[o + 2] + db2 * pos, a1 = c0[o + 3] + da1 * pos, a2 = c0[o + 4] + da2 * pos;
       for (var i = i0; i < i1; i++) {
-        b0 += db0; b1 += db1; b2 += db2; a1 += da1; a2 += da2;
+        var t = pos + (i - i0) + 1, b0 = c0[o] + db0 * t, b1 = c0[o + 1] + db1 * t, b2 = c0[o + 2] + db2 * t, a1 = c0[o + 3] + da1 * t, a2 = c0[o + 4] + da2 * t;
         var xi = x[i], y = b0 * xi + z1; z1 = b1 * xi - a1 * y + z2; z2 = b2 * xi - a2 * y; x[i] = y;
       }
       st[2 * k] = z1; st[2 * k + 1] = z2;
@@ -493,10 +624,10 @@ var TSRQ = (function () {
       st[2 * k] = z1; st[2 * k + 1] = z2;
     }
   }
-  function detSection(b) {        // filtro del detector: la forma della banda
+  function detSection(b) {        // filtro del detector: Bell = passa-banda a UNA sezione (0 dB al centro); shelf/tilt = passa-alto/basso 12 dB
     if (b.type === 'lshelf') return { type: 'hcut', f: b.f, q: Math.SQRT1_2, slope: 12 };
     if (b.type === 'hshelf' || b.type === 'tilt') return { type: 'lcut', f: b.f, q: Math.SQRT1_2, slope: 12 };
-    return { type: 'bpass', f: b.f, q: Math.max(0.3, b.q), slope: 12 };
+    return { type: 'bpass', f: b.f, q: Math.max(0.3, b.q), slope: 6 };
   }
   function soloSection(b) {
     if (b.type === 'lcut' || b.type === 'lshelf') return { type: 'hcut', f: b.f, q: Math.SQRT1_2, slope: 12 };
@@ -504,12 +635,9 @@ var TSRQ = (function () {
     return { type: 'bpass', f: b.f, q: Math.max(0.3, b.q), slope: 12 };
   }
   function knee(over, W) { if (W <= 0) return Math.max(0, over); if (over <= -W / 2) return 0; if (over >= W / 2) return over; var t = over + W / 2; return t * t / (2 * W); }
-  var DYN_SLOPE = 0.75;          // 4:1 dentro il RANGE
-  function dynDelta(levelDb, d) {
-    var amt = knee(levelDb - d.thr, d.knee) * DYN_SLOPE, r = Math.abs(d.range);
-    if (amt > r) amt = r;
-    return d.range < 0 ? -amt : amt;
-  }
+  var DYN_SLOPE = 0.75, KFRAME = 32, KDYN = 97, KSETTLE = 2, KPKHOLD = 256, SINE_RMS_DB = 3.0102999566398120;
+  function dynDeltaS(levelDb, thr, kneeW, range) { var amt = knee(levelDb - thr, kneeW) * DYN_SLOPE, r = Math.abs(range); if (amt > r) amt = r; return range < 0 ? -amt : amt; }
+  function dynDelta(levelDb, d) { return dynDeltaS(levelDb, d.thr, d.knee, d.range); }
   function validateBand(b) {
     var miss = [];
     ['id', 'type', 'f', 'q', 'g', 'slope', 'place', 'on'].forEach(function (k) { if (b[k] === undefined || b[k] === null) miss.push(k); });
@@ -519,24 +647,43 @@ var TSRQ = (function () {
     if (b.dyn && b.dyn.on) ['thr', 'range', 'att', 'rel', 'knee'].forEach(function (k) { if (typeof b.dyn[k] !== 'number') throw new Error('TSRQ: dinamica senza ' + k); });
   }
 
-  /* oversampling 8x del Character: halfband IIR polifase, 12 coefficienti (transizione 0.02, > 120 dB fuori banda), uguale al C++ */
-  var HB = [0.027155856726483182, 0.10300238556004077, 0.21303004592041422, 0.33933626891036295, 0.46602752012040527, 0.58224701385700428, 0.68259076485235193, 0.76595528238687738, 0.83396924102510472, 0.88969265368750716, 0.93680311116581549, 0.97923872973422221];
-  function apChain(off) { return { x1: new Float64Array(6), y1: new Float64Array(6), off: off }; }
-  function apRun(c, x) { for (var i = 0; i < 6; i++) { var a = HB[c.off + 2 * i], y = a * (x - c.y1[i]) + c.x1[i]; c.x1[i] = x; c.y1[i] = y; x = y; } return x; }
-  function shape(chm, x) { return chm === 1 ? x + 0.03 * x * x - 0.06 * x * x * x : Math.tanh(1.8 * x) / 1.8 + 0.04 * x * x; }
-  function OS8() { this.u = [[apChain(0), apChain(1)], [apChain(0), apChain(1)], [apChain(0), apChain(1)]]; this.d = [[apChain(0), apChain(1)], [apChain(0), apChain(1)], [apChain(0), apChain(1)]]; this.p = [0, 0, 0]; this.b = [new Float64Array(2), new Float64Array(4), new Float64Array(8)]; }
-  OS8.prototype.run = function (chm, x) {   /* 3 stadi halfband: x -> 8 campioni -> saturazione -> 1 campione (uguale al C++) */
-    var s1 = this.b[0], s2 = this.b[1], s3 = this.b[2], i, u = this.u, d = this.d, p = this.p;
-    s1[0] = apRun(u[0][0], x); s1[1] = apRun(u[0][1], x);
-    for (i = 0; i < 2; i++) { s2[2 * i] = apRun(u[1][0], s1[i]); s2[2 * i + 1] = apRun(u[1][1], s1[i]); }
-    for (i = 0; i < 4; i++) { s3[2 * i] = apRun(u[2][0], s2[i]); s3[2 * i + 1] = apRun(u[2][1], s2[i]); }
-    for (i = 0; i < 8; i++) s3[i] = shape(chm, s3[i]);
-    for (i = 0; i < 4; i++) { s2[i] = 0.5 * (apRun(d[2][0], s3[2 * i]) + apRun(d[2][1], p[2])); p[2] = s3[2 * i + 1]; }
-    for (i = 0; i < 2; i++) { s1[i] = 0.5 * (apRun(d[1][0], s2[2 * i]) + apRun(d[1][1], p[1])); p[1] = s2[2 * i + 1]; }
-    var y = 0.5 * (apRun(d[0][0], s1[0]) + apRun(d[0][1], p[0])); p[0] = s1[1]; return y; };
-  /* dissolvenza (crossfade) di 15 ms per tutto cio che non si puo interpolare: banda attivata/disattivata, cambio di tipo/pendenza/collocazione,
-     solo acceso/spento, cambio di Character. Curva a coseno rialzato. Prima della prima elaborazione: nessuna dissolvenza. Identico al C++. */
+  /* ---------- Character: oversampling 8x, 3 stadi halfband (12 / 7 / 5 coefficienti), curve monotone oltre 0 dBFS (uguale al C++) ---------- */
+  var HB1A = [0.027155856726483182, 0.21303004592041422, 0.46602752012040527, 0.68259076485235193, 0.83396924102510472, 0.93680311116581549];
+  var HB1B = [0.10300238556004077, 0.33933626891036295, 0.58224701385700428, 0.76595528238687738, 0.88969265368750716, 0.97923872973422221];
+  var HB2A = [0.024598597216109117, 0.2039088165268397, 0.49912912667634296, 0.8817915443234325], HB2B = [0.0952554617272269, 0.340947798142709, 0.6769722455782793];
+  var HB3A = [0.03452867076180611, 0.2956273060299206, 0.8097876417138931], HB3B = [0.13509016177223662, 0.5151067820762019];
+  // catena di passa-tutto (a + z^-1)/(1 + a z^-1): coefficienti e stato in Float64Array, una classe sola (chiamate monomorfe anche dopo altro codice nello stesso thread)
+  function Chain(c) { this.c = Float64Array.from(c); this.n = c.length; this.x1 = new Float64Array(c.length); this.y1 = new Float64Array(c.length); }
+  Chain.prototype.run = function (x) { var c = this.c, x1 = this.x1, y1 = this.y1, n = this.n; for (var i = 0; i < n; i++) { var a = c[i], y = a * (x - y1[i]) + x1[i]; x1[i] = x; y1[i] = y; x = y; } return x; };
+  var SUB_TP = 2.9333333333333336, SUB_TN = 1.8095238095238095, WARM_A = 0.02125, WARM_B = -0.09000000000000001;
+  function shape(chm, x) {
+    if (chm === 1) {
+      if (x > 1) return 0.97 + 0.88 * SUB_TP * (1 - Math.exp(-(x - 1) / SUB_TP));
+      if (x < -1) return -0.91 - 0.76 * SUB_TN * (1 - Math.exp((x + 1) / SUB_TN));
+      return x + 0.03 * x * x - 0.06 * x * x * x;
+    }
+    var ax = Math.abs(x), e;
+    if (ax <= 1) e = 0.04 * x * x;
+    else { var u = ax - 1, ex = Math.exp(-8 * u); e = 0.04 + WARM_A * (1 - ex) + WARM_B * u * ex; }
+    return Math.tanh(1.8 * x) / 1.8 + e;
+  }
+  function OS8() {
+    this.u1a = new Chain(HB1A); this.u1b = new Chain(HB1B); this.u2a = new Chain(HB2A); this.u2b = new Chain(HB2B); this.u3a = new Chain(HB3A); this.u3b = new Chain(HB3B);
+    this.d3a = new Chain(HB3A); this.d3b = new Chain(HB3B); this.d2a = new Chain(HB2A); this.d2b = new Chain(HB2B); this.d1a = new Chain(HB1A); this.d1b = new Chain(HB1B);
+    this.p = new Float64Array(3); this.s2 = new Float64Array(2); this.s4 = new Float64Array(4); this.s8 = new Float64Array(8);
+  }
+  OS8.prototype.run = function (chm, x) {   // stessa sequenza di operazioni di Oversampled8x::run (C++)
+    var s2 = this.s2, s4 = this.s4, s8 = this.s8, p = this.p, i;
+    s2[0] = this.u1a.run(x); s2[1] = this.u1b.run(x);
+    for (i = 0; i < 2; i++) { s4[2 * i] = this.u2a.run(s2[i]); s4[2 * i + 1] = this.u2b.run(s2[i]); }
+    for (i = 0; i < 4; i++) { s8[2 * i] = this.u3a.run(s4[i]); s8[2 * i + 1] = this.u3b.run(s4[i]); }
+    for (i = 0; i < 8; i++) s8[i] = shape(chm, s8[i]);
+    for (i = 0; i < 4; i++) { s4[i] = 0.5 * (this.d3a.run(s8[2 * i]) + this.d3b.run(p[2])); p[2] = s8[2 * i + 1]; }
+    for (i = 0; i < 2; i++) { s2[i] = 0.5 * (this.d2a.run(s4[2 * i]) + this.d2b.run(p[1])); p[1] = s4[2 * i + 1]; }
+    var y = 0.5 * (this.d1a.run(s2[0]) + this.d1b.run(p[0])); p[0] = s2[1]; return y; };
   function fadeW(u) { return u >= 1 ? 1 : 0.5 - 0.5 * Math.cos(PI * u); }
+
+  /* ---------- motore ---------- */
   function Engine(fs, maxBlock) {
     this.fs = fs; this.N = maxBlock || 4096;
     this.L = new Float64Array(this.N); this.R = new Float64Array(this.N);
@@ -544,42 +691,65 @@ var TSRQ = (function () {
     this.dL = new Float64Array(this.N); this.dR = new Float64Array(this.N);
     this.xL = new Float64Array(this.N); this.xR = new Float64Array(this.N); this.oL = new Float64Array(this.N); this.oR = new Float64Array(this.N);
     this.pL = new Float64Array(this.N); this.pR = new Float64Array(this.N);
+    this.chs = [[this.L, this.R], [this.L], [this.R], [this.M], [this.S]];
     this.bands = []; this.map = {}; this.old = {}; this.order = [];
     this.st = { inGain: 0, out: 0, autoGainDb: 0, scale: 1, character: 0, bypass: false, solo: -1 };
     this.outG = 1; this.outG1 = 1; this.inG = 1; this.inG1 = 1; this.byp = 0; this.panA = 1; this.panB = 1; this.panA1 = 1; this.panB1 = 1; this.pol = 0;
     this.solo = null; this.soloOn = false; this.soloW = 0; this.peak = [0, 0]; this.pin = [0, 0];
-    this.fadeLen = Math.max(1, Math.round(0.015 * fs)); this.primed = false;
+    this.fadeLen = Math.max(1, Math.round(0.015 * fs)); this.settleLen = Math.max(1, Math.round(0.05 * fs)); this.aParam = 1 - Math.exp(-KFRAME / (0.01 * fs)); this.primed = false;
     this.osm = [null, [new OS8(), new OS8()], [new OS8(), new OS8()]]; this.dcm = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]; this.lastChm = 0; this.chPrev = 0; this.chPos = 2 * this.fadeLen;
   }
   Engine.prototype._fadeOut = function (id, r) {   // la banda attuale continua a suonare in old[id] e sfuma a zero in 15 ms
     if (!this.primed) { delete this.old[id]; return; }
     r.w0 = r.flen > 0 ? fadeW(r.fpos / r.flen) : 1; r.fpos = 0; r.flen = this.fadeLen; this.old[id] = r;
   };
+  function dyOf(b) { var d = b.dyn || {}; return { on: !!d.on, thr: d.thr, range: d.range, att: d.att, rel: d.rel, knee: d.knee, det: d.det || 0, sc: !!d.sc }; }
+  function sameFilter(a, b) { return a.type === b.type && a.f === b.f && a.g === b.g && a.q === b.q && a.slope === b.slope && a.place === b.place && !!a.gq === !!b.gq; }
+  function sameAll(a, b) { var x = dyOf(a), y = dyOf(b); return sameFilter(a, b) && x.on === y.on && x.thr === y.thr && x.range === y.range && x.att === y.att && x.rel === y.rel && x.knee === y.knee && x.det === y.det && x.sc === y.sc; }
+  // coefficienti per il guadagno dinamico delta: tabella a passi fissi (progettati solo quando servono) + interpolazione lineare
+  Engine.prototype._dynTarget = function (r, delta) {
+    var ad = Math.abs(delta) / r.dynCell, k = Math.floor(ad); if (k > KDYN - 2) k = KDYN - 2; var fr = ad - k; if (fr > 1) fr = 1;
+    // celle >= 1 con il progetto veloce (ripiego preciso sopra 1 dB): costo limitato anche quando tutte le bande saltano nello stesso frame (uguale al C++)
+    for (var j = k; j <= k + 1; j++) if (r.dynValid[j] !== r.dynGen) { var t = designBand(r.cfg, r.g + r.dynSign * j * r.dynCell, this.fs, false); r.dynC.set(t.subarray(0, 5), j * 5); r.dynValid[j] = r.dynGen; }
+    var c = r.cur === r.tb[0] ? r.tb[1] : r.tb[0], o0 = k * 5, o1 = (k + 1) * 5, C = r.dynC;   // scrive nel buffer non in uso (fr0 e una copia): nessuna allocazione a ogni frame
+    for (var i = 0; i < 5; i++) c[i] = C[o0 + i] + (C[o1 + i] - C[o0 + i]) * fr;
+    return c;
+  };
+  // specchio di Engine::setBand (C++): stesse decisioni (nessun progetto se nulla e cambiato, solo dinamica, dissolvenze)
+  Engine.prototype._setBand = function (b, sc, keep) {
+    var r = this.map[b.id], fs = this.fs, d = dyOf(b);
+    if (!b.on) { if (r) this._fadeOut(b.id, r); return; }
+    if (r && sameAll(r.cfg, b) && r.sc === sc) { keep[b.id] = r; r.cfg = b; r.dy = d; return; }
+    if (r && sameFilter(r.cfg, b) && r.sc === sc && dyOf(r.cfg).on === d.on && dyOf(r.cfg).range === d.range) {   // cambiano solo soglia/attacco/rilascio/knee/detector
+      r.cfg = b; r.dy = d; if (r.dyn) { r.aA = 1 - Math.exp(-KFRAME / (Math.max(0.05, d.att) * 1e-3 * fs)); r.aR = 1 - Math.exp(-KFRAME / (Math.max(1, d.rel) * 1e-3 * fs)); }
+      keep[b.id] = r; return;
+    }
+    var dynOn = !!(d.on && DYN_TYPES[b.type]), g = GAIN_TYPES[b.type] ? b.g * sc : 0, nc = designBand(b, g, fs, !this.primed);
+    var sameShape = !!r && r.cfg.type === b.type && r.cfg.slope === b.slope && r.cfg.place === b.place && nc.length === r.tgt.length && r.dyn === dynOn;
+    if (r && !sameShape) this._fadeOut(b.id, r);
+    if (!sameShape) r = { st: [new Float64Array(nc.length / 5 * 2), new Float64Array(nc.length / 5 * 2)], dst: [new Float64Array(2), new Float64Array(2)], acc2: [0, 0], pk: [0, 0], ms: [0, 0], pkRing: new Float64Array(KPKHOLD), pkPos: 0, pkLen: 1, lvl: -120, delta: 0, phase: 0,
+                          detInit: true, thrS: d.thr, fpos: 0, flen: this.primed ? this.fadeLen : 0, w0: 1, dynCell: 0.125, dynSign: -1, dynGen: 1, dynValid: new Uint32Array(KDYN), dynC: new Float64Array(KDYN * 5), cur: nc, fr0: nc, fr0b: new Float64Array(5), tb: [new Float64Array(5), new Float64Array(5)], isNew: true };
+    r.precise = !this.primed; r.quiet = 0;
+    r.dyn = dynOn; r.cfg = b; r.dy = d; r.sc = sc; r.g = g; r.tgt = nc;
+    if (dynOn) r.dc = designBand(detSection(b), 0, fs, false);   // filtro del detector solo per le bande dinamiche (uguale al C++)
+    if (dynOn) {
+      r.aA = 1 - Math.exp(-KFRAME / (Math.max(0.05, d.att) * 1e-3 * fs)); r.aR = 1 - Math.exp(-KFRAME / (Math.max(1, d.rel) * 1e-3 * fs));
+      r.aRms = 1 - Math.exp(-KFRAME / (Math.min(0.08, Math.max(0.01, 8 / b.f)) * fs));
+      r.pkLen = Math.min(KPKHOLD, Math.max(1, Math.ceil(fs / (b.f * KFRAME))));   // Peak: un periodo della banda (uguale al C++)
+      var R = d.range * sc; r.dynSign = R >= 0 ? 1 : -1; r.dynCell = Math.max(0.125, Math.abs(R) / (KDYN - 1)); r.dynGen++;
+      r.dynC.set(nc.subarray(0, 5), 0); r.dynValid[0] = r.dynGen;
+    } else r.delta = 0;
+    if (r.isNew) { r.isNew = false; r.delta = 0; r.cur = r.tgt; r.fr0 = r.tgt; r.phase = 0; }
+    else if (dynOn) r.tgt = this._dynTarget(r, r.delta);
+    keep[b.id] = r;
+  };
   Engine.prototype.setState = function (st) {
-    var self = this, keep = {}, fs = this.fs, sc = typeof st.scale === 'number' ? st.scale : 1, seen = {};
+    var self = this, keep = {}, sc = typeof st.scale === 'number' ? st.scale : 1, seen = {};
     if (!st || !Array.isArray(st.bands)) throw new Error('TSRQ: stato senza bande');
     if (typeof st.inGain !== 'number') throw new Error('TSRQ: stato senza inGain');
     st.bands.forEach(validateBand);
     this.st = st;
-    st.bands.forEach(function (b) {
-      var r = self.map[b.id]; seen[b.id] = 1;
-      if (!b.on) { if (r) self._fadeOut(b.id, r); return; }
-      var g = GAIN_TYPES[b.type] ? b.g * sc : 0, dyn = !!(b.dyn && b.dyn.on && DYN_TYPES[b.type]);
-      var c = designBand(b, g + (dyn && r ? r.delta : 0), fs);
-      var sig = b.type + '|' + c.length + '|' + b.place + '|' + b.slope + '|' + (dyn ? 1 : 0);   // stessa forma = stesso tipo, pendenza, collocazione, numero di sezioni: si interpola; altrimenti dissolvenza
-      if (!r || r.sig !== sig) {
-        if (r) self._fadeOut(b.id, r);
-        if (dyn) c = designBand(b, g, fs);
-        r = { sig: sig, cur: c, st: [new Float64Array(c.length / 5 * 2), new Float64Array(c.length / 5 * 2)], env: [1e-12, 1e-12], dst: [new Float64Array(2), new Float64Array(2)], delta: 0, lvl: -120, fpos: 0, flen: self.primed ? self.fadeLen : 0, w0: 1 };
-      }
-      r.cfg = b; r.tgt = c; r.dyn = dyn; r.g = g; r.sc = sc;
-      r.dc = designBand(detSection(b), 0, fs);
-      if (dyn) {
-        r.aA = Math.exp(-1 / (Math.max(0.05, b.dyn.att) * 1e-3 * fs));
-        r.aR = Math.exp(-1 / (Math.max(1, b.dyn.rel) * 1e-3 * fs));
-      } else r.delta = 0;
-      keep[b.id] = r;
-    });
+    st.bands.forEach(function (b) { seen[b.id] = 1; self._setBand(b, sc, keep); });
     for (var k in this.map) if (!seen[k]) this._fadeOut(+k, this.map[k]);   // bande sparite dallo stato: sfumano
     this.map = keep;
     var ids = {}; for (k in keep) ids[k] = 1; for (k in this.old) ids[k] = 1;
@@ -588,43 +758,45 @@ var TSRQ = (function () {
     var sb = st.solo >= 0 ? st.bands.filter(function (b) { return b.id === st.solo && b.on; })[0] : null;
     this.soloOn = !!sb;
     if (sb) {
-      var cs = designBand(soloSection(sb), 0, fs), so = this.solo;
-      if (!so || so.id !== sb.id || so.c.length !== cs.length) this.solo = { id: sb.id, c: cs, tgt: cs, st: [new Float64Array(cs.length / 5 * 2), new Float64Array(cs.length / 5 * 2)], place: sb.place };
-      else { so.tgt = cs; so.place = sb.place; }
+      var ss = soloSection(sb), key = ss.type + '|' + ss.f + '|' + ss.q, so = this.solo;
+      if (so && so.id === sb.id && so.key === key) so.place = sb.place;   // filtro d'ascolto invariato: niente riprogetto
+      else {
+        var cs = designBand(ss, 0, this.fs, false);   // filtro d'ascolto: progetto veloce (uguale al C++)
+        if (!so || so.id !== sb.id || so.c.length !== cs.length) this.solo = { id: sb.id, c: cs, tgt: cs, st: [new Float64Array(cs.length / 5 * 2), new Float64Array(cs.length / 5 * 2)], place: sb.place, key: key };
+        else { so.tgt = cs; so.place = sb.place; so.key = key; }
+      }
     }
   };
-  Engine.prototype._chan = function (place) {      // buffer da filtrare per collocazione
-    if (place === 1) return [this.L]; if (place === 2) return [this.R];
-    if (place === 3) return [this.M]; if (place === 4) return [this.S];
-    return [this.L, this.R];
-  };
-  Engine.prototype._band = function (r, n) {
-    var place = r.cfg.place, ms = place === 3 || place === 4, L = this.L, R = this.R, M = this.M, S = this.S, i;
+  Engine.prototype._chan = function (place) { return this.chs[place] || this.chs[0]; };   // buffer da filtrare per collocazione (array preparati nel costruttore)
+  Engine.prototype._band = function (r, n, msReady) {
+    var place = r.cfg.place, ms = (place === 3 || place === 4) && !msReady, L = this.L, R = this.R, M = this.M, S = this.S, i;
     if (ms) for (i = 0; i < n; i++) { M[i] = 0.5 * (L[i] + R[i]); S[i] = 0.5 * (L[i] - R[i]); }
     var ch = this._chan(place), nc = ch.length, c;
     if (!r.dyn) {
       if (r.cur !== r.tgt) { for (c = 0; c < nc; c++) runLerp(r.cur, r.tgt, r.st[c], ch[c], 0, n); r.cur = r.tgt; }
       else for (c = 0; c < nc; c++) run(r.cur, r.st[c], ch[c], n);
     } else {
-      var F = 32, d = r.cfg.dyn, dc = r.dc, fs = this.fs;      // frame dinamico fisso: indipendente dal blocco audio
-      if (r.phase === undefined) { r.phase = 0; r.fr0 = r.cur; }
+      var F = KFRAME, d = r.dy, dc = r.dc;
       for (var i0 = 0; i0 < n; ) {
-        if (r.phase === 0) r.fr0 = r.cur;
+        if (r.phase === 0) { r.fr0b.set(r.cur); r.fr0 = r.fr0b; }   // copia (come BandCoefs nel C++): i buffer del bersaglio si possono riscrivere
         var i1 = Math.min(n, i0 + (F - r.phase));
-        for (c = 0; c < nc; c++) {          // detector sul segnale che entra nella banda
-          var x = ch[c], dst = r.dst[c], e = r.env[c];
-          var b0 = dc[0], b1 = dc[1], b2 = dc[2], a1 = dc[3], a2 = dc[4], z1 = dst[0], z2 = dst[1];
-          for (i = i0; i < i1; i++) { var xi = x[i], y = b0 * xi + z1; z1 = b1 * xi - a1 * y + z2; z2 = b2 * xi - a2 * y; var p = d.det === 1 ? Math.abs(y) * Math.abs(y) * 2 : y * y; e = p > e ? r.aA * (e - p) + p : r.aR * (e - p) + p; }
-          dst[0] = z1; dst[1] = z2; r.env[c] = e;
+        for (c = 0; c < nc; c++) {          // detector: somma dei quadrati e picco del frame
+          var x = ch[c], dst = r.dst[c], b0 = dc[0], b1 = dc[1], b2 = dc[2], a1 = dc[3], a2 = dc[4], z1 = dst[0], z2 = dst[1], a2s = r.acc2[c], pk = r.pk[c];
+          for (i = i0; i < i1; i++) { var xi = x[i], y = b0 * xi + z1; z1 = b1 * xi - a1 * y + z2; z2 = b2 * xi - a2 * y; a2s += y * y; var ay = Math.abs(y); if (ay > pk) pk = ay; }
+          dst[0] = z1; dst[1] = z2; r.acc2[c] = a2s; r.pk[c] = pk;
         }
         for (c = 0; c < nc; c++) runFrame(r.fr0, r.tgt, r.st[c], ch[c], i0, i1, r.phase, F);
         r.phase += i1 - i0; i0 = i1;
-        if (r.phase === F) {
-          r.phase = 0; r.cur = r.tgt; var lvl = -200;
-          for (c = 0; c < nc; c++) { var l = 10 * Math.log10(r.env[c] + 1e-20); if (l > lvl) lvl = l; }
-          r.lvl = lvl;
-          var delta = dynDelta(lvl, d) * r.sc;
-          if (Math.abs(delta - r.delta) > 0.02) { r.delta = delta; r.tgt = designBand(r.cfg, r.g + delta, fs); }
+        if (r.phase === F) {   // fine frame: livello (RMS vero o picco - 3.01 dB) -> attacco/rilascio in dB -> guadagno -> coefficienti dalla tabella
+          r.phase = 0; r.cur = r.tgt; var inst, fpk = 0;
+          for (c = 0; c < nc; c++) if (r.pk[c] > fpk) fpk = r.pk[c];
+          r.pkRing[r.pkPos] = fpk; r.pkPos = (r.pkPos + 1) % KPKHOLD;   // storia dei picchi di frame
+          if (d.det === 1) { var pk2 = 0; for (var kk = 1; kk <= r.pkLen; kk++) { var pv = r.pkRing[(r.pkPos - kk + KPKHOLD) % KPKHOLD]; if (pv > pk2) pk2 = pv; }
+            for (c = 0; c < nc; c++) { r.pk[c] = 0; r.acc2[c] = 0; } inst = 20 * Math.log10(pk2 + 1e-10) - SINE_RMS_DB; }
+          else { var m = 0; for (c = 0; c < nc; c++) { if (r.detInit) r.ms[c] = r.acc2[c] / F; else r.ms[c] += (r.acc2[c] / F - r.ms[c]) * r.aRms; if (r.ms[c] > m) m = r.ms[c]; r.acc2[c] = 0; r.pk[c] = 0; } inst = 10 * Math.log10(m + 1e-20); }
+          if (r.detInit) { r.lvl = inst; r.detInit = false; } else r.lvl += (inst - r.lvl) * (inst > r.lvl ? r.aA : r.aR);
+          r.thrS += (d.thr - r.thrS) * this.aParam;
+          r.delta = dynDeltaS(r.lvl, r.thrS, d.knee, d.range) * r.sc; r.tgt = this._dynTarget(r, r.delta);
         }
       }
     }
@@ -632,10 +804,10 @@ var TSRQ = (function () {
   };
   Engine.prototype._bandStep = function (id, n) {
     var r = this.map[id], o = this.old[id], fin = !!(r && r.flen > 0), fout = !!o, L = this.L, R = this.R, xL = this.xL, xR = this.xR, oL = this.oL, oR = this.oR, i;
-    if (!fin && !fout) { if (r) this._band(r, n); return; }
+    if (!fin && !fout) { if (r) this._band(r, n, false); return; }
     for (i = 0; i < n; i++) { xL[i] = L[i]; xR[i] = R[i]; }
-    if (fout) { this._band(o, n); for (i = 0; i < n; i++) { oL[i] = L[i]; oR[i] = R[i]; L[i] = xL[i]; R[i] = xR[i]; } }
-    if (r) this._band(r, n);
+    if (fout) { this._band(o, n, false); for (i = 0; i < n; i++) { oL[i] = L[i]; oR[i] = R[i]; L[i] = xL[i]; R[i] = xR[i]; } }
+    if (r) this._band(r, n, false);
     for (i = 0; i < n; i++) {
       var wi = r ? (r.flen > 0 ? fadeW((r.fpos + i + 1) / r.flen) : 1) : 0;
       var wo = fout ? o.w0 * (1 - fadeW((o.fpos + i + 1) / o.flen)) : 0;
@@ -649,14 +821,16 @@ var TSRQ = (function () {
   Engine.prototype._ch = function (m, v, c, dcA) {   // Character del modo m su un canale (0 = Clean, passa invariato)
     if (!m) return v; var d = this.dcm[m], y = this.osm[m][c].run(m, v), o = y - d[2 * c] + dcA * d[2 * c + 1]; d[2 * c] = y; d[2 * c + 1] = o; return o;
   };
+  var MAXIN = Math.fround(3.0e38);
   Engine.prototype.process = function (Lio, Rio, n) {
     if (n > this.N) throw new Error('TSRQ: blocco troppo lungo');
     this.primed = true;
-    var L = this.L, R = this.R, dL = this.dL, dR = this.dR, pL = this.pL, pR = this.pR, i, st = this.st, fadeLen = this.fadeLen;
+    var L = this.L, R = this.R, M = this.M, S = this.S, dL = this.dL, dR = this.dR, pL = this.pL, pR = this.pR, i, st = this.st, fadeLen = this.fadeLen;
     var tgi = Math.pow(10, st.inGain / 20), gia = 1 - Math.exp(-1 / (0.01 * this.fs)), gi = this.inG, gi1 = this.inG1;   // smoother a due poli (10 + 10 ms)
-    for (i = 0; i < n; i++) { gi1 += (tgi - gi1) * gia; gi += (gi1 - gi) * gia; dL[i] = Lio[i]; dR[i] = Rio[i]; L[i] = Lio[i] * gi; R[i] = Rio[i] * gi; var al = L[i] < 0 ? -L[i] : L[i], ar = R[i] < 0 ? -R[i] : R[i]; if (al > this.pin[0]) this.pin[0] = al; if (ar > this.pin[1]) this.pin[1] = ar; }
+    for (i = 0; i < n; i++) {   // un campione NaN/Inf in ingresso diventa 0
+      var lin = Lio[i], rin = Rio[i]; if (!(Math.abs(lin) <= MAXIN)) lin = 0; if (!(Math.abs(rin) <= MAXIN)) rin = 0;
+      gi1 += (tgi - gi1) * gia; gi += (gi1 - gi) * gia; dL[i] = lin; dR[i] = rin; L[i] = lin * gi; R[i] = rin * gi; var al = L[i] < 0 ? -L[i] : L[i], ar = R[i] < 0 ? -R[i] : R[i]; if (al > this.pin[0]) this.pin[0] = al; if (ar > this.pin[1]) this.pin[1] = ar; }
     this.inG = gi; this.inG1 = gi1;
-    /* SOLO: su una copia del segnale; le bande continuano a girare sotto. Acceso/spento con dissolvenza, filtro interpolato quando la banda si muove. */
     var soloOn = this.soloOn && !!this.solo, soloRun = soloOn || this.soloW > 0, so = this.solo;
     if (soloRun && so) {
       var pl = so.place;
@@ -667,7 +841,26 @@ var TSRQ = (function () {
       if (so.c !== so.tgt) { runLerp(so.c, so.tgt, so.st[0], pL, 0, n); runLerp(so.c, so.tgt, so.st[1], pR, 0, n); so.c = so.tgt; }
       else { run(so.c, so.st[0], pL, n); run(so.c, so.st[1], pR, n); }
     }
-    for (var b = 0; b < this.order.length; b++) this._bandStep(this.order[b], n);
+    var b, id, rr, settleBudget = KSETTLE;   // al massimo 2 progetti precisi per blocco (dopo un cambio di preset le bande si assestano una dopo l'altra)
+    for (b = 0; b < this.order.length; b++) {   // bande ferme da 50 ms: progetto preciso (interpolato dal veloce lungo il blocco)
+      rr = this.map[this.order[b]]; if (!rr || rr.precise) continue;
+      rr.quiet += n; if (rr.quiet < this.settleLen || settleBudget <= 0) continue; settleBudget--;
+      var nc = designBand(rr.cfg, rr.g, this.fs, true); rr.precise = true;
+      if (rr.dyn) { rr.dynGen++; rr.dynC.set(nc.subarray(0, 5), 0); rr.dynValid[0] = rr.dynGen; rr.tgt = this._dynTarget(rr, rr.delta); } else rr.tgt = nc;
+    }
+    var msLive = false;   // bande Mid/Side consecutive (senza dissolvenze in corso): una sola conversione L/R -> M/S e ritorno
+    for (b = 0; b < this.order.length; b++) {
+      id = this.order[b]; rr = this.map[id]; var oo = this.old[id]; if (!rr && !oo) continue;
+      var msBand = !!rr && rr.flen === 0 && !oo && (rr.cfg.place === 3 || rr.cfg.place === 4);
+      if (msBand) {
+        if (!msLive) { for (i = 0; i < n; i++) { M[i] = 0.5 * (L[i] + R[i]); S[i] = 0.5 * (L[i] - R[i]); } msLive = true; }
+        this._band(rr, n, true);
+      } else {
+        if (msLive) { for (i = 0; i < n; i++) { L[i] = M[i] + S[i]; R[i] = M[i] - S[i]; } msLive = false; }
+        this._bandStep(id, n);
+      }
+    }
+    if (msLive) for (i = 0; i < n; i++) { L[i] = M[i] + S[i]; R[i] = M[i] - S[i]; }
     if (soloRun && so) {
       var tgt = soloOn ? 1 : 0, stp0 = this.primed ? 1 / fadeLen : 1, w = this.soloW;
       for (i = 0; i < n; i++) {
@@ -680,8 +873,8 @@ var TSRQ = (function () {
     var mute = (st.out || 0) <= -60, tg = mute ? 0 : Math.pow(10, ((st.out || 0) + (st.autoGainDb || 0)) / 20), ga = 1 - Math.exp(-1 / (0.01 * this.fs)), g = this.outG, g1 = this.outG1;
     var ch = st.character || 0, bt = st.bypass ? 1 : 0, by = this.byp, stp = this.primed ? 1 / fadeLen : 1;
     var dcA = Math.exp(-2 * PI * 5 / this.fs), pK = 0, pR2 = 0;
-    var pn = Math.max(-1, Math.min(1, st.pan || 0)), tA = Math.min(1, 1 - pn), tB = Math.min(1, 1 + pn), tP = st.invert ? 1 : 0, ms = !!st.panMS, pa = this.panA, pb = this.panB, pa1 = this.panA1, pb1 = this.panB1, po = this.pol;
-    if (ch !== this.lastChm) {   // cambio di Character: il nuovo modo parte pulito, gira 15 ms a vuoto (i filtri si caricano) e poi si dissolve sul vecchio in 15 ms
+    var pn = Math.max(-1, Math.min(1, st.pan || 0)), tA = Math.min(1, 1 - pn), tB = Math.min(1, 1 + pn), tP = st.invert ? 1 : 0, msp = !!st.panMS, pa = this.panA, pb = this.panB, pa1 = this.panA1, pb1 = this.panB1, po = this.pol;
+    if (ch !== this.lastChm) {   // cambio di Character: il nuovo modo parte pulito, gira 15 ms a vuoto e poi si dissolve sul vecchio in 15 ms
       if (ch) { this.osm[ch] = [new OS8(), new OS8()]; this.dcm[ch] = [0, 0, 0, 0]; }
       this.chPrev = this.lastChm; this.chPos = this.primed ? 0 : 2 * fadeLen; this.lastChm = ch; }
     var chPos = this.chPos, chPrev = this.chPrev;
@@ -693,7 +886,7 @@ var TSRQ = (function () {
         var nl = this._ch(ch, l, 0, dcA), nr = this._ch(ch, r, 1, dcA);
         if (chPos < 2 * fadeLen) { var ol = this._ch(chPrev, l, 0, dcA), orr = this._ch(chPrev, r, 1, dcA); chPos++; var k = chPos <= fadeLen ? 0 : fadeW((chPos - fadeLen) / fadeLen); nl = ol + k * (nl - ol); nr = orr + k * (nr - orr); }
         l = nl; r = nr; }
-      if (ms) { var mm = 0.5 * (l + r) * pa, ss = 0.5 * (l - r) * pb; l = mm + ss; r = mm - ss; } else { l *= pa; r *= pb; }
+      if (msp) { var mm = 0.5 * (l + r) * pa, ss = 0.5 * (l - r) * pb; l = mm + ss; r = mm - ss; } else { l *= pa; r *= pb; }
       var kp = 1 - 2 * fadeW(po), kb = fadeW(by); l *= kp; r *= kp;
       l = l + (dL[i] - l) * kb; r = r + (dR[i] - r) * kb;
       Lio[i] = l; Rio[i] = r;
@@ -706,7 +899,8 @@ var TSRQ = (function () {
     for (var k in this.map) o.bands[k] = { lvl: this.map[k].lvl, delta: this.map[k].delta };
     this.peak[0] = this.peak[1] = 0; this.pin[0] = this.pin[1] = 0; return o;
   };
-  return { design3pt: design3pt, designMZ: designMZ, designIRLS: designIRLS, secErr: secErr, TYPES: TYPES, DYN_TYPES: DYN_TYPES, GAIN_TYPES: GAIN_TYPES, sectionsFor: sectionsFor, anaMag2: anaMag2, designSec: designSec, designBand: designBand, digMag2: digMag2, dynDelta: dynDelta, Engine: Engine, butterQs: butterQs };
+  return { design3pt: design3pt, designMZ: designMZ, secErr: secErr, TYPES: TYPES, DYN_TYPES: DYN_TYPES, GAIN_TYPES: GAIN_TYPES, sectionsFor: sectionsFor, anaMag2: anaMag2, designSec: function (sc, fs, precise) { return designSec(sc, grid(fs), precise === undefined ? true : precise); },
+           designBand: designBand, digMag2: digMag2, dynDelta: dynDelta, Engine: Engine, butterQs: butterQs, shape: shape, version: '0.4.4' };
 })();
 if (typeof module !== 'undefined') module.exports = TSRQ;
 /* ===== /DSP CORE ===== */
@@ -1807,7 +2001,9 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
   const GWc = 1160, GHc = 532, PLx = 8, PLy = 10, PLw = 1160 - 8 - 86 - 6, PLh = 532 - 10 - 22, F_LC = 50, F_HC = 10000, NEAR = 9;
   const g = ov.getContext('2d'); let sug = null, ghost = null;
   const loc = e => { const r = ov.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * GWc, y: (e.clientY - r.top) / r.height * GHc }; };
-  const curveDb = f => { const fs = fsNow(); let d = 0; P.bands.forEach((b, i) => { if (!b.used || b.byp) return; const c = TSRQ.designBand(engineBand(i), hasGain(b.type) ? b.gain * P.scale / 100 : 0, fs); d += 10 * Math.log10(Math.max(TSRQ.digMag2(c, f, fs), 1e-12)); }); return d; };
+  let dMemo = { k: null, cs: null };
+  const designsNow = () => { const fs = fsNow(), sc = P.scale / 100, parts = [fs, sc, P.gq ? 1 : 0]; P.bands.forEach((b, i) => { if (b.used && !b.byp) parts.push(i, b.type, b.freq, b.gain, b.q, b.slope, b.place); }); const k = parts.join('|'); if (dMemo.k === k) return dMemo.cs; const cs = []; P.bands.forEach((b, i) => { if (!b.used || b.byp) return; cs.push(TSRQ.designBand(engineBand(i), hasGain(b.type) ? b.gain * P.scale / 100 : 0, fs)); }); dMemo = { k, cs }; return cs; };   /* progetti riusati finche lo stato non cambia */
+  const curveDb = f => { const fs = fsNow(), cs = designsNow(); let d = 0; for (const c of cs) d += 10 * Math.log10(Math.max(TSRQ.digMag2(c, f, fs), 1e-12)); return d; };
   const nearNode = p => P.bands.some((b, i) => { if (!b.used) return false; const n = graph.nodePos(i); return Math.hypot(n.x - p.x, n.y - p.y) < 16; });
   const kbBand = p => window.__kbOn && p.y > PLy + PLh - 22 - 2;
   gw.addEventListener('pointermove', e => { sug = null; if (e.buttons || ov.classList.contains('draw')) { gw.style.cursor = ''; return; } const p = loc(e);

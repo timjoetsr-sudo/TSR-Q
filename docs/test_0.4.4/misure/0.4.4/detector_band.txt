@@ -1,0 +1,2 @@
+Bell dinamica 200 Hz, tono  5000 Hz -10 dBFS: riduzione dinamica -1.52 dB, livello letto dal detector -38.08 dB
+Bell dinamica 200 Hz, tono   200 Hz -10 dBFS: riduzione dinamica -6.00 dB, livello letto dal detector -9.98 dB

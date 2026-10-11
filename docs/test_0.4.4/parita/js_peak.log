@@ -1,0 +1,8 @@
+PASS KICK Peak 60 Hz: JS = C++, differenza max -300 dBFS
+PASS BASS Peak 45 Hz shelf: JS = C++, differenza max -169 dBFS
+PASS VOCAL Peak 6,5 kHz: JS = C++, differenza max -300 dBFS
+PASS MELODY Peak Mid 500 Hz: JS = C++, differenza max -175 dBFS
+PASS KICK RMS veloce 60 Hz: JS = C++, differenza max -300 dBFS
+PASS VOCAL Peak + RMS + espansione: JS = C++, differenza max -193 dBFS
+RISULTATO parita dinamica Peak/RMS: 6 PASS, 0 FAIL
+js_peak exit 0

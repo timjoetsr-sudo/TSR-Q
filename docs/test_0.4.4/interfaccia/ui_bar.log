@@ -1,0 +1,10 @@
+PASS barra di trasporto sotto il plugin senza sovrapposizione (plugin finisce a 686px, barra inizia a 735px); pulsante '▶ PLAY'; clip gia decodificata: False
+PASS clic su PLAY: suona ESO - SAFE.mp3 (AudioWorklet), waveform aperta (wave), tempo 0:02 / 2:28, pulsante '■ STOP', picco out 0.11
+PASS contatore del tempo avanza: 0:02 / 2:28 -> 0:04 / 2:28
+PASS clic su STOP: fermo, pulsante '▶ PLAY'
+PASS PLAY di nuovo: riparte
+PASS WAVEFORM: chiude il pannello
+PASS WAVEFORM: riapre il pannello
+PASS nessun errore JavaScript (0): 
+RISULTATO barra: 8 PASS, 0 FAIL
+exit 0

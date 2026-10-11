@@ -1,0 +1,4 @@
+UI 0.4.3 + motore 0.4.3 (senza memo)         99.47 ms per movimento del mouse
+UI senza memo + motore 0.4.4 (ipotetico)     397.20 ms per movimento del mouse
+UI 0.4.4 (memo) + motore 0.4.4               2.00 ms per movimento del mouse
+stesso risultato memo/no-memo (0.4.4): true

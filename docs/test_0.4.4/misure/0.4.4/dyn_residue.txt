@@ -1,0 +1,10 @@
+statica                         : energia sopra 6 kHz -137.9 dB
+   massimo a t = 0.6520 s (fase nel ciclo on/off da 0,5 s: 0.1520 s)
+dinamica sempre accesa, soglia mobile: energia sopra 6 kHz -124.6 dB
+   massimo a t = 0.2640 s (fase nel ciclo on/off da 0,5 s: 0.2640 s)
+dinamica on/off ogni 0,25 s     : energia sopra 6 kHz -124.3 dB
+   massimo a t = 0.2520 s (fase nel ciclo on/off da 0,5 s: 0.2520 s)
+dinamica RMS, soglia fissa -20   : energia sopra 6 kHz -128.7 dB
+   massimo a t = 2.2613 s (fase nel ciclo on/off da 0,5 s: 0.2613 s)
+dinamica Peak, soglia fissa -20  : energia sopra 6 kHz -121.2 dB
+   massimo a t = 2.0347 s (fase nel ciclo on/off da 0,5 s: 0.0347 s)

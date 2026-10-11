@@ -1,0 +1,1 @@
+[{"input":"NaN al campione 48000","bad_samples":144000,"last_bad":191999,"recovered":false},{"input":"+Inf al campione 48000","bad_samples":144000,"last_bad":191999,"recovered":false},{"input":"1e30 al campione 48000","bad_samples":24535,"last_bad":72640,"recovered":true}]

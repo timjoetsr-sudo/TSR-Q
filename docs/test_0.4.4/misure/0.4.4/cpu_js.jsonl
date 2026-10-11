@@ -1,0 +1,10 @@
+{"scen": "1 Bell", "fs": 48000, "block": 128, "core_pct": 0.213, "runs": [0.3167, 0.3288, 0.213, 0.2787, 0.2511, 0.3038, 0.3058], "method": "minimo di 7 processi, ciascuno mediana di 5 x 10 s"}
+{"scen": "8 Bell", "fs": 48000, "block": 128, "core_pct": 0.4031, "runs": [0.4321, 0.4585, 0.4031, 0.4894, 0.4076, 0.5184, 0.4074], "method": "minimo di 7 processi, ciascuno mediana di 5 x 10 s"}
+{"scen": "32 statiche", "fs": 48000, "block": 128, "core_pct": 1.1996, "runs": [1.1996, 1.3776, 1.3459, 1.285, 1.3981, 1.3759, 1.2182], "method": "minimo di 7 processi, ciascuno mediana di 5 x 10 s"}
+{"scen": "32 Mid/Side", "fs": 48000, "block": 128, "core_pct": 0.6755, "runs": [0.6953, 0.8327, 0.7645, 0.6755, 0.8923, 0.8861, 0.8571], "method": "minimo di 7 processi, ciascuno mediana di 5 x 10 s"}
+{"scen": "tagli 96 dB/oct", "fs": 48000, "block": 128, "core_pct": 1.1391, "runs": [1.3341, 1.3848, 1.1391, 1.4052, 1.8038, 1.1819, 1.3751], "method": "minimo di 7 processi, ciascuno mediana di 5 x 10 s"}
+{"scen": "32 bande, 16 dinamiche (range 1.5)", "fs": 48000, "block": 128, "core_pct": 2.4372, "runs": [2.6799, 2.5305, 2.8347, 2.4935, 2.4421, 2.4372, 3.3638], "method": "minimo di 7 processi, ciascuno mediana di 5 x 10 s"}
+{"scen": "4 dinamiche in movimento (range 12, att 1 ms)", "fs": 48000, "block": 128, "core_pct": 0.6468, "runs": [0.6829, 0.7411, 0.7463, 0.957, 0.652, 0.7967, 0.6468], "method": "minimo di 7 processi, ciascuno mediana di 5 x 10 s"}
+{"scen": "16 dinamiche in movimento (range 12, att 1 ms)", "fs": 48000, "block": 128, "core_pct": 2.0428, "runs": [2.0428, 2.1547, 3.0087, 2.0905, 2.286, 2.6609, 2.1236], "method": "minimo di 7 processi, ciascuno mediana di 5 x 10 s"}
+{"scen": "Character Subtle", "fs": 48000, "block": 128, "core_pct": 3.2555, "runs": [3.9849, 4.0215, 3.442, 3.4379, 5.023, 3.2555, 3.3237], "method": "minimo di 7 processi, ciascuno mediana di 5 x 10 s"}
+{"scen": "Character Warm", "fs": 48000, "block": 128, "core_pct": 4.2475, "runs": [4.7829, 4.9613, 4.2475, 4.4003, 4.2869, 4.7903, 4.6583], "method": "minimo di 7 processi, ciascuno mediana di 5 x 10 s"}

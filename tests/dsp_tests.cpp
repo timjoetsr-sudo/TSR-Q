@@ -218,6 +218,123 @@ int main() {
       std::printf ("   pavimento (parametri fermi) %.1f dB\n", flo);
       ok (worst < -90, "nessun click: energia sopra 6 kHz al massimo %.1f dB rispetto al segnale in tutti gli scenari (< -90 dB)", worst); }
 
+    // ======================= 0.4.4: difetti trovati nell'analisi della 0.4.3 (ogni test fallisce sul motore 0.4.3 e passa sul nuovo) =======================
+    auto dmag = [] (const BandCoefs& c, double f, double fs) {   // modulo digitale in long double, indipendente dal motore
+        const std::complex<long double> z = std::polar ((long double) 1, (long double) (-2 * kPi * f / fs)), z2 = z * z; long double m = 1;
+        for (int k = 0; k < c.n; ++k) { const auto& q = c.c[k]; m *= std::norm (((long double) q.b0 + (long double) q.b1 * z + (long double) q.b2 * z2) / ((long double) 1 + (long double) q.a1 * z + (long double) q.a2 * z2)); }
+        return (double) m; };
+
+    std::printf ("== 14. NaN / Inf IN INGRESSO: il motore si riprende subito (0.4.3: un solo NaN rendeva l'uscita NaN per sempre) ==\n");
+    { const double fs = 48000; const int n = 48000 * 3;
+      auto run = [&] (bool bad) { std::vector<float> L ((size_t) n), R ((size_t) n);
+          for (int i = 0; i < n; ++i) { const double t = i / fs; L[(size_t) i] = (float) (0.3 * std::sin (2 * kPi * 220 * t) + 0.1 * std::sin (2 * kPi * 3100 * t)); R[(size_t) i] = (float) (0.25 * std::sin (2 * kPi * 330 * t)); }
+          const float v[4] = { bad ? std::nanf ("") : 0.f, bad ? INFINITY : 0.f, bad ? -INFINITY : 0.f, bad ? std::nanf ("") : 0.f }; L[48000] = v[0]; R[60000] = v[1]; L[72000] = v[2]; R[72001] = v[3];
+          Engine e; e.prepare (fs, 512); Engine::Global g; g.character = 2; e.setGlobal (g);
+          BandParams d = band (Bell, 220, 3, 1); d.dyn = true; d.thr = -30; d.range = -6; e.setBand (0, d); e.setBand (1, band (LowCut, 40, 0, .71, 24)); e.setBand (2, band (HighShelf, 8000, 2, .71));
+          for (int i0 = 0; i0 < n; i0 += 512) e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, std::min (512, n - i0));
+          std::vector<float> o (L); o.insert (o.end(), R.begin(), R.end()); return o; };
+      const auto a = run (true), b = run (false); int nonfin = 0; double md = 0;
+      for (size_t i = 0; i < a.size(); ++i) { if (! std::isfinite (a[i])) ++nonfin; else md = std::max (md, (double) std::abs (a[i] - b[i])); }
+      ok (nonfin == 0, "NaN, +Inf, -Inf in 4 punti (banda dinamica, Low Cut, shelf, Character Warm): campioni d'uscita non finiti = %.0f", nonfin);
+      ok (nonfin == 0 && md == 0, "uscita identica al bit a quella con 0 al posto dei valori non validi (scarto %.1e)", md); }
+
+    std::printf ("== 15. DETECTOR CALIBRATO: sinusoide a -20 dBFS RMS letta -20 dB in RMS e in Peak (picco - 3,01 dB) (0.4.3: RMS +2,9 dB, Peak +6 dB) ==\n");
+    { double wr = 0, wp = 0;
+      for (double fs : { 44100.0, 48000.0, 96000.0 }) for (double f : { 100.0, 1000.0, 5000.0 }) for (int det : { (int) DetRMS, (int) DetPeak }) {
+          const int n = (int) (fs * 2); std::vector<float> L ((size_t) n), R ((size_t) n); const double amp = 0.1 * std::sqrt (2.0);
+          for (int i = 0; i < n; ++i) L[(size_t) i] = R[(size_t) i] = (float) (amp * std::sin (2 * kPi * f * i / fs));
+          Engine e; e.prepare (fs, 512); Engine::Global g; e.setGlobal (g); BandParams b = band (Bell, f, 0, 1); b.dyn = true; b.thr = -60; b.range = -1.5; b.att = 5; b.rel = 80; b.det = det; e.setBand (0, b);
+          double mn = 1e9, mx = -1e9; for (int i0 = 0; i0 < n; i0 += 512) { e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, std::min (512, n - i0)); if (i0 > n / 2) { const double v = e.meterLevel[0].load(); mn = std::min (mn, v); mx = std::max (mx, v); } }
+          const double err = std::max (std::abs (mn + 20), std::abs (mx + 20)); if (det == DetRMS) wr = std::max (wr, err); else wp = std::max (wp, err); }
+      ok (wr < 0.1, "RMS: scarto massimo dal livello vero %.3f dB (44,1/48/96 kHz; 100 Hz, 1 kHz, 5 kHz)", wr);
+      ok (wp < 0.15, "Peak: scarto massimo dal livello vero %.3f dB", wp); }
+
+    std::printf ("== 16. DETECTOR DEL BELL LIMITATO ALLA BANDA (0.4.3: era un passa-alto: un tono a 5 kHz comprimeva un Bell a 200 Hz di tutto il RANGE) ==\n");
+    { auto red = [] (double ft) { const double fs = 48000; const int n = (int) fs * 2; std::vector<float> L ((size_t) n), R ((size_t) n);
+          for (int i = 0; i < n; ++i) L[(size_t) i] = R[(size_t) i] = (float) (0.316 * std::sqrt (2.0) * std::sin (2 * kPi * ft * i / fs));
+          Engine e; e.prepare (fs, 512); Engine::Global g; e.setGlobal (g); BandParams b = band (Bell, 200, 0, 1); b.dyn = true; b.thr = -40; b.knee = 6; b.range = -6; e.setBand (0, b);
+          for (int i0 = 0; i0 < n; i0 += 512) e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, std::min (512, n - i0));
+          return (double) e.meterDelta[0].load(); };
+      const double in = red (200), o5 = red (5000), o10 = red (10000);
+      ok (in < -5.9, "tono a 200 Hz a -10 dBFS (in banda): riduzione %.2f dB (atteso tutto il RANGE, -6)", in);
+      ok (o5 > -2.0 && o10 > -0.5, "tono a 5 kHz a -10 dBFS (fuori banda): riduzione %.2f dB; a 10 kHz %.2f dB (detector passa-banda 2o ordine: -28 dB a 5 kHz)", o5, o10); }
+
+    std::printf ("== 17. CHARACTER OLTRE 0 dBFS: curva monotona (0.4.3: Warm ripiegava sotto -1,06 di ingresso, Subtle oltre -2,2/+2,5) ==\n");
+    { double worst = 0; char wtxt[160] = "";
+      // curva monotona: nel semiperiodo positivo l'uscita al picco d'ingresso non e piu bassa di quella dove l'ingresso, scendendo, ripassa per il 90 %
+      // (simmetrico nel semiperiodo negativo). Il punto al 90 % e preso DOPO il picco: l'abbassamento del filtro anti-DC (5 Hz) va a favore, non contro.
+      for (int chm : { 1, 2 }) for (double amp : { 1.5, 2.5, 4.0, 8.0 }) {
+          const double fs = 48000; const int n = 48000, P = 480, dly = 7; std::vector<float> L ((size_t) n), R ((size_t) n);
+          for (int i = 0; i < n; ++i) L[(size_t) i] = R[(size_t) i] = (float) (amp * std::sin (2 * kPi * 100 * i / fs));
+          Engine e; e.prepare (fs, 512); Engine::Global g; g.character = chm; e.setGlobal (g); for (int i0 = 0; i0 < n; i0 += 512) e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, std::min (512, n - i0));
+          auto at = [&] (int i) { double m = 0; for (int k = -2; k <= 2; ++k) m += L[(size_t) (i + dly + k)]; return m / 5; };
+          const int a90 = (int) std::lround (P * (0.5 - std::asin (0.9) / kPi) / 2 + P / 4.0) - P / 4;   // campioni dal picco al 90 % in discesa
+          double span = 0; for (int i = n / 2; i < n; ++i) span = std::max (span, (double) std::abs (L[(size_t) i]));
+          for (int c0 = n / 2; c0 + P + 64 <= n; c0 += P) { const int pp = c0 + P / 4, pn = c0 + 3 * P / 4;   // picco positivo e negativo dell'ingresso (fase 0 a c0)
+              const double vpos = at (pp + a90) - at (pp), vneg = at (pn) - at (pn + a90), v = std::max (vpos, vneg) / span;
+              if (v > worst) { worst = v; std::snprintf (wtxt, sizeof wtxt, "%s ingresso x%.1f", chm == 1 ? "Subtle" : "Warm", amp); } } }
+      ok (worst < 0.005, "uscita al picco d'ingresso mai 'dentro' quella al 90 %% (Subtle e Warm, 100 Hz, da +3,5 a +18 dBFS): violazione peggiore %.2f%% del picco d'uscita", worst * 100);
+      if (worst >= 0.005) std::printf ("   caso peggiore: %s\n", wtxt); }
+
+    std::printf ("== 18. PRECISIONE VICINO A NYQUIST (44,1 e 48 kHz, f0 10-20 kHz, scarto max 20 Hz-20 kHz, pavimento -30 dB) ==\n");
+    { auto err = [&] (const BandParams& b, double fs) { Grid g; g.init (fs); SecSet set; sectionsFor (b, hasGain (b.type) ? b.gain : 0, set); BandCoefs c; designBand (b, hasGain (b.type) ? b.gain : 0, g, c);
+          double m = 0; for (int i = 0; i < 1200; ++i) { const double f = 20 * std::pow (1000.0, i / 1199.0); if (f > 20000 || f > fs / 2 * 0.999) break;
+              const double A = std::max (db (anaMag2 (set, f)), -30.0), D = std::max (db (dmag (c, f, fs)), -30.0); m = std::max (m, std::abs (A - D)); } return m; };
+      double w[4] = {}; const char* nm[4] = { "Bell", "Notch", "High Cut", "High Shelf" };
+      for (double fs : { 44100.0, 48000.0 }) for (double f : { 10000.0, 12000.0, 14000.0, 16000.0, 18000.0, 19000.0, 20000.0 }) {
+          for (double q : { 0.5, 1.0, 2.0, 4.0, 8.0, 20.0 }) { for (double gd : { -18.0, -9.0, 9.0, 18.0 }) { w[0] = std::max (w[0], err (band (Bell, f, gd, q), fs)); w[3] = std::max (w[3], err (band (HighShelf, f, gd, q), fs)); }
+              w[1] = std::max (w[1], err (band (Notch, f, 0, q), fs)); }
+          for (int sl : { 12, 24, 48 }) w[2] = std::max (w[2], err (band (HighCut, f, 0, .71, sl), fs)); }
+      for (int t = 0; t < 3; ++t) ok (w[t] < 0.5, t == 0 ? "Bell (Q 0,5-20, +/-9 e 18 dB): scarto max %.3f dB (0.4.3: 4,2 dB)" : t == 1 ? "Notch (Q 0,5-20): scarto max %.3f dB (0.4.3: 7,1 dB)" : "High Cut 12/24/48 dB/oct: scarto max %.3f dB (0.4.3: 1,5 dB)", w[t]);
+      ok (w[3] < 3.0, "High Shelf (Q 0,5-20, +/-9 e 18 dB): scarto max %.3f dB (0.4.3: 27,6 dB; resta sopra 1 dB solo con Q 20 e taglio)", w[3]);
+      const double hs = err (band (HighShelf, 16000, 18, 20), 44100);
+      ok (hs < 0.5, "High Shelf 16 kHz +18 dB Q 20 a 44,1 kHz: scarto %.3f dB (0.4.3: +19 dB in piu a 20 kHz, poli analogici oltre Nyquist)", hs); }
+
+    std::printf ("== 19. INVARIANZA AL BLOCCO con dinamica RMS e Peak, Mid/Side, Character e solo: blocchi 1/7/64/333/4096/casuali = blocchi da 512, al bit ==\n");
+    { const double fs = 48000; const int n = 48000 * 4;
+      std::vector<float> L0 ((size_t) n), R0 ((size_t) n); std::mt19937 rng (3); std::uniform_real_distribution<double> U (-1, 1);
+      for (int i = 0; i < n; ++i) { const double t = i / fs, env = (i / 6000) % 3 == 0 ? 1.0 : 0.2; L0[(size_t) i] = (float) (env * (0.3 * std::sin (2 * kPi * 220 * t) + 0.05 * U (rng))); R0[(size_t) i] = (float) (env * (0.2 * std::sin (2 * kPi * 3300 * t) + 0.05 * U (rng))); }
+      for (int solo : { -1, 1 }) {
+          auto rend = [&] (int bl) { std::vector<float> L (L0), R (R0); Engine e; e.prepare (fs, 4096); Engine::Global g; g.character = 1; g.solo = solo; std::mt19937 r2 (11);
+              BandParams d = band (Bell, 220, 0, 1.2); d.dyn = true; d.thr = -30; d.range = -6; d.att = 1; d.rel = 40;
+              BandParams p = band (HighShelf, 3000, 2, .71); p.dyn = true; p.thr = -35; p.range = -4; p.det = DetPeak;
+              const BandParams bs[6] = { band (LowCut, 35, 0, .71, 24), d, p, band (Bell, 1000, -3, 2, 12, Mid), band (Bell, 6000, 2, 1, 12, Side), band (BandPass, 2000, 0, 1, 48) };
+              for (int i0 = 0; i0 < n; ) { const int m = std::min (bl > 0 ? bl : 1 + (int) (r2() % 1500), n - i0); e.setGlobal (g); for (int k = 0; k < 5; ++k) e.setBand (k, bs[k]); e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, m); i0 += m; }
+              L.insert (L.end(), R.begin(), R.end()); return L; };
+          const auto ref = rend (512); double m = 0; for (int bl : { 1, 7, 64, 333, 4096, -1 }) { const auto o = rend (bl); for (size_t i = 0; i < o.size(); ++i) m = std::max (m, (double) std::abs (o[i] - ref[i])); }
+          ok (m == 0, solo < 0 ? "senza solo: scarto massimo %.1e (atteso 0: identico al bit)" : "con solo sulla banda dinamica: scarto massimo %.1e (atteso 0)", m); } }
+
+    std::printf ("== 20. BANDA SPOSTATA E FERMATA: dopo 50 ms il filtro raggiunge la precisione piena, senza click ==\n");
+    { const double fs = 44100; const int n = (int) fs * 2;
+      // a) precisione: Bell 15 kHz Q 4 +9 dB trascinata da 6 kHz e fermata; guadagno misurato con due toni (15 e 19 kHz) dopo l'assestamento
+      { std::vector<float> L ((size_t) n), R ((size_t) n); const double fa = 15000, fb = 19000;
+        for (int i = 0; i < n; ++i) L[(size_t) i] = R[(size_t) i] = (float) (0.05 * std::sin (2 * kPi * fa * i / fs) + 0.05 * std::sin (2 * kPi * fb * i / fs));
+        std::vector<float> X (L); Engine e; e.prepare (fs, 4096); Engine::Global g; e.setGlobal (g);
+        for (int i0 = 0; i0 < n; i0 += 256) { const double u = std::min (1.0, i0 / (0.5 * fs)); e.setBand (0, band (Bell, 6000 * std::pow (2.5, u), 9, 4)); e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, std::min (256, n - i0)); }
+        auto amp = [&] (const std::vector<float>& x, double f) { double c = 0, s2 = 0; const int a = n - 22050; for (int i = a; i < n; ++i) { c += x[(size_t) i] * std::cos (2 * kPi * f * i / fs); s2 += x[(size_t) i] * std::sin (2 * kPi * f * i / fs); } return std::sqrt (c * c + s2 * s2); };
+        SecSet set; sectionsFor (band (Bell, 15000, 9, 4), 9, set); double w = 0;
+        for (double f : { fa, fb }) w = std::max (w, std::abs (20 * std::log10 (amp (L, f) / amp (X, f)) - db (anaMag2 (set, f))));
+        ok (w < 0.3, "guadagno misurato a 15 e 19 kHz dopo l'assestamento: scarto dall'analogico %.3f dB", w); }
+      // b) click: segnale senza contenuto sopra 1,5 kHz, Bell a 4-9 kHz Q 8 trascinata su e giu e fermata 100 ms in cima e in fondo (ogni fermata fa scattare il progetto preciso)
+      { std::vector<float> L ((size_t) n), R ((size_t) n); for (int i = 0; i < n; ++i) { const double t = i / fs; L[(size_t) i] = R[(size_t) i] = (float) (0.4 * std::sin (2 * kPi * 110 * t) + 0.2 * std::sin (2 * kPi * 440 * t) + 0.1 * std::sin (2 * kPi * 1320 * t)); }
+        double sig = 0; for (int i = 0; i < n; ++i) sig += L[(size_t) i] * (double) L[(size_t) i]; sig /= n;
+        Engine e; e.prepare (fs, 4096); Engine::Global g; e.setGlobal (g);
+        for (int i0 = 0; i0 < n; i0 += 256) { const double ph = std::fmod (i0 / (0.4 * fs), 1.0); const double u = ph < 0.25 ? ph / 0.25 : ph < 0.5 ? 1.0 : ph < 0.75 ? 1.0 - (ph - 0.5) / 0.25 : 0.0; e.setBand (0, band (Bell, 4000 * std::pow (2.25, u), 9, 8)); e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, std::min (256, n - i0)); }
+        Engine hp; hp.prepare (fs, 4096); Engine::Global gh; hp.setGlobal (gh); hp.setBand (0, band (LowCut, 6000, 0, .71, 96)); hp.process (L.data(), R.data(), nullptr, nullptr, n);
+        double pk = 0; for (int i0 = 4410; i0 + 64 <= n; i0 += 64) { double s2 = 0; for (int i = i0; i < i0 + 64; ++i) s2 += L[(size_t) i] * (double) L[(size_t) i]; pk = std::max (pk, s2 / 64); }
+        ok (10 * std::log10 (pk / sig + 1e-30) < -90, "energia sopra 6 kHz al massimo %.1f dB rispetto al segnale (< -90 dB)", 10 * std::log10 (pk / sig + 1e-30)); } }
+
+    std::printf ("== 21. DINAMICA ESATTA: guadagno a regime = curva di soglia/knee/range applicata al livello VERO (162 casi; 0.4.3: fino a 4,4 dB di scarto) ==\n");
+    { const double fs = 48000; double worst = 0; int cases = 0;
+      for (double thr : { -40.0, -24.0, -12.0 }) for (double knee : { 0.0, 6.0, 12.0 }) for (double range : { -1.5, -6.0, 6.0 }) for (double lvl : { -30.0, -20.0, -10.0 }) for (int det : { (int) DetRMS, (int) DetPeak }) {
+          const int n = (int) fs * 2; std::vector<float> L ((size_t) n), R ((size_t) n); const double amp = std::pow (10.0, lvl / 20) * std::sqrt (2.0);
+          for (int i = 0; i < n; ++i) L[(size_t) i] = R[(size_t) i] = (float) (amp * std::sin (2 * kPi * 1000 * i / fs));
+          Engine e; e.prepare (fs, 4096); Engine::Global gl; e.setGlobal (gl); BandParams b = band (Bell, 1000, 0, 1); b.dyn = true; b.thr = thr; b.knee = knee; b.range = range; b.att = 5; b.rel = 80; b.det = det; e.setBand (0, b);
+          e.process (L.data(), R.data(), nullptr, nullptr, n);
+          double s2 = 0; for (int i = n - 9600; i < n; ++i) s2 += (double) L[(size_t) i] * L[(size_t) i]; const double outDb = 10 * std::log10 (s2 / 9600) - lvl;
+          worst = std::max (worst, std::abs (outDb - dynDelta (lvl, b))); ++cases; }
+      ok (worst < 0.05, "scarto massimo tra guadagno misurato e atteso: %.4f dB su 162 casi (RMS e Peak)", worst); }
+
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;
 }

@@ -1,7 +1,46 @@
-# TSR Q — Precision Dynamic EQ · TSR Audio · v0.4.3
+# TSR Q — Precision Dynamic EQ · TSR Audio · v0.4.4
 
 Plugin JUCE 8 (C++17). Formati: **AU + VST3 + Standalone su macOS** (universale Apple Silicon + Intel, macOS 11+), VST3 + Standalone su Linux/Windows.
 Produttore: **TSR Audio** (codice produttore `Tsra`, codice plugin `Tsrq`, bundle `com.tsraudio.tsrq`).
+
+## Novità 0.4.4 (analisi totale del DSP, test estremi, ottimizzazione)
+Ogni difetto qui sotto è stato misurato sulla 0.4.3 congelata e ha un test C++ nuovo (`tests/dsp_tests.cpp`, sezioni 14–21) che **fallisce sulla 0.4.3 (13 FAIL) e passa sulla 0.4.4**.
+
+**Attenzione, cambia il suono delle sessioni con dinamica:** la 0.4.3 leggeva il livello **+2,9 dB (RMS) e +6 dB (Peak)** più alto del vero, quindi interveniva prima e di più di quanto impostato.
+La 0.4.4 legge il valore vero: a parità di impostazioni interviene meno. Per riavere l'intervento di prima: soglia −3 dB (RMS) o −6 dB (Peak).
+
+Correttezza
+- **NaN/Inf in ingresso**: nella 0.4.3 un solo campione NaN rendeva l'uscita NaN per sempre. Ora diventa 0: uscita identica al bit a quella con 0 al suo posto.
+- **Detector calibrato**: RMS vero (finestra di 8 periodi della banda, 10–80 ms) e Peak = picco − 3,01 dB tenuto per un periodo della banda. Sinusoide a −20 dBFS, 100 Hz–5 kHz, 44,1–96 kHz: scarto ≤ 0,03 dB (RMS) e ≤ 0,01 dB (Peak); 0.4.3 +2,98 e +5,99 dB.
+  Guadagno dinamico a regime = curva soglia/knee/range sul livello vero: scarto massimo 0,018 dB su 162 casi (0.4.3: 4,44 dB).
+- **Detector del Bell limitato alla banda**: la 0.4.3 eseguiva solo la prima di due sezioni, cioè un passa-alto: un tono a 5 kHz comprimeva un Bell dinamico a 200 Hz di tutto il RANGE (−6 dB). Ora passa-banda del 2° ordine con 0 dB al centro: −1,5 dB (resta un fianco di 6 dB/oct, −28 dB a 4,6 ottave).
+- **Character oltre 0 dBFS**: Warm ripiegava sotto −1,06 (i picchi negativi tornavano verso zero), Subtle oltre −2,2/+2,5. Curve identiche fino a |x| = 1, poi monotone.
+  Nota: con Character attivo l'uscita è 0,6 campioni in anticipo sulla 0.4.3 (nuovi filtri dell'oversampling): residuo grezzo −19 dB, −49,6 dB dopo aver compensato il ritardo.
+- **Precisione dei filtri** (errore massimo vs prototipo analogico, 20 Hz–20 kHz): 17.880 progetti, casi > 1 dB **83 → 14**, > 0,5 dB 266 → 22, massimo 8,18 → 2,94 dB, nessun caso peggiorato di oltre 0,05 dB.
+  Griglia estesa (19.200 progetti, shelf con Q fino a 40, ±30 dB): > 1 dB **324 → 66**, massimo **31,2 → 2,94 dB**, nessun caso peggiorato.
+  Casi vicino a Nyquist (44,1/48 kHz, 10–20 kHz): Bell 4,2 → 0,19 dB, Notch 7,3 → 0,40, High Cut 1,5 → 0,22; High Shelf 16 kHz +18 dB Q 20 a 44,1 kHz: **+19 dB in più a 20 kHz → 0,06 dB**.
+  Come: modulo valutato in forma φ (niente cancellazione numerica), fit minimax nella banda udibile con pesi di Lawson, partenza anche da poli nulli, numeratore proiettato sul dominio valido,
+  punti attorno a poli e zeri, scelta finale su griglia fitta, cascate scelte sull'errore del totale. Reciprocità ±g: 2,58 → 0,14 dB.
+
+Prestazioni (C++, % di un core, 48 kHz, blocchi 512, mediana di 5): **30 configurazioni su 30 più veloci** (da ×1,13 a ×6,2)
+
+| Scenario | 0.4.3 | 0.4.4 | |
+|---|---|---|---|
+| 32 bande statiche | 1,16 % | 0,69 % | ×1,69 |
+| tagli 96 dB/oct | 1,46 % | 0,66 % | ×2,20 |
+| 16 bande dinamiche in movimento | 7,69 % | 1,25 % | ×6,15 |
+| Character Warm | 2,31 % | 1,78 % | ×1,29 |
+| 32 bande automatizzate a ogni blocco da 128 | 22,0 % | 3,9 % | ×5,6 |
+
+- Progetto **veloce** mentre un parametro si muove e **preciso** 50 ms dopo l'ultimo cambio (al massimo 2 bande per blocco); celle della dinamica in tabella (97 livelli) progettate solo quando servono;
+  filtro del detector solo per le bande dinamiche; bande Mid/Side consecutive con una sola conversione; oversampling 8x con 46 passa-tutto per direzione invece di 84.
+- Caso peggiore per blocco da 64 campioni (1333 µs): cambio di preset con 32 bande 951 → 786 µs; 32 bande dinamiche su raffiche di rumore 333 → 145 µs; 32 bande automatizzate 718 → 184 µs.
+- Costo di progetto preciso più alto (Bell circa 4,7 → 7,6 µs, Band Pass 41,6 → 69 µs medi): per questo il preciso arriva solo a parametri fermi.
+- Motore JS (prototipo e pagina di ascolto): dinamica in movimento ×5,9–6,0, Mid/Side ×2,0, Character ×1,2–1,3; bande statiche uguali entro il rumore di misura.
+- Interfaccia: il "fantasma" del clic-per-creare riprogettava tutte le bande per ognuno dei 221 punti a ogni movimento del mouse: con 12 bande **99 ms → 2 ms**.
+
+Verifiche sulla 0.4.4: test C++ 53/53, stem 113/113, self-test del plugin 23/23, plugin vero sulla clip 8/8, confronto esterno 15/15, pluginval livello 10 SUCCESS,
+interfaccia 170/170 (Playwright), parità JS = C++ 114/114 (prototipo = plugin). Log e script in `docs/test_0.4.4/`.
 
 ## Novità 0.4.3 (test sulla clip "ESO – SAFE": click eliminati)
 - **Dissolvenza di 15 ms** (coseno rialzato) per tutto ciò che non si può interpolare: banda attivata/disattivata o bypass, cambio di tipo/pendenza/collocazione, dinamica on/off, **solo acceso/spento**, cambio di Character.

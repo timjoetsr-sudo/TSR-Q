@@ -1,0 +1,3 @@
+character 0 (Clean): 0.104 % di un core (mediana di 7)
+character 1 (Subtle): 0.953 % di un core (mediana di 7)
+character 2 (Warm): 1.661 % di un core (mediana di 7)
