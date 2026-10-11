@@ -1,0 +1,238 @@
+<title>Confronto TSR Q 0.4.4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* layout: una colonna da banco di misura; ogni sezione = tabella prima/dopo + grafico disegnato dai numeri misurati (0.4.3 arancio, 0.4.4 blu, analogico grigio tratteggiato) */
+:root {
+  --bg: #f4f5f6; --panel: #ffffff; --fg: #15181c; --muted: #59626c; --line: #d6dbe0; --soft: #eceff2;
+  --old: #c2492a; --new: #1565b0; --ref: #7f8892; --accent: #a87d00; --good: #23744a; --bad: #b3261e;
+  --f-display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0c0e11; --panel: #14171b; --fg: #e8ecf0; --muted: #9ba4ae; --line: #2a3038; --soft: #1b1f24;
+  --old: #ff8a5e; --new: #5cc6f7; --ref: #7c848d; --accent: #ffd23f; --good: #62d394; --bad: #ff6b6b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0c0e11; --panel: #14171b; --fg: #e8ecf0; --muted: #9ba4ae; --line: #2a3038; --soft: #1b1f24;
+  --old: #ff8a5e; --new: #5cc6f7; --ref: #7c848d; --accent: #ffd23f; --good: #62d394; --bad: #ff6b6b; color-scheme: dark }
+html { -webkit-text-size-adjust: 100% }
+body { background: var(--bg); color: var(--fg); font: 16px/1.55 var(--f-body); padding-inline: 16px; padding-block: 0 48px }
+.wrap { max-width: 1060px; margin: 0 auto }
+header.top { padding-block: 40px 20px; border-bottom: 2px solid var(--fg) }
+.eyebrow { font: 600 13px/1.2 var(--f-display); letter-spacing: .14em; text-transform: uppercase; color: var(--muted) }
+h1 { font: 700 clamp(34px, 6vw, 58px)/1.0 var(--f-display); letter-spacing: -.01em; margin: 10px 0 14px; text-wrap: balance }
+h1 .v { color: var(--accent) }
+h2 { font: 700 26px/1.15 var(--f-display); letter-spacing: .01em; margin: 0 0 6px; text-wrap: balance }
+h3 { font: 600 18px/1.3 var(--f-display); letter-spacing: .02em; margin: 0 0 10px; text-wrap: balance }
+p { margin: 0 0 12px; max-width: 72ch }
+.lead { font-size: 17px; color: var(--fg) }
+.muted { color: var(--muted) }
+.num, td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 14px }
+section { padding-block: 34px 6px; border-bottom: 1px solid var(--line); display: grid; gap: 14px }
+section > .head { display: grid; gap: 4px }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 500 14px/1.2 var(--f-display); letter-spacing: .04em; color: var(--muted) }
+.legend i { display: inline-block; width: 22px; height: 3px; vertical-align: middle; margin-right: 6px; border-radius: 2px }
+.legend .lo i { background: var(--old) } .legend .ln i { background: var(--new) } .legend .lr i { background: repeating-linear-gradient(90deg, var(--ref) 0 5px, transparent 5px 9px) }
+.links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px }
+.links a { font: 600 15px/1 var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--bg); background: var(--fg); padding: 11px 14px; border-radius: 3px; text-decoration: none }
+.links a.sec { background: transparent; color: var(--fg); border: 1px solid var(--fg) }
+.links a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
+.truth { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--bad); padding: 16px 18px; display: grid; gap: 8px }
+.truth ul, .nv ul { margin: 0; padding-left: 20px; display: grid; gap: 7px }
+.tbl { overflow-x: auto; border: 1px solid var(--line); background: var(--panel) }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top }
+thead th { font: 600 13px/1.2 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--soft) }
+tbody th { font-weight: 500 }
+td.old, td.new { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 14px }
+td.old { color: var(--old) } td.new { color: var(--new); font-weight: 500 }
+td.how { color: var(--muted); font-size: 13px; min-width: 14ch }
+table.wrapcells td.old, table.wrapcells td.new { white-space: normal; min-width: 18ch } table.wrapcells th { min-width: 16ch }
+tr:last-child th, tr:last-child td { border-bottom: 0 }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px }
+.card { background: var(--panel); border: 1px solid var(--line); padding: 14px; min-width: 0; display: grid; gap: 8px }
+.card h4 { font: 600 15px/1.25 var(--f-display); letter-spacing: .03em; margin: 0 }
+.card .note { font-size: 13px; color: var(--muted) }
+svg { display: block; width: 100%; height: auto; overflow: visible }
+svg text { fill: var(--muted); font: 11px var(--f-mono) }
+svg .ax { stroke: var(--line); stroke-width: 1 }
+svg .lo { stroke: var(--old); fill: none; stroke-width: 1.8 } svg .ln { stroke: var(--new); fill: none; stroke-width: 1.8 } svg .lr { stroke: var(--ref); fill: none; stroke-width: 1.4; stroke-dasharray: 5 4 }
+svg .bo { fill: var(--old) } svg .bn { fill: var(--new) }
+svg .lbl { fill: var(--fg); font: 12px var(--f-body) }
+.bars { display: grid; gap: 7px }
+.brow { display: grid; grid-template-columns: minmax(84px, 30%) 1fr; gap: 10px; align-items: center }
+.bl { font-size: 13.5px; line-height: 1.2; min-width: 0 }
+.bt { display: grid; gap: 3px; min-width: 0 }
+.bb { display: flex; align-items: center; gap: 6px; min-width: 0; padding-right: 64px }
+.b { height: 9px; border-radius: 1px; flex: none } .b.o { background: var(--old) } .b.n { background: var(--new) }
+.bv { font: 12px var(--f-mono); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap }
+.bax { display: grid; grid-template-columns: minmax(84px, 30%) 1fr; gap: 10px; margin-top: 2px }
+.bat { position: relative; height: 16px; border-top: 1px solid var(--line); margin-right: 64px }
+.bat span { position: absolute; top: 2px; transform: translateX(-50%); font: 11px var(--f-mono); color: var(--muted) }
+.bat em { position: absolute; right: -64px; top: 2px; font: 11px var(--f-mono); color: var(--muted); font-style: normal }
+.bt .bb { margin-right: 0 }
+.abdry { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); padding: 10px 14px }
+.abdry span:first-child { font: 600 15px var(--f-display); letter-spacing: .04em }
+.abcase { background: var(--panel); border: 1px solid var(--line); padding: 14px; display: grid; gap: 10px; min-width: 0 }
+.players { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px }
+.players > div { display: grid; gap: 6px; min-width: 0 }
+audio { width: 100%; max-width: 100%; height: 36px }
+.tag { font: 700 13px/1 var(--f-display); letter-spacing: .1em; text-transform: uppercase; padding: 5px 7px; border-radius: 2px; justify-self: start; color: var(--bg) }
+.tag.old { background: var(--old) } .tag.new { background: var(--new) } .tag.dif { background: var(--muted) }
+table.mini { font-size: 13.5px } table.mini th { font-weight: 500; color: var(--muted); min-width: 12ch } table.mini td { white-space: nowrap } table.mini td[colspan] { white-space: normal; min-width: 24ch }
+.mini-wrap { overflow-x: auto }
+.warn { color: var(--bad) }
+.nv { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); padding: 16px 18px }
+footer { padding-block: 28px; color: var(--muted); font-size: 13.5px }
+code { font: 13px var(--f-mono); background: var(--soft); padding: 1px 4px; border-radius: 2px }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">TSR Audio · TSR Q · analisi, test estremi e ottimizzazione del DSP · 11 ottobre 2026</div>
+  <h1>TSR Q <span class="v">0.4.3 → 0.4.4</span></h1>
+  <p class="lead">Ogni numero di questa pagina viene da un test eseguito sul codice: motore C++ (quello del plugin), motore JS (quello del prototipo e dell'ascolto), plugin VST3 compilato ospitato da un host. 0.4.3 = la versione congelata prima del lavoro, 0.4.4 = quella nuova. Dove la 0.4.4 non migliora o peggiora, è scritto qui sotto.</p>
+  <div class="links">%%LISTEN%%<a class="sec" href="#ab">Ascolto dei file A/B</a><a class="sec" href="#nv">Cosa non è verificato</a></div>
+</header>
+
+<section id="verita">
+  <div class="head"><h2>Prima le verità scomode</h2></div>
+  <div class="truth">
+    <ul>
+      %%TRUTH%%
+    </ul>
+  </div>
+</section>
+
+<section id="numeri">
+  <div class="head"><h2>In numeri</h2><p class="muted">Arancio = 0.4.3, blu = 0.4.4. Colonna a destra: come è misurato.</p></div>
+  <div class="tbl"><table>
+    <thead><tr><th>Misura</th><th>0.4.3</th><th>0.4.4</th><th>Note</th></tr></thead>
+    <tbody>%%SUMMARY%%</tbody>
+  </table></div>
+</section>
+
+<section id="ab">
+  <div class="head"><h2>Ascolto A/B</h2></div>
+  %%AB%%
+</section>
+
+<section id="precisione">
+  <div class="head"><h2>Precisione</h2><p>Errore massimo tra il filtro digitale e il prototipo analogico, 20 Hz–20 kHz (dove l'analogico è sopra −30 dB), sulla griglia di 17.880 progetti (5 frequenze di campionamento, tutti i tipi tranne All Pass, che ha modulo piatto; frequenze, guadagni, Q e pendenze). Ogni barra è il caso peggiore di quel tipo. Scala logaritmica.</p>
+    <div class="legend"><span class="lo"><i></i>0.4.3</span><span class="ln"><i></i>0.4.4</span></div></div>
+  <div class="grid2"><div class="card"><h4>44,1 kHz · caso peggiore per tipo</h4><div id="pbar44"></div></div><div class="card"><h4>48 kHz · caso peggiore per tipo</h4><div id="pbar48"></div></div></div>
+  <div class="card"><h4>Griglia estesa: shelf e Bell con Q fino a 40 e guadagni fino a ±30 dB (19.200 progetti, tutte le fs)</h4><div id="pbarx"></div></div>
+  <div class="head"><h3>Risposta in frequenza vicino a Nyquist</h3><div class="legend"><span class="lr"><i></i>analogico (obiettivo)</span><span class="lo"><i></i>0.4.3</span><span class="ln"><i></i>0.4.4</span></div></div>
+  <div class="grid2" id="curves"></div>
+</section>
+
+<section id="dinamica">
+  <div class="head"><h2>Dinamica</h2><p>Sinusoide a −20 dBFS RMS al centro di una banda dinamica: quanto legge il detector (valore vero −20,00 dB). Lettura minima e massima nel secondo di regime.</p></div>
+  <div class="tbl"><table id="dettab"><thead><tr><th>Detector</th><th>Attacco</th><th>Frequenza</th><th>0.4.3</th><th>0.4.4</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section id="character">
+  <div class="head"><h2>Character oltre 0 dBFS</h2><p>Sinusoide a 100 Hz con picco 3,0 (+9,5 dBFS) attraverso il motore: ingresso in orizzontale, uscita in verticale (un periodo). Una curva che ripiega torna indietro dopo il ginocchio.</p>
+    <div class="legend"><span class="lo"><i></i>0.4.3</span><span class="ln"><i></i>0.4.4</span></div></div>
+  <div class="grid2"><div class="card"><h4>Warm</h4><div id="chw"></div></div><div class="card"><h4>Subtle</h4><div id="chs"></div></div></div>
+</section>
+
+<section id="cpu">
+  <div class="head"><h2>CPU</h2><p>Percento di un core (Xeon 2,1 GHz, Linux) per elaborare audio stereo in tempo reale, motore C++, 48 kHz, blocchi da 512, mediana di 5 ripetizioni di 20 s.</p>
+    <div class="legend"><span class="lo"><i></i>0.4.3</span><span class="ln"><i></i>0.4.4</span></div></div>
+  <div class="card"><div id="cpubar"></div></div>
+  <div class="card"><h4>Motore JS (prototipo, artefatto di ascolto), blocchi da 128 come Web Audio</h4><div id="jsbar"></div></div>
+  <div class="head"><h3>Caso peggiore per blocco</h3><p class="muted">Blocchi da 64 campioni (1333 µs a 48 kHz). Il tempo di ogni blocco è il minimo su 5 ripetizioni (stesso ingresso, stesso stato: il rumore del sistema si somma e qui si toglie). Media / 99,9° percentile / massimo in µs.</p></div>
+  <div class="tbl"><table><thead><tr><th>Scenario</th><th>0.4.3</th><th>0.4.4</th></tr></thead><tbody>%%WORST%%</tbody></table></div>
+  <div class="head"><h3>Costo di progetto di una banda</h3><p class="muted">µs medi per progetto, 48 kHz, 24 frequenze × guadagni e Q della griglia. La 0.4.3 ha un solo progetto.</p></div>
+  <div class="tbl"><table><thead><tr><th>Tipo</th><th>0.4.3</th><th>0.4.4 veloce (in movimento)</th><th>0.4.4 preciso (fermo)</th></tr></thead><tbody>%%DESIGN%%</tbody></table></div>
+</section>
+
+<section id="robustezza">
+  <div class="head"><h2>Robustezza</h2></div>
+  <div class="tbl"><table class="wrapcells"><thead><tr><th>Prova</th><th>0.4.3</th><th>0.4.4</th></tr></thead><tbody>%%ROB%%</tbody></table></div>
+</section>
+
+<section id="test">
+  <div class="head"><h2>Test eseguiti sulla 0.4.4</h2></div>
+  <div class="tbl"><table><thead><tr><th>Suite</th><th>PASS</th><th>FAIL</th></tr></thead><tbody>%%TESTS%%</tbody></table></div>
+  <p class="muted">Sulla 0.4.3 le 8 sezioni nuove del test C++ (14–21) danno 13 FAIL: ognuna misura un difetto trovato in questa analisi.</p>
+</section>
+
+<section id="nv">
+  <div class="head"><h2>Cosa non è verificato</h2></div>
+  <div class="nv"><ul>
+    <li>Ascolto reale e prova in una DAW su Mac (Logic, Ableton, Pro Tools): non eseguibili qui. Il build Mac è compilato e testato dalla CI (auval, pluginval AU/VST3, test DSP), non suonato.</li>
+    <li>Confronto diretto con FabFilter Pro-Q 4: non eseguibile (software commerciale, solo macOS/Windows). Il confronto esterno è con il prototipo analogico, il filtro EQ di JUCE e le formule RBJ.</li>
+    <li>Prestazioni su Apple Silicon e nelle WebView di macOS: misurate solo su Xeon Linux e Chromium.</li>
+    <li>Sidechain esterno: provato solo nei test C++ (il prototipo nel browser non ha sidechain).</li>
+    <li>Frequenze di campionamento oltre 192 kHz: solo stabilità e coda (384 kHz), non la precisione.</li>
+  </ul></div>
+</section>
+
+<footer>Riproducibile dal repository: <code>tests/dsp_tests.cpp</code> (sezioni 14–21 nuove), <code>docs/test_0.4.4/</code> con tutti i log e gli script di misura. Le curve e le tabelle di questa pagina sono generate dai file di risultato, senza numeri inseriti a mano.</footer>
+</div>
+
+<script type="application/json" id="data">%%DATA%%</script>
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById('data').textContent);
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, a, p) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+  const txt = (p, x, y, s, a = {}) => { const t = mk('text', Object.assign({ x, y }, a), p); t.textContent = s; return t; };
+  const fmt = v => v >= 10 ? v.toFixed(1) : v >= 1 ? v.toFixed(2) : v >= 0.01 ? v.toFixed(3) : v.toExponential(0);
+  /* barre orizzontali appaiate 0.4.3 / 0.4.4 in HTML (si adattano al telefono), scala lineare o logaritmica */
+  function bars(el, rows, { log = false, unit = '', min = 0.001, max = null } = {}) {
+    const vmax = max || Math.max(...rows.flatMap(r => [r.old, r.new]).filter(v => v != null)) * 1.08;
+    const P = v => log ? Math.max(0.4, (Math.log10(Math.max(v, min)) - Math.log10(min)) / (Math.log10(vmax) - Math.log10(min)) * 100) : Math.max(0.4, v / vmax * 100);
+    const box = document.createElement('div'); box.className = 'bars';
+    rows.forEach(r => { const row = document.createElement('div'); row.className = 'brow';
+      row.innerHTML = '<div class="bl">' + r.label + '</div><div class="bt">' + [['old', 'o'], ['new', 'n']].map(([k, c]) => r[k] == null ? '' : '<div class="bb"><div class="b ' + c + '" style="width:' + P(r[k]).toFixed(2) + '%"></div><span class="bv">' + fmt(r[k]) + (unit ? ' ' + unit : '') + '</span></div>').join('') + '</div>';
+      box.appendChild(row); });
+    const ax = document.createElement('div'); ax.className = 'bax';
+    const ticks = log ? [0.001, 0.01, 0.1, 1, 10].filter(t => t >= min && t <= vmax) : [0, vmax / 2].map(t => +t.toPrecision(2));
+    ax.innerHTML = '<div></div><div class="bat">' + ticks.map(t => '<span style="left:' + (log ? P(t) : t / vmax * 100).toFixed(2) + '%">' + t + '</span>').join('') + (unit ? '<em>' + unit + '</em>' : '') + '</div>';
+    box.appendChild(ax); el.appendChild(box);
+  }
+  const TYPES = [['Bell', 'Bell'], ['LowShelf', 'Low Shelf'], ['HighShelf', 'High Shelf'], ['TiltShelf', 'Tilt Shelf'], ['LowCut', 'Low Cut'], ['HighCut', 'High Cut'], ['Notch', 'Notch'], ['BandPass', 'Band Pass'], ['FlatTilt', 'Flat Tilt']];
+  const prow = (src, fs, list) => list.map(([k, nm]) => ({ label: nm, old: src.base[fs + '|' + k], new: src.new[fs + '|' + k] })).filter(r => r.old != null);
+  bars(document.getElementById('pbar44'), prow(D.prec, 44100, TYPES), { log: true, unit: 'dB', min: 0.001, max: 40 });
+  bars(document.getElementById('pbar48'), prow(D.prec, 48000, TYPES), { log: true, unit: 'dB', min: 0.001, max: 40 });
+  const xr = []; for (const fs of [44100, 48000, 96000]) for (const [k, nm] of [['Bell', 'Bell'], ['LowShelf', 'Low Shelf'], ['HighShelf', 'High Shelf']]) { const o = D.precx.base[fs + '|' + k], n = D.precx.new[fs + '|' + k]; if (o != null) xr.push({ label: nm + ' ' + (fs / 1000) + 'k', old: o, new: n }); }
+  bars(document.getElementById('pbarx'), xr, { log: true, unit: 'dB', min: 0.001, max: 40 });
+  /* curve */
+  const CN = { bell18k: 'Bell 18 kHz +12 dB Q 8 · 44,1 kHz', notch20k: 'Notch 20 kHz Q 2 · 44,1 kHz', hshelf16k: 'High Shelf 16 kHz +18 dB Q 20 · 44,1 kHz', hcut15k: 'High Cut 14,8 kHz 96 dB/oct · 44,1 kHz', bell10k48: 'Bell 10 kHz +12 dB Q 2 · 48 kHz' };
+  const cw = document.getElementById('curves');
+  for (const id in CN) { const b = D.curves.base[id], n = D.curves.new[id]; if (!b) continue;
+    const card = document.createElement('div'); card.className = 'card'; card.innerHTML = '<h4>' + CN[id] + '</h4>'; cw.appendChild(card);
+    const W = 420, H = 230, x0 = 38, x1 = W - 8, y0 = 10, y1 = H - 24;
+    const all = b.ana.concat(b.dig, n.dig).filter(v => v > -900); let lo = Math.max(-60, Math.floor(Math.min(...all) / 6) * 6), hi = Math.min(48, Math.ceil(Math.max(...all) / 6) * 6); if (hi - lo < 12) hi = lo + 12;
+    const X = f => x0 + Math.log(f / 1000) / Math.log(20) * (x1 - x0), Y = v => y1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (y1 - y0);
+    const s = mk('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img' }, card);
+    [1000, 2000, 5000, 10000, 20000].forEach(f => { mk('line', { x1: X(f), x2: X(f), y1: y0, y2: y1, class: 'ax' }, s); txt(s, X(f), H - 8, f >= 1000 ? f / 1000 + 'k' : f, { 'text-anchor': 'middle' }); });
+    for (let v = lo; v <= hi; v += (hi - lo > 36 ? 12 : 6)) { mk('line', { x1: x0, x2: x1, y1: Y(v), y2: Y(v), class: 'ax' }, s); txt(s, x0 - 4, Y(v) + 4, v, { 'text-anchor': 'end' }); }
+    const path = (ys, cls) => { let d = ''; b.f.forEach((f, i) => { if (ys[i] < -900 || f > b.fs / 2) return; d += (d ? 'L' : 'M') + X(f).toFixed(1) + ',' + Y(ys[i]).toFixed(1); }); mk('path', { d, class: cls }, s); };
+    path(b.ana, 'lr'); path(b.dig, 'lo'); path(n.dig, 'ln');
+    const err = ys => Math.max(...b.f.map((f, i) => f <= 20000 && f < b.fs / 2 && b.ana[i] > -30 && ys[i] > -900 ? Math.abs(ys[i] - b.ana[i]) : 0));
+    const p = document.createElement('div'); p.className = 'note'; p.textContent = 'errore massimo fino a 20 kHz: 0.4.3 ' + err(b.dig).toFixed(2) + ' dB · 0.4.4 ' + err(n.dig).toFixed(2) + ' dB'; card.appendChild(p); }
+  /* detector */
+  const tb = document.querySelector('#dettab tbody'), nb = D.det.new;
+  D.det.base.forEach((r, i) => { const q = nb[i]; if (!q || r.att !== 5 && r.att !== 1) return; const tr = document.createElement('tr');
+    tr.innerHTML = '<th scope="row">' + r.det + '</th><td class="num">' + r.att + ' ms</td><td class="num">' + r.f + ' Hz</td><td class="old">' + r.lo.toFixed(2) + ' … ' + r.hi.toFixed(2) + '</td><td class="new">' + q.lo.toFixed(2) + ' … ' + q.hi.toFixed(2) + '</td>'; tb.appendChild(tr); });
+  /* Character: Lissajous */
+  function liss(el, key) { const W = 420, H = 300, x0 = 40, x1 = W - 10, y0 = 10, y1 = H - 26, s = mk('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img' }, el);
+    const b = D.character.base[key], n = D.character.new[key]; const ys = b.y.concat(n.y), lo = Math.min(...ys) - 0.1, hi = Math.max(...ys) + 0.1;
+    const X = v => x0 + (v + 3.1) / 6.2 * (x1 - x0), Y = v => y1 - (v - lo) / (hi - lo) * (y1 - y0);
+    [-3, -2, -1, 0, 1, 2, 3].forEach(v => { mk('line', { x1: X(v), x2: X(v), y1: y0, y2: y1, class: 'ax' }, s); txt(s, X(v), H - 8, v, { 'text-anchor': 'middle' }); });
+    for (let v = Math.ceil(lo * 4) / 4; v <= hi; v += 0.25) { mk('line', { x1: x0, x2: x1, y1: Y(v), y2: Y(v), class: 'ax' }, s); txt(s, x0 - 4, Y(v) + 4, v.toFixed(2), { 'text-anchor': 'end' }); }
+    const pth = (o, cls) => { let d = ''; o.x.forEach((x, i) => { d += (i ? 'L' : 'M') + X(x).toFixed(1) + ',' + Y(o.y[i]).toFixed(1); }); mk('path', { d, class: cls }, s); };
+    pth(b, 'lo'); pth(n, 'ln'); txt(s, x1, y1 - 6, 'ingresso →', { 'text-anchor': 'end' }); txt(s, x0 + 4, y0 + 12, '↑ uscita'); }
+  liss(document.getElementById('chw'), 'warm'); liss(document.getElementById('chs'), 'subtle');
+  /* CPU */
+  const cr = D.cpu.filter(r => r.fs === 48000 && r.block === 512).map(r => ({ label: r.scen.replace(' (range 12, att 1 ms)', '').replace(' (range 1.5)', ''), old: r.old, new: r.new }));
+  bars(document.getElementById('cpubar'), cr, { unit: '%' });
+  bars(document.getElementById('jsbar'), D.js.map(r => ({ label: r.scen.replace(' (range 12, att 1 ms)', '').replace(' (range 1.5)', ''), old: r.old, new: r.new })), { unit: '%' });
+})();
+</script>

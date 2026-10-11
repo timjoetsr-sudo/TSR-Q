@@ -1,0 +1,14 @@
+{
+ "Warm": {
+  "picco_out_043_dbfs": -6.7,
+  "residuo_grezzo_db": -19.3,
+  "anticipo_044_campioni": 0.62,
+  "residuo_allineato_db": -52.1
+ },
+ "Subtle": {
+  "picco_out_043_dbfs": -4.41,
+  "residuo_grezzo_db": -19.4,
+  "anticipo_044_campioni": 0.62,
+  "residuo_allineato_db": -52.2
+ }
+}

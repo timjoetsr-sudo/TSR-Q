@@ -6,6 +6,8 @@
 - `interfaccia/` — test Playwright del prototipo 0.4.4 (154) e della pagina di ascolto A/B (16).
 - `misure/0.4.3`, `misure/0.4.4` — risultati grezzi delle stesse misure sui due motori (precisione, CPU, caso peggiore per blocco, detector, dinamica, NaN, fuzz, parametri estremi, invarianza al blocco).
 - `ab/` — script dei render A/B con i plugin VST3 veri (pedalboard) e riepilogo della loudness (BS.1770, ffmpeg ebur128).
+  `char_sub0.py` / `char_sub0.json`: Character sotto 0 dBFS sulla clip, residuo 0.4.4 − 0.4.3 grezzo (−19,3 dB) e dopo l'allineamento di 0,62 campioni (−52,1 dB Warm, −52,2 dB Subtle).
+- `mac_*.txt` — CI macOS (macos-14, build universale arm64 + x86_64) sul commit e3209ce: test DSP 53/53 PASS, `auval` AU VALIDATION SUCCEEDED, pluginval AU e VST3 SUCCESS.
 - `script/` — laboratorio di misura (`lab.cpp`, `lab.js`), pipeline completa, costruzione del prototipo e delle pagine.
 
 Gli script usano i percorsi della macchina di prova (`/home/claude/lab`, motore 0.4.3 congelato in `base043/`): per rieseguirli altrove vanno adattati.

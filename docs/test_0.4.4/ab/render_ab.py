@@ -32,7 +32,7 @@ def save(x, name):   # FLAC 24 bit (senza perdita)
 SCEN = [
  ('dyn_bell_200', 'Bell dinamico 200 Hz (RMS, soglia -30, range -6): il detector ascolta solo la sua banda', [{'t': 'Bell', 'f': 200, 'g': 0, 'q': 1, 'dyn': True, 'thr': -30, 'rng': -6, 'att': 5, 'rel': 80, 'det': 'RMS'}], {}),
  ('dyn_kick_peak', 'Bell dinamico 60 Hz in Peak (soglia -24, range -6, attacco 1 ms): detector calibrato', [{'t': 'Bell', 'f': 60, 'g': 0, 'q': 1.2, 'dyn': True, 'thr': -24, 'rng': -6, 'att': 1, 'rel': 60, 'det': 'Peak'}], {}),
- ('warm_drive', 'Character Warm spinto: INPUT +12 dB (OUTPUT 0: il guadagno d uscita agisce prima del Character). Oltre 0 dBFS la curva della 0.4.3 ripiega', [], {'input_db': 12.0, 'character': 'Warm'}),
+ ('warm_drive', 'Character Warm spinto: INPUT +12 dB (OUTPUT 0: il guadagno d’uscita agisce prima del Character). Oltre 0 dBFS la curva della 0.4.3 ripiega', [], {'input_db': 12.0, 'character': 'Warm'}),
  ('subtle_drive', 'Character Subtle spinto: INPUT +12 dB (OUTPUT 0)', [], {'input_db': 12.0, 'character': 'Subtle'}),
  ('eq_statica', 'EQ statica tipica (Low Cut 30 Hz 24 dB/oct, Bell 250 Hz -3 dB, Bell 3 kHz +2 dB, High Shelf 10 kHz +2,5 dB)',
   [{'t': 'Low Cut', 'f': 30, 's': 24}, {'t': 'Bell', 'f': 250, 'g': -3, 'q': 1}, {'t': 'Bell', 'f': 3000, 'g': 2, 'q': 1}, {'t': 'High Shelf', 'f': 10000, 'g': 2.5, 'q': 0.71}], {}),
