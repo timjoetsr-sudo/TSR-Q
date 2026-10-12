@@ -3,6 +3,12 @@
 Plugin JUCE 8 (C++17). Formati: **AU + VST3 + Standalone su macOS** (universale Apple Silicon + Intel, macOS 11+), VST3 + Standalone su Linux/Windows.
 Produttore: **TSR Audio** (codice produttore `Tsra`, codice plugin `Tsrq`, bundle `com.tsraudio.tsrq`).
 
+## Novità 0.4.5 (interfaccia)
+- Clic sulla linea EQ: la banda (Bell; Low Cut/Low Shelf/High Shelf/High Cut vicino ai bordi) nasce e la trascini nello stesso gesto. Fuori dalla linea: doppio clic crea la banda dove clicchi, poi la trascini.
+- Tolti: Freeze dell'analizzatore, Spectrum Grab (vista congelata tenendo il mouse fermo sullo spettro), etichette gialle sui picchi e linea gialla "clic: nuova banda" sullo spettro.
+- Spettro più alto: la scala dell'analizzatore finisce a -24 dB invece di +6 dB.
+- DSP identico alla 0.4.4.
+
 ## Novità 0.4.4 (analisi totale del DSP, test estremi, ottimizzazione)
 Ogni difetto qui sotto è stato misurato sulla 0.4.3 congelata e ha un test C++ nuovo (`tests/dsp_tests.cpp`, sezioni 14–21) che **fallisce sulla 0.4.3 (13 FAIL) e passa sulla 0.4.4**.
 
