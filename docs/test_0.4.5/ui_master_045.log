@@ -48,7 +48,7 @@ PASS piano: clic sul punto della banda (437 Hz) → intonata a A4 440.00 Hz
 PASS piano: trascinata a semitoni fino a A5 (880.00 Hz)
 PASS Sketch: campana −6 dB, poi indietro e ridisegnata +6 dB → solo bande positive, poche ([[353, 6]])
 == Analizzatore: range, tilt, Pre tratteggiato, nessun ingresso, freeze ==
-PASS range analizzatore 60/90/120 dB: fondo scala corretto ([510, 197.5, 510])
+PASS range analizzatore 60/90/120 dB: fondo scala corretto ([510, 176.7, 510])
 PASS tilt 4.5 dB/ottava: a 4 kHz +9.00 dB (2 ottave sopra 1 kHz) solo nel disegno
 PASS FREEZE: trattiene e accumula i massimi (-20 dB resta dopo un frame a -60: -20)
 PASS audio fermo: stato "nessun audio" esplicito, nessuna animazione finta
@@ -59,16 +59,16 @@ PASS 5 gruppi persi = buco dichiarato (NaN, niente campioni inventati) e salto d
 PASS trasporto fermo: silenzio = HOLD (il tempo si ferma), ingresso presente = LIVE ([0, True, 10, True])
 PASS FREEZE blocca la vista, non i dati (il buffer continua a riempirsi)
 PASS audio reale dal motore: 720 gruppi/s (atteso 689 = fs/64): scorrimento a tempo
-PASS spettrogramma: colonne disegnate dai dati STFT reali (1701 px)
+PASS spettrogramma: colonne disegnate dai dati STFT reali (1675 px)
 == EQ Match ==
 PASS riferimento con +6 dB a 2,5 kHz (livello diverso di 10 dB): proposta [[2496, 4.9, 1.55], [1111, -1.4, 0.3], [2039, 1.4, 1.2], [5941, -1.1, 0.57], [3145, 1.1, 2.29], [20, -1, 0.31]], scarto 0.69 dB
 PASS dettaglio 1: una sola banda ([[2496, 4.9, 1.55]])
 PASS applica: 6 bande, un passo di undo
 PASS undo: proposta rimossa
-PASS riferimento in silenzio: rifiutato con messaggio ('riferimento insufficiente: silenzio (picco medio -200 dB)')
+FAIL riferimento in silenzio: rifiutato con messaggio ('cattura non riuscita: nessuno spettro ricevuto (audio fermo?)')
 == Fluidita: waveform e spettro ==
-PASS waveform: scorrimento continuo a ogni fotogramma, mai indietro (0 passi indietro), velocita 687 gruppi/s (attesa 689), irregolarita 4.6 %
-FAIL spettro nel browser: aggiornato in 24 fotogrammi su 24 disegnati in 1 s
+PASS waveform: scorrimento continuo a ogni fotogramma, mai indietro (0 passi indietro), velocita 685 gruppi/s (attesa 689), irregolarita 4.5 %
+FAIL spettro nel browser: aggiornato in 26 fotogrammi su 26 disegnati in 1 s
 PASS nessun errore JavaScript ([])
-RISULTATO master UI: 58 PASS, 1 FAIL
+RISULTATO master UI: 57 PASS, 2 FAIL
 exit 1

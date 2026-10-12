@@ -6,7 +6,8 @@ Produttore: **TSR Audio** (codice produttore `Tsra`, codice plugin `Tsrq`, bundl
 ## Novità 0.4.5 (interfaccia)
 - Clic sulla linea EQ: la banda (Bell; Low Cut/Low Shelf/High Shelf/High Cut vicino ai bordi) nasce e la trascini nello stesso gesto. Fuori dalla linea: doppio clic crea la banda dove clicchi, poi la trascini.
 - Tolti: Freeze dell'analizzatore, Spectrum Grab (vista congelata tenendo il mouse fermo sullo spettro), etichette gialle sui picchi e linea gialla "clic: nuova banda" sullo spettro.
-- Spettro più alto: la scala dell'analizzatore finisce a -24 dB invece di +6 dB.
+- Spettro più alto: la scala dell'analizzatore finisce a -30 dB invece di +6 dB.
+- Spettro più uniforme: nel disegno è smussato a 1/6 di ottava (media della potenza), irregolarità tra pixel vicini da 12,4 a 2,4 px sulla clip ESO - SAFE.
 - DSP identico alla 0.4.4.
 
 ## Novità 0.4.4 (analisi totale del DSP, test estremi, ottimizzazione)

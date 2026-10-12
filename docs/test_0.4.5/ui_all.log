@@ -48,7 +48,7 @@ PASS freccia › → ricarica Preset 3 (1 bande)
 PASS tasto scala cambia la scala del grafico
 PASS impostazioni dal menu: Peak Hold attivato
 == 8. Audio (motore nel browser) ==
-PASS audio in riproduzione: picco d'uscita -8.2 dBFS
+PASS audio in riproduzione: picco d'uscita -7.5 dBFS
 PASS knob OUTPUT trascinato in giù → P.out -21.17 dB
 PASS Ctrl+Z riporta OUTPUT a 0 dB
 PASS motore con OUTPUT -6 dB: sinusoide misurata -6.00 dB

@@ -1,7 +1,7 @@
 # prototipo 0.4.5 = 0.4.4 + richieste di Tim (12/10/2026):
 # 1) clic sulla linea EQ = crea la banda e la trascini nello stesso gesto (fuori dalla linea resta: doppio clic crea, poi trascini)
 # 2) tolti: Freeze dell'analizzatore (voce di menu), Spectrum Grab (vista congelata dopo 1,2 s sullo spettro), etichette gialle dei picchi, linea gialla "clic: nuova banda" sullo spettro
-# 3) spettro piu alto: la scala dell'analizzatore finisce a -24 dB invece di +6 dB
+# 3) spettro piu alto: la scala dell'analizzatore finisce a -30 dB invece di +6 dB
 import sys, re
 src, dst = sys.argv[1], sys.argv[2]
 s = open(src, encoding='utf-8').read()
@@ -13,7 +13,7 @@ def cut_module(start_marker):   # toglie un modulo IIFE intero: dal suo commento
     i = s.index(start_marker); i0 = s.rindex("'use strict';", 0, i); j = s.index("'use strict';", i)
     s = s[:i0] + s[j:]
 # 3) spettro piu alto
-rep("const AY = d => PL.y + PL.h - (d + G.anaRange) / (G.anaRange + 6) * PL.h;", "const ANA_TOP = -24; const AY = d => PL.y + PL.h - (d + G.anaRange) / (G.anaRange + ANA_TOP) * PL.h;   /* 0.4.5: la scala finisce a -24 dB: lo spettro della musica occupa quasi tutta l'altezza */")
+rep("const AY = d => PL.y + PL.h - (d + G.anaRange) / (G.anaRange + 6) * PL.h;", "const ANA_TOP = -30; const AY = d => PL.y + PL.h - (d + G.anaRange) / (G.anaRange + ANA_TOP) * PL.h;   /* 0.4.5: la scala finisce a -30 dB: lo spettro della musica occupa quasi tutta l'altezza */")
 # 2a) Freeze dell'analizzatore: via dal menu (G.freeze resta sempre false)
 rep("    { text: 'Freeze', checked: G.freeze, fn: () => G.freeze = !G.freeze }, { sep: 1 },", "    { sep: 1 },")
 # 2b) linea gialla "clic: nuova banda" sullo spettro: non viene piu proposta
@@ -39,4 +39,19 @@ NEW = """  let sdrag = null;   /* 0.4.5: la banda creata dal clic sulla linea se
   window.__tsrqSugDrag = () => sdrag;"""
 rep(OLD, NEW)
 rep("(function frame() { if (sug && ghost && !(window.__tsrqPeakHover && window.__tsrqPeakHover()) && !graph.hold) {", "(function frame() { if (sug && ghost && !graph.hold) {")
+
+# 4) spettro piu uniforme (richiesta 12/10 15:10): nel disegno lo spettro e smussato a 1/6 di ottava (gaussiana sulla potenza, scala logaritmica delle frequenze)
+OLD4 = "if (N && playing) { const ysC = new Map(), ysOf = s => { let a = ysC.get(s); if (!a) { a = []; for (let x = r.x; x <= r.x + r.w; x += 1) a.push(clamp(AY(specY(s, x)), r.y, r.y + r.h)); ysC.set(s, a); } return a; };"
+NEW4 = ("if (N && playing) { const ysC = new Map(), ysOf = s => { let a = ysC.get(s); if (!a) { a = smoothYs(s, r); ysC.set(s, a); } return a; };")
+rep(OLD4, NEW4)
+OLD5 = "  const nodePos = i => {"
+NEW5 = ("  /* 0.4.5: spettro uniforme = media della potenza su una gaussiana larga 1/6 di ottava (FWHM) attorno a ogni pixel; il livello di un tono puro resta quello del bin piu forte smussato */\n"
+        "  const SMOOTH_OCT = 1 / 6;\n"
+        "  function smoothYs(s, r) { const n = Math.floor(r.w) + 1, pw = new Float64Array(n), out = new Array(n); for (let j = 0; j < n; j++) pw[j] = Math.pow(10, specY(s, r.x + j) / 10);\n"
+        "    const ppo = r.w / Math.log2(vHi() / vLo()), sg = Math.max(.35, ppo * SMOOTH_OCT / 2.355), H = Math.ceil(3 * sg), w = new Float64Array(2 * H + 1); for (let k = -H; k <= H; k++) w[k + H] = Math.exp(-.5 * (k / sg) * (k / sg));\n"
+        "    for (let j = 0; j < n; j++) { let a = 0, b = 0; for (let k = -H; k <= H; k++) { const q = j + k; if (q < 0 || q >= n) continue; a += w[k + H] * pw[q]; b += w[k + H]; } out[j] = clamp(AY(10 * Math.log10(Math.max(a / b, 1e-20))), r.y, r.y + r.h); }\n"
+        "    return out; }\n"
+        "  G.smoothYs = smoothYs;\n"
+        "  const nodePos = i => {")
+rep(OLD5, NEW5)
 open(dst, 'w', encoding='utf-8').write(s); print('ok', len(s))

@@ -1,22 +1,22 @@
 PASS barra A/B presente
 PASS il plugin non finisce sotto la barra A/B (fondo plugin 633 px, inizio barra 663 px)
 PASS motore: AudioWorklet
-    LUFS integrati dall’ultimo cambio (10 s): DRY -25.5 · 0.4.3 -26.0 · 0.4.4 -25.6 · DIFF -42.1 — compensazione: 0.4.3 +0.4 dB · 0.4.4 +0.1 dB · DIFF 16.5 LU sotto 0.4.4
-PASS letture LUFS per i 4 percorsi: [('DRY', '-25.5'), ('0.4.3', '-26.0'), ('0.4.4', '-25.6'), ('DIFF', '-42.1'), ('DIFF', '16.5')]
+    LUFS integrati dall’ultimo cambio (11 s): DRY -25.2 · 0.4.3 -25.8 · 0.4.4 -25.3 · DIFF -41.6 — compensazione: 0.4.3 +0.5 dB · 0.4.4 +0.1 dB · DIFF 16.2 LU sotto 0.4.4
+PASS letture LUFS per i 4 percorsi: [('DRY', '-25.2'), ('0.4.3', '-25.8'), ('0.4.4', '-25.3'), ('DIFF', '-41.6'), ('DIFF', '16.2')]
 PASS loudness match attivo con compensazione misurata
 PASS percorso DRY selezionato
 PASS percorso 0.4.3 selezionato
 PASS percorso DIFF selezionato
 PASS percorso 0.4.4 selezionato
-    kick: LUFS integrati dall’ultimo cambio (5 s): DRY -19.9 · 0.4.3 -20.6 · 0.4.4 -20.2 · DIFF -35.9 — compensazione: 0.4.3 +0.6 dB · 0.4.4 +0.2 dB · DIFF 15.7 LU sotto 0.4.4
+    kick: LUFS integrati dall’ultimo cambio (5 s): DRY -19.8 · 0.4.3 -20.4 · 0.4.4 -20.0 · DIFF -36.0 — compensazione: 0.4.3 +0.6 dB · 0.4.4 +0.2 dB · DIFF 15.9 LU sotto 0.4.4
 PASS scenario kick: letture presenti
-    warm: LUFS integrati dall’ultimo cambio (5 s): DRY -20.0 · 0.4.3 -10.7 · 0.4.4 -10.7 · DIFF -46.3 — compensazione: 0.4.3 -9.3 dB · 0.4.4 -9.3 dB · DIFF 35.5 LU sotto 0.4.4
+    warm: LUFS integrati dall’ultimo cambio (4 s): DRY -19.8 · 0.4.3 -10.6 · 0.4.4 -10.6 · DIFF -49.4 — compensazione: 0.4.3 -9.2 dB · 0.4.4 -9.2 dB · DIFF 38.8 LU sotto 0.4.4
 PASS scenario warm: letture presenti
-    subtle: LUFS integrati dall’ultimo cambio (5 s): DRY -19.1 · 0.4.3 -7.4 · 0.4.4 -7.4 · DIFF -45.4 — compensazione: 0.4.3 -11.7 dB · 0.4.4 -11.7 dB · DIFF 38.1 LU sotto 0.4.4
+    subtle: LUFS integrati dall’ultimo cambio (5 s): DRY -19.2 · 0.4.3 -7.4 · 0.4.4 -7.4 · DIFF -45.3 — compensazione: 0.4.3 -11.8 dB · 0.4.4 -11.8 dB · DIFF 37.8 LU sotto 0.4.4
 PASS scenario subtle: letture presenti
-    eq: LUFS integrati dall’ultimo cambio (4 s): DRY -17.0 · 0.4.3 -17.1 · 0.4.4 -17.1 · DIFF < -70 — compensazione: 0.4.3 +0.0 dB · 0.4.4 +0.0 dB · DIFF sotto la soglia assoluta BS.1770 (-70 LUFS): non udibile
+    eq: LUFS integrati dall’ultimo cambio (5 s): DRY -17.2 · 0.4.3 -17.2 · 0.4.4 -17.2 · DIFF < -70 — compensazione: 0.4.3 +0.0 dB · 0.4.4 +0.0 dB · DIFF sotto la soglia assoluta BS.1770 (-70 LUFS): non udibile
 PASS scenario eq: letture presenti
-    dyn200: LUFS integrati dall’ultimo cambio (5 s): DRY -16.4 · 0.4.3 -17.3 · 0.4.4 -17.0 · DIFF -36.7 — compensazione: 0.4.3 +0.8 dB · 0.4.4 +0.6 dB · DIFF 19.7 LU sotto 0.4.4
+    dyn200: LUFS integrati dall’ultimo cambio (5 s): DRY -16.4 · 0.4.3 -17.2 · 0.4.4 -16.9 · DIFF -36.7 — compensazione: 0.4.3 +0.8 dB · 0.4.4 +0.6 dB · DIFF 19.8 LU sotto 0.4.4
 PASS scenario dyn200: letture presenti
    stato dopo dyn200: {"b":{"used":1,"byp":0,"type":0,"freq":200,"gain":0,"q":1,"slope":3,"place":0,"dyn":1,"thr":-30,"range":-6,"att":5,"rel":80,"knee":6,"det":0,"sc":0},"inp":0,"ch":0}
 PASS nessun errore JavaScript ([])

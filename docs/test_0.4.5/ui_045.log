@@ -11,7 +11,7 @@ PASS moduli tolti: etichette gialle dei picchi e Spectrum Grab
 PASS mouse fermo 2,5 s sullo spettro: nessuna vista congelata
    menu impostazioni: Risoluzione FFT›Range analizzatore›Tilt analizzatore›Spettro SidechainVelocità (discesa)›Media temporale›✓Spettro Input✓Spettro OutputPeak HoldScala grafico›Opt
 PASS menu del grafico senza 'Freeze' (180 caratteri)
-PASS spettro: il picco arriva al 68% dell'altezza
+PASS spettro: il picco arriva al 67% dell'altezza
 PASS nessun errore JS ([])
 RISULTATO 0.4.5: 14 PASS, 0 FAIL
 exit 0
