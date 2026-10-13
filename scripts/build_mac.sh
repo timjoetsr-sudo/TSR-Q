@@ -51,9 +51,13 @@ else echo "(pluginval non trovato: https://github.com/Tracktion/pluginval/releas
 echo "== 6/6 installer .pkg + zip =="
 STG=$(mktemp -d); mkdir -p "$STG/au" "$STG/vst3" "$STG/app"
 cp -R "$A/AU/TSR Q.component" "$STG/au/"; cp -R "$A/VST3/TSR Q.vst3" "$STG/vst3/"; cp -R "$A/Standalone/TSR Q.app" "$STG/app/"
-pkgbuild --root "$STG/au"   --identifier com.tsraudio.tsrq.au   --version "$VER" --install-location "/Library/Audio/Plug-Ins/Components" "$STG/au.pkg"
-pkgbuild --root "$STG/vst3" --identifier com.tsraudio.tsrq.vst3 --version "$VER" --install-location "/Library/Audio/Plug-Ins/VST3" "$STG/vst3.pkg"
-pkgbuild --root "$STG/app"  --identifier com.tsraudio.tsrq.app  --version "$VER" --install-location "/Applications" "$STG/app.pkg"
+# installazione pulita: ogni componente prima elimina la versione gia installata (sistema e utenti, cache AU: scripts/pkg/*/preinstall)
+# e non e "rilocabile": macOS non puo aggiornare una vecchia copia trovata altrove invece di installare nella cartella giusta
+nonreloc () { pkgbuild --analyze --root "$1" "$2"; n=$(/usr/libexec/PlistBuddy -c "Print" "$2" | grep -c "RootRelativeBundlePath"); for ((k = 0; k < n; k++)); do /usr/libexec/PlistBuddy -c "Set :$k:BundleIsRelocatable false" "$2"; done; }
+nonreloc "$STG/au" "$STG/au.plist"; nonreloc "$STG/vst3" "$STG/vst3.plist"; nonreloc "$STG/app" "$STG/app.plist"
+pkgbuild --root "$STG/au"   --identifier com.tsraudio.tsrq.au   --version "$VER" --component-plist "$STG/au.plist" --scripts scripts/pkg/au --install-location "/Library/Audio/Plug-Ins/Components" "$STG/au.pkg"
+pkgbuild --root "$STG/vst3" --identifier com.tsraudio.tsrq.vst3 --version "$VER" --component-plist "$STG/vst3.plist" --scripts scripts/pkg/vst3 --install-location "/Library/Audio/Plug-Ins/VST3" "$STG/vst3.pkg"
+pkgbuild --root "$STG/app"  --identifier com.tsraudio.tsrq.app  --version "$VER" --component-plist "$STG/app.plist" --scripts scripts/pkg/app --install-location "/Applications" "$STG/app.pkg"
 AAXPKG=()
 if [ -n "$AAX" ]; then mkdir -p "$STG/aax"; cp -R "$A/AAX/TSR Q.aaxplugin" "$STG/aax/"
   pkgbuild --root "$STG/aax" --identifier com.tsraudio.tsrq.aax --version "$VER" --install-location "/Library/Application Support/Avid/Audio/Plug-Ins" "$STG/aax.pkg"; AAXPKG=(--package "$STG/aax.pkg"); fi

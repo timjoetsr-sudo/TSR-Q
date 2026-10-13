@@ -3,6 +3,10 @@
 Plugin JUCE 8 (C++17). Formati: **AU + VST3 + Standalone su macOS** (universale Apple Silicon + Intel, macOS 11+), VST3 + Standalone su Linux/Windows.
 Produttore: **TSR Audio** (codice produttore `Tsra`, codice plugin `Tsrq`, bundle `com.tsraudio.tsrq`).
 
+## Novità 0.4.6 (installer)
+- L'installer elimina prima ogni versione di TSR Q già installata (AU, VST3 e app; in /Library e nella Libreria di ogni utente), svuota la cache degli Audio Unit e installa la nuova nelle cartelle standard (pacchetti non rilocabili). Registro: /tmp/tsrq_installer.log.
+- Plugin identico alla 0.4.5.
+
 ## Novità 0.4.5 (interfaccia)
 - Clic sulla linea EQ: la banda (Bell; Low Cut/Low Shelf/High Shelf/High Cut vicino ai bordi) nasce e la trascini nello stesso gesto. Fuori dalla linea: doppio clic crea la banda dove clicchi, poi la trascini.
 - Tolti: Freeze dell'analizzatore, Spectrum Grab (vista congelata tenendo il mouse fermo sullo spettro), etichette gialle sui picchi e linea gialla "clic: nuova banda" sullo spettro.

@@ -1,0 +1,4 @@
+#!/bin/bash
+# dopo l installazione: il registro degli Audio Unit rilegge i plugin (niente versione vecchia in cache)
+killall -9 AudioComponentRegistrar 2>/dev/null || true
+exit 0
