@@ -53,7 +53,8 @@ STG=$(mktemp -d); mkdir -p "$STG/au" "$STG/vst3" "$STG/app"
 cp -R "$A/AU/TSR Q.component" "$STG/au/"; cp -R "$A/VST3/TSR Q.vst3" "$STG/vst3/"; cp -R "$A/Standalone/TSR Q.app" "$STG/app/"
 # installazione pulita: ogni componente prima elimina la versione gia installata (sistema e utenti, cache AU: scripts/pkg/*/preinstall)
 # e non e "rilocabile": macOS non puo aggiornare una vecchia copia trovata altrove invece di installare nella cartella giusta
-nonreloc () { pkgbuild --analyze --root "$1" "$2"; n=$(/usr/libexec/PlistBuddy -c "Print" "$2" | grep -c "RootRelativeBundlePath"); for ((k = 0; k < n; k++)); do /usr/libexec/PlistBuddy -c "Set :$k:BundleIsRelocatable false" "$2"; done; }
+nonreloc () { pkgbuild --analyze --root "$1" "$2"; perl -0pi -e 's#<key>BundleIsRelocatable</key>\s*<(true|false)/>\s*##g; s#<key>RootRelativeBundlePath</key>#<key>BundleIsRelocatable</key><false/><key>RootRelativeBundlePath</key>#g' "$2"; cat "$2"
+  if grep -A1 "BundleIsRelocatable" "$2" | grep -q "<true/>"; then echo "ERRORE: $2 ancora rilocabile"; exit 1; fi; grep -A1 "BundleIsRelocatable" "$2" | grep -q "<false/>" || { echo "ERRORE: BundleIsRelocatable assente in $2"; exit 1; }; }
 nonreloc "$STG/au" "$STG/au.plist"; nonreloc "$STG/vst3" "$STG/vst3.plist"; nonreloc "$STG/app" "$STG/app.plist"
 pkgbuild --root "$STG/au"   --identifier com.tsraudio.tsrq.au   --version "$VER" --component-plist "$STG/au.plist" --scripts scripts/pkg/au --install-location "/Library/Audio/Plug-Ins/Components" "$STG/au.pkg"
 pkgbuild --root "$STG/vst3" --identifier com.tsraudio.tsrq.vst3 --version "$VER" --component-plist "$STG/vst3.plist" --scripts scripts/pkg/vst3 --install-location "/Library/Audio/Plug-Ins/VST3" "$STG/vst3.pkg"
