@@ -1141,7 +1141,7 @@ const graph = (() => {
   const vLo = () => Math.max(10, G.fLo), vHi = () => Math.min(G.fHi, fMax());   /* vista: zoom/pan dell'asse delle frequenze */
   const X = f => PL.x + Math.log(f / vLo()) / Math.log(vHi() / vLo()) * PL.w, Fx = x => vLo() * Math.pow(vHi() / vLo(), (x - PL.x) / PL.w);
   const Y = db => PL.y + PL.h / 2 - db / G.rangeDb * PL.h / 2, Dy = y => (PL.y + PL.h / 2 - y) / (PL.h / 2) * G.rangeDb;
-  const ANA_TOP = -30; const AY = d => PL.y + PL.h - (d + G.anaRange) / (G.anaRange + ANA_TOP) * PL.h;   /* 0.4.5: la scala finisce a -30 dB: lo spettro della musica occupa quasi tutta l'altezza */   /* range dell'analizzatore 60/90/120 dB, separato dal range EQ */
+  const ANA_TOP = -38; const AY = d => PL.y + PL.h - (d + G.anaRange) / (G.anaRange + ANA_TOP) * PL.h;   /* 0.4.5: la scala finisce a -38 dB: lo spettro della musica occupa quasi tutta l'altezza */   /* range dell'analizzatore 60/90/120 dB, separato dal range EQ */
   let curves = new Array(NB).fill(null), keys = new Array(NB).fill(''), total = null, live = null, cols = null, colsFs = 0, deltas = new Float32Array(NB), rcurves = new Array(NB).fill(null), rkeys = new Array(NB).fill('');
   let specPre = null, specPost = null, peak = null, N = 0, win = null, tdPre = null, tdPost = null, re = null, im = null;
   let hover = -1, rHover = -1, rDrag = null, grabF = -1, dragging = false, moved = false, down = null, dragStart = [], rect = null, rectKeep = null, flashT = 0, flashS = '';

@@ -3,6 +3,9 @@
 Plugin JUCE 8 (C++17). Formati: **AU + VST3 + Standalone su macOS** (universale Apple Silicon + Intel, macOS 11+), VST3 + Standalone su Linux/Windows.
 Produttore: **TSR Audio** (codice produttore `Tsra`, codice plugin `Tsrq`, bundle `com.tsraudio.tsrq`).
 
+## Novità 0.4.7 (interfaccia)
+- Spettro più alto: la scala dell'analizzatore finisce a -38 dB (era -30). Sulla clip ESO - SAFE il picco medio arriva all'89% dell'altezza (prima 77%), il valore mediano al 52% (prima 45%).
+
 ## Novità 0.4.6 (installer)
 - L'installer elimina prima ogni versione di TSR Q già installata (AU, VST3 e app; in /Library e nella Libreria di ogni utente), svuota la cache degli Audio Unit e installa la nuova nelle cartelle standard (pacchetti non rilocabili). Registro: /tmp/tsrq_installer.log.
 - Plugin identico alla 0.4.5.

@@ -1,7 +1,7 @@
 # prototipo 0.4.5 = 0.4.4 + richieste di Tim (12/10/2026):
 # 1) clic sulla linea EQ = crea la banda e la trascini nello stesso gesto (fuori dalla linea resta: doppio clic crea, poi trascini)
 # 2) tolti: Freeze dell'analizzatore (voce di menu), Spectrum Grab (vista congelata dopo 1,2 s sullo spettro), etichette gialle dei picchi, linea gialla "clic: nuova banda" sullo spettro
-# 3) spettro piu alto: la scala dell'analizzatore finisce a -30 dB invece di +6 dB
+# 3) spettro piu alto: la scala dell'analizzatore finisce a -38 dB invece di +6 dB
 import sys, re
 src, dst = sys.argv[1], sys.argv[2]
 s = open(src, encoding='utf-8').read()
@@ -13,7 +13,7 @@ def cut_module(start_marker):   # toglie un modulo IIFE intero: dal suo commento
     i = s.index(start_marker); i0 = s.rindex("'use strict';", 0, i); j = s.index("'use strict';", i)
     s = s[:i0] + s[j:]
 # 3) spettro piu alto
-rep("const AY = d => PL.y + PL.h - (d + G.anaRange) / (G.anaRange + 6) * PL.h;", "const ANA_TOP = -30; const AY = d => PL.y + PL.h - (d + G.anaRange) / (G.anaRange + ANA_TOP) * PL.h;   /* 0.4.5: la scala finisce a -30 dB: lo spettro della musica occupa quasi tutta l'altezza */")
+rep("const AY = d => PL.y + PL.h - (d + G.anaRange) / (G.anaRange + 6) * PL.h;", "const ANA_TOP = -38; const AY = d => PL.y + PL.h - (d + G.anaRange) / (G.anaRange + ANA_TOP) * PL.h;   /* 0.4.5: la scala finisce a -38 dB: lo spettro della musica occupa quasi tutta l'altezza */")
 # 2a) Freeze dell'analizzatore: via dal menu (G.freeze resta sempre false)
 rep("    { text: 'Freeze', checked: G.freeze, fn: () => G.freeze = !G.freeze }, { sep: 1 },", "    { sep: 1 },")
 # 2b) linea gialla "clic: nuova banda" sullo spettro: non viene piu proposta
