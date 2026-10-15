@@ -4,10 +4,12 @@
 
 using namespace juce;
 
+// scala logaritmica calcolata in double: valore in chiaro -> normalizzato -> in chiaro torna identico al bit (in float derivava di 1-3 ulp
+// a ogni salvataggio/ripristino VST3: Freq/Q cambiavano, uscita diversa a -138 dBFS, misurato con pluginval/pedalboard)
 static NormalisableRange<float> logRange (float lo, float hi) {
     return NormalisableRange<float> (lo, hi,
-        [] (float a, float b, float n) { return a * std::pow (b / a, n); },
-        [] (float a, float b, float v) { return std::log (v / a) / std::log (b / a); },
+        [] (float a, float b, float n) { return jlimit (a, b, (float) ((double) a * std::pow ((double) b / (double) a, (double) n))); },
+        [] (float a, float b, float v) { return (float) (std::log ((double) v / (double) a) / std::log ((double) b / (double) a)); },
         [] (float a, float b, float v) { return jlimit (a, b, v); });
 }
 
