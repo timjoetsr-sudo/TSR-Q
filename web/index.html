@@ -580,17 +580,42 @@ var TSRQ = (function () {
     return out;
   }
   /* precise = false: progetto veloce (qualita e costo della 0.4.3), usato mentre i parametri cambiano; il motore passa al preciso dopo 50 ms fermi */
-  function designBand(b, gainDb, fs, precise) {
-    if (precise === undefined) precise = true;
+  /* errore (dB, metrica Err) di una cascata rispetto all'analogico: 64 punti udibili + 160 della griglia fitta */
+  function cascadeErr(set, c, g) { var e = new Err(), i, k, d, ns = c.length / 5;
+    for (i = 0; i < KEVAL; i++) { d = 1; for (k = 0; k < ns; k++) d *= mag2phi(c, k * 5, g.e0[i], g.e1[i], g.e2[i]); e.add(d, anaMag2(set, g.ef[i])); }
+    for (i = 0; i < KDENSE; i++) { d = 1; for (k = 0; k < ns; k++) d *= mag2phi(c, k * 5, g.d0[i], g.d1[i], g.d2[i]); e.add(d, anaMag2(set, g.df[i])); }
+    for (var j = 0; j < set.s.length; j++) { var nf = narrowPts(set.s[j]);   // punti stretti attorno alle risonanze (uguale al C++)
+      for (var q = 0; q < nf.length; q++) if (nf[q] > 20 && nf[q] < g.top) { var ph = phiAt(nf[q], g.fs); d = 1; for (k = 0; k < ns; k++) d *= mag2phi(c, k * 5, ph[0], ph[1], ph[2]); e.add(d, anaMag2(set, nf[q])); } }
+    return e.db(); }
+  /* 0.4.8: sezione di correzione vicino a Nyquist (stessa logica del C++): se il preciso sbaglia di oltre 0,25 dB si aggiunge una sezione neutra e si rifitta la cascata */
+  var KCORRTHR = 0.25;
+  function fineErr(set, c, g) { var e = new Err(), ns = c.length / 5; for (var i = 0; i < 512; i++) { var fr = 20 * Math.pow(g.top / 20, i / 511), ph = phiAt(fr, g.fs), d = 1; for (var k = 0; k < ns; k++) d *= mag2phi(c, k * 5, ph[0], ph[1], ph[2]); e.add(d, anaMag2(set, fr)); } return e.db(); }
+  function correctNyq(set, g, c) {
+    if (set.s.length >= 16) return c; var fmx = 0; for (var k0 = 0; k0 < set.s.length; k0++) fmx = Math.max(fmx, set.s[k0].f0); if (fmx < g.fs * 0.1) return c;   // sotto fs/10: niente controllo (uguale al C++)
+    var e0 = cascadeErr(set, c, g); if (!(e0 > KCORRTHR)) return c;
+    var s2 = { k: set.k, s: set.s.concat([{ f0: g.fs / 4, n: [1, 1, 0], d: [1, 1, 0] }]) }, t = designCascade(s2, g, true);
+    if (t.length !== s2.s.length * 5) return c; for (var k = 0; k < s2.s.length; k++) if (!stable(Array.prototype.slice.call(t, k * 5, k * 5 + 5))) return c;
+    return cascadeErr(set, t, g) < e0 - 0.05 && fineErr(set, t, g) < fineErr(set, c, g) - 0.01 ? t : c;   // tenuta solo se migliora anche su 512 punti (uguale al C++)
+  }
+  function designBand(b, gainDb, fs, precise, corr) {
+    if (precise === undefined) precise = true; if (corr === undefined) corr = true;
     if (b.type === 'allpass') { var w0 = 2 * PI * Math.min(b.f, fs * 0.49) / fs, pa = poles([1, 1 / b.q, 1], w0); return Float64Array.from([pa[1], pa[0], 1, pa[0], pa[1]]); }
-    var g = grid(fs), set = sectionsFor(b, gainDb), n = set.s.length;
-    if (n > 1 && precise) return designCascade(set, g, b.type === 'hcut' || b.type === 'bpass');
-    var c = new Float64Array(n * 5);
-    for (var i = 0; i < n; i++) { var q = designSec(set.s[i], g, precise); for (var j = 0; j < 5; j++) c[i * 5 + j] = q[j]; }
-    c[0] *= set.k; c[1] *= set.k; c[2] *= set.k;
-    return c;
+    var g = grid(fs), set = sectionsFor(b, gainDb), n = set.s.length, c;
+    if (n > 1 && precise) c = designCascade(set, g, b.type === 'hcut' || b.type === 'bpass');
+    else { c = new Float64Array(n * 5);
+      for (var i = 0; i < n; i++) { var q = designSec(set.s[i], g, precise); for (var j = 0; j < 5; j++) c[i * 5 + j] = q[j]; }
+      c[0] *= set.k; c[1] *= set.k; c[2] *= set.k; }
+    return precise && corr ? correctNyq(set, g, c) : c;
   }
 
+  /* stesso filtro con una sezione in piu o in meno: la cascata piu corta si completa con sezioni neutre (b0 = 1), le sezioni nuove partono da stato zero (uguale al C++) */
+  function padSecs(c, m) { if (c.length >= m * 5) return c; var o = new Float64Array(m * 5); o.set(c); for (var k = c.length / 5; k < m; k++) o[k * 5] = 1; return o; }
+  function matchSecs(r, nc) {
+    var m = Math.max(nc.length, r.tgt.length) / 5, oldN = r.tgt.length / 5; nc = padSecs(nc, m);
+    if (oldN < m) { r.tgt = padSecs(r.tgt, m); r.cur = padSecs(r.cur, m); r.fr0 = padSecs(r.fr0, m); r.rfrom = padSecs(r.rfrom, m);
+      for (var c = 0; c < 2; c++) { var z = new Float64Array(m * 2); z.set(r.st[c].subarray(0, Math.min(r.st[c].length, oldN * 2))); r.st[c] = z; } }
+    return nc;
+  }
   /* ---------- filtraggio: TDF-II in doppia precisione ---------- */
   function run(c, st, x, n) {
     for (var k = 0, ns = c.length / 5; k < ns; k++) {
@@ -598,6 +623,21 @@ var TSRQ = (function () {
       for (var i = 0; i < n; i++) { var xi = x[i], y = b0 * xi + z1; z1 = b1 * xi - a1 * y + z2; z2 = b2 * xi - a2 * y; x[i] = y; }
       st[2 * k] = z1; st[2 * k + 1] = z2;
     }
+  }
+  function runOff(c, st, x, i0, i1) {   // come run, su x[i0..i1)
+    for (var k = 0, ns = c.length / 5; k < ns; k++) {
+      var o = k * 5, b0 = c[o], b1 = c[o + 1], b2 = c[o + 2], a1 = c[o + 3], a2 = c[o + 4], z1 = st[2 * k], z2 = st[2 * k + 1];
+      for (var i = i0; i < i1; i++) { var xi = x[i], y = b0 * xi + z1; z1 = b1 * xi - a1 * y + z2; z2 = b2 * xi - a2 * y; x[i] = y; }
+      st[2 * k] = z1; st[2 * k + 1] = z2;
+    }
+  }
+  var KRAMP = 512;   // 0.4.8: rampa dei coefficienti di lunghezza fissa per le bande statiche (uguale al C++)
+  function coefSame(a, b) { if (a.length !== b.length) return false; for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; }
+  function startRamp(r, nc) {   // coefficienti istantanei (a meta rampa: interpolati come nel filtro) e rampa nuova verso nc (uguale al C++)
+    var from;
+    if (r.rpos < KRAMP) { var t = r.rpos, a = r.rfrom, b = r.tgt, ns = b.length; from = new Float64Array(ns); for (var i = 0; i < ns; i++) from[i] = a[i] + (b[i] - a[i]) / KRAMP * t; }
+    else from = Float64Array.from(r.cur.subarray(0, r.tgt.length));
+    r.rfrom = from; r.tgt = nc; r.rpos = coefSame(from, nc) ? KRAMP : 0; if (r.rpos === KRAMP) r.cur = nc;
   }
   // frame fisso di F campioni; coefficienti dalla posizione assoluta nel frame (stesso risultato comunque il frame sia diviso tra blocchi)
   function runFrame(c0, c1, st, x, i0, i1, pos, F) {
@@ -685,7 +725,7 @@ var TSRQ = (function () {
 
   /* ---------- motore ---------- */
   function Engine(fs, maxBlock) {
-    this.fs = fs; this.N = maxBlock || 4096;
+    this.fs = fs; this.N = maxBlock || 4096; this.absPos = 0;
     this.L = new Float64Array(this.N); this.R = new Float64Array(this.N);
     this.M = new Float64Array(this.N); this.S = new Float64Array(this.N);
     this.dL = new Float64Array(this.N); this.dR = new Float64Array(this.N);
@@ -724,13 +764,14 @@ var TSRQ = (function () {
       r.cfg = b; r.dy = d; if (r.dyn) { r.aA = 1 - Math.exp(-KFRAME / (Math.max(0.05, d.att) * 1e-3 * fs)); r.aR = 1 - Math.exp(-KFRAME / (Math.max(1, d.rel) * 1e-3 * fs)); }
       keep[b.id] = r; return;
     }
-    var dynOn = !!(d.on && DYN_TYPES[b.type]), g = GAIN_TYPES[b.type] ? b.g * sc : 0, nc = designBand(b, g, fs, !this.primed);
-    var sameShape = !!r && r.cfg.type === b.type && r.cfg.slope === b.slope && r.cfg.place === b.place && nc.length === r.tgt.length && r.dyn === dynOn;
+    var dynOn = !!(d.on && DYN_TYPES[b.type]), g = GAIN_TYPES[b.type] ? b.g * sc : 0, nc = designBand(b, g, fs, !this.primed, !dynOn);
+    var sameShape = !!r && r.cfg.type === b.type && r.cfg.slope === b.slope && r.cfg.place === b.place && (nc.length === r.tgt.length || (!dynOn && !r.dyn && Math.abs(nc.length - r.tgt.length) === 5)) && r.dyn === dynOn;
+    if (sameShape && nc.length !== r.tgt.length) nc = matchSecs(r, nc);   // 0.4.8: con o senza sezione di correzione si interpola lo stesso (uguale al C++)
     if (r && !sameShape) this._fadeOut(b.id, r);
     if (!sameShape) r = { st: [new Float64Array(nc.length / 5 * 2), new Float64Array(nc.length / 5 * 2)], dst: [new Float64Array(2), new Float64Array(2)], acc2: [0, 0], pk: [0, 0], ms: [0, 0], pkRing: new Float64Array(KPKHOLD), pkPos: 0, pkLen: 1, lvl: -120, delta: 0, phase: 0,
-                          detInit: true, thrS: d.thr, fpos: 0, flen: this.primed ? this.fadeLen : 0, w0: 1, dynCell: 0.125, dynSign: -1, dynGen: 1, dynValid: new Uint32Array(KDYN), dynC: new Float64Array(KDYN * 5), cur: nc, fr0: nc, fr0b: new Float64Array(5), tb: [new Float64Array(5), new Float64Array(5)], isNew: true };
+                          detInit: true, thrS: d.thr, fpos: 0, flen: this.primed ? this.fadeLen : 0, w0: 1, dynCell: 0.125, dynSign: -1, dynGen: 1, dynValid: new Uint32Array(KDYN), dynC: new Float64Array(KDYN * 5), cur: nc, fr0: nc, fr0b: new Float64Array(5), tb: [new Float64Array(5), new Float64Array(5)], rfrom: nc, rpos: KRAMP, isNew: true };
     r.precise = !this.primed; r.quiet = 0;
-    r.dyn = dynOn; r.cfg = b; r.dy = d; r.sc = sc; r.g = g; r.tgt = nc;
+    r.dyn = dynOn; r.cfg = b; r.dy = d; r.sc = sc; r.g = g; if (!r.isNew && !dynOn) startRamp(r, nc); else r.tgt = nc;
     if (dynOn) r.dc = designBand(detSection(b), 0, fs, false);   // filtro del detector solo per le bande dinamiche (uguale al C++)
     if (dynOn) {
       r.aA = 1 - Math.exp(-KFRAME / (Math.max(0.05, d.att) * 1e-3 * fs)); r.aR = 1 - Math.exp(-KFRAME / (Math.max(1, d.rel) * 1e-3 * fs));
@@ -739,7 +780,7 @@ var TSRQ = (function () {
       var R = d.range * sc; r.dynSign = R >= 0 ? 1 : -1; r.dynCell = Math.max(0.125, Math.abs(R) / (KDYN - 1)); r.dynGen++;
       r.dynC.set(nc.subarray(0, 5), 0); r.dynValid[0] = r.dynGen;
     } else r.delta = 0;
-    if (r.isNew) { r.isNew = false; r.delta = 0; r.cur = r.tgt; r.fr0 = r.tgt; r.phase = 0; }
+    if (r.isNew) { r.isNew = false; r.delta = 0; r.cur = r.tgt; r.fr0 = r.tgt; r.rfrom = r.tgt; r.rpos = KRAMP; r.phase = 0; }
     else if (dynOn) r.tgt = this._dynTarget(r, r.delta);
     keep[b.id] = r;
   };
@@ -773,8 +814,9 @@ var TSRQ = (function () {
     if (ms) for (i = 0; i < n; i++) { M[i] = 0.5 * (L[i] + R[i]); S[i] = 0.5 * (L[i] - R[i]); }
     var ch = this._chan(place), nc = ch.length, c;
     if (!r.dyn) {
-      if (r.cur !== r.tgt) { for (c = 0; c < nc; c++) runLerp(r.cur, r.tgt, r.st[c], ch[c], 0, n); r.cur = r.tgt; }
-      else for (c = 0; c < nc; c++) run(r.cur, r.st[c], ch[c], n);
+      var m = 0;   // rampa di lunghezza fissa (indipendente dal blocco), poi coefficienti fermi (uguale al C++)
+      if (r.rpos < KRAMP) { m = Math.min(n, KRAMP - r.rpos); for (c = 0; c < nc; c++) runFrame(r.rfrom, r.tgt, r.st[c], ch[c], 0, m, r.rpos, KRAMP); r.rpos += m; if (r.rpos >= KRAMP) r.cur = r.tgt; }
+      if (m < n) for (c = 0; c < nc; c++) runOff(r.tgt, r.st[c], ch[c], m, n);
     } else {
       var F = KFRAME, d = r.dy, dc = r.dc;
       for (var i0 = 0; i0 < n; ) {
@@ -821,13 +863,23 @@ var TSRQ = (function () {
   Engine.prototype._ch = function (m, v, c, dcA) {   // Character del modo m su un canale (0 = Clean, passa invariato)
     if (!m) return v; var d = this.dcm[m], y = this.osm[m][c].run(m, v), o = y - d[2 * c] + dcA * d[2 * c + 1]; d[2 * c] = y; d[2 * c + 1] = o; return o;
   };
-  var MAXIN = Math.fround(3.0e38);
+  var MAXIN = 1000;   // 0.4.8: oltre +60 dBFS (1000) un campione e un errore dell host, non audio: diventa 0 come NaN/Inf (uguale al C++)
+  var KALIGN = 128, KSETTLETICK = 512;   // 0.4.8: sottoblocchi allineati alla posizione assoluta, assestamenti ogni 512 campioni (uguale al C++)
   Engine.prototype.process = function (Lio, Rio, n) {
     if (n > this.N) throw new Error('TSRQ: blocco troppo lungo');
-    this.primed = true;
+    this.primed = true; if (this.absPos === undefined) this.absPos = 0;
+    for (var i0 = 0; i0 < n; ) {
+      var len = Math.min(n - i0, KALIGN - this.absPos % KALIGN);
+      if (i0 === 0 && len === n) this._chunk(Lio, Rio, n);
+      else if (Lio.subarray) this._chunk(Lio.subarray(i0, i0 + len), Rio.subarray(i0, i0 + len), len);
+      else { var a = Lio.slice(i0, i0 + len), b = Rio.slice(i0, i0 + len); this._chunk(a, b, len); for (var k = 0; k < len; k++) { Lio[i0 + k] = a[k]; Rio[i0 + k] = b[k]; } }
+      this.absPos += len; i0 += len;
+    }
+  };
+  Engine.prototype._chunk = function (Lio, Rio, n) {
     var L = this.L, R = this.R, M = this.M, S = this.S, dL = this.dL, dR = this.dR, pL = this.pL, pR = this.pR, i, st = this.st, fadeLen = this.fadeLen;
     var tgi = Math.pow(10, st.inGain / 20), gia = 1 - Math.exp(-1 / (0.01 * this.fs)), gi = this.inG, gi1 = this.inG1;   // smoother a due poli (10 + 10 ms)
-    for (i = 0; i < n; i++) {   // un campione NaN/Inf in ingresso diventa 0
+    for (i = 0; i < n; i++) {   // un campione NaN/Inf o oltre +60 dBFS in ingresso diventa 0
       var lin = Lio[i], rin = Rio[i]; if (!(Math.abs(lin) <= MAXIN)) lin = 0; if (!(Math.abs(rin) <= MAXIN)) rin = 0;
       gi1 += (tgi - gi1) * gia; gi += (gi1 - gi) * gia; dL[i] = lin; dR[i] = rin; L[i] = lin * gi; R[i] = rin * gi; var al = L[i] < 0 ? -L[i] : L[i], ar = R[i] < 0 ? -R[i] : R[i]; if (al > this.pin[0]) this.pin[0] = al; if (ar > this.pin[1]) this.pin[1] = ar; }
     this.inG = gi; this.inG1 = gi1;
@@ -841,12 +893,12 @@ var TSRQ = (function () {
       if (so.c !== so.tgt) { runLerp(so.c, so.tgt, so.st[0], pL, 0, n); runLerp(so.c, so.tgt, so.st[1], pR, 0, n); so.c = so.tgt; }
       else { run(so.c, so.st[0], pL, n); run(so.c, so.st[1], pR, n); }
     }
-    var b, id, rr, settleBudget = KSETTLE;   // al massimo 2 progetti precisi per blocco (dopo un cambio di preset le bande si assestano una dopo l'altra)
+    var b, id, rr, settleBudget = this.absPos % KSETTLETICK === 0 ? KSETTLE : 0;   // al massimo 2 progetti precisi ogni 512 campioni (uguale al C++)
     for (b = 0; b < this.order.length; b++) {   // bande ferme da 50 ms: progetto preciso (interpolato dal veloce lungo il blocco)
       rr = this.map[this.order[b]]; if (!rr || rr.precise) continue;
       rr.quiet += n; if (rr.quiet < this.settleLen || settleBudget <= 0) continue; settleBudget--;
-      var nc = designBand(rr.cfg, rr.g, this.fs, true); rr.precise = true;
-      if (rr.dyn) { rr.dynGen++; rr.dynC.set(nc.subarray(0, 5), 0); rr.dynValid[0] = rr.dynGen; rr.tgt = this._dynTarget(rr, rr.delta); } else rr.tgt = nc;
+      var nc = designBand(rr.cfg, rr.g, this.fs, true, !rr.dyn); rr.precise = true;
+      if (rr.dyn) { rr.dynGen++; rr.dynC.set(nc.subarray(0, 5), 0); rr.dynValid[0] = rr.dynGen; rr.tgt = this._dynTarget(rr, rr.delta); } else { if (nc.length !== rr.tgt.length) nc = matchSecs(rr, nc); startRamp(rr, nc); }
     }
     var msLive = false;   // bande Mid/Side consecutive (senza dissolvenze in corso): una sola conversione L/R -> M/S e ritorno
     for (b = 0; b < this.order.length; b++) {
@@ -900,7 +952,7 @@ var TSRQ = (function () {
     this.peak[0] = this.peak[1] = 0; this.pin[0] = this.pin[1] = 0; return o;
   };
   return { design3pt: design3pt, designMZ: designMZ, secErr: secErr, TYPES: TYPES, DYN_TYPES: DYN_TYPES, GAIN_TYPES: GAIN_TYPES, sectionsFor: sectionsFor, anaMag2: anaMag2, designSec: function (sc, fs, precise) { return designSec(sc, grid(fs), precise === undefined ? true : precise); },
-           designBand: designBand, digMag2: digMag2, dynDelta: dynDelta, Engine: Engine, butterQs: butterQs, shape: shape, version: '0.4.4' };
+           designBand: designBand, digMag2: digMag2, dynDelta: dynDelta, Engine: Engine, butterQs: butterQs, shape: shape, version: '0.4.8' };
 })();
 if (typeof module !== 'undefined') module.exports = TSRQ;
 /* ===== /DSP CORE ===== */

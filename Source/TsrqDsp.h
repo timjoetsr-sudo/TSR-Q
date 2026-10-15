@@ -15,6 +15,7 @@ enum Place { Stereo = 0, Left, Right, Mid, Side };
 enum DetMode { DetRMS = 0, DetPeak };
 constexpr int kMaxBands = 32;
 constexpr int kMaxSecs = 16;
+constexpr float kMaxIn = 1000.0f;   // 0.4.8: un campione oltre +60 dBFS e un errore dell'host, non audio: diventa 0 come NaN/Inf (prima 1e30 dava 0,6 s di uscita fuori scala)
 
 inline bool hasGain (int t) { return t == Bell || t == LowShelf || t == HighShelf || t == TiltShelf || t == FlatTilt; }
 inline bool canDyn  (int t) { return t == Bell || t == LowShelf || t == HighShelf || t == TiltShelf; }
@@ -368,16 +369,38 @@ inline void designCascade (const SecSet& set, const Grid& g, BandCoefs& bc, bool
         BandCoefs t = bc; t.c[k] = ci; const double e1 = err (t); if (e1 < e0) { bc = t; e0 = e1; }
     } }
 }
+// errore (dB, metrica ErrAcc) di una cascata digitale rispetto all'analogico: 64 punti udibili + 160 della griglia fitta
+inline double cascadeErr (const SecSet& set, const BandCoefs& bc, const Grid& g) {
+    ErrAcc e; for (int i = 0; i < kEval; ++i) { double d = 1; for (int k = 0; k < bc.n; ++k) d *= mag2phi (bc.c[k], g.ep[i]); e.add (d, anaMag2 (set, g.ef[i])); }
+    for (int i = 0; i < kDense; ++i) { double d = 1; for (int k = 0; k < bc.n; ++k) d *= mag2phi (bc.c[k], g.dp[i]); e.add (d, anaMag2 (set, g.df[i])); }
+    for (int j = 0; j < set.n; ++j) { double nf[kNarrow]; const int nn = narrowPts (set.s[j], nf);   // punti stretti attorno alle risonanze (Q alto): la correzione non deve peggiorarle
+        for (int q = 0; q < nn; ++q) if (nf[q] > 20 && nf[q] < g.top) { const Phi ph = phiAt (nf[q], g.fs); double d = 1; for (int k = 0; k < bc.n; ++k) d *= mag2phi (bc.c[k], ph); e.add (d, anaMag2 (set, nf[q])); } }
+    return e.db(); }
+// 0.4.8: sezione di correzione vicino a Nyquist. Se il progetto preciso sbaglia ancora di oltre 0,25 dB (shelf e tagli sopra 15 kHz a 44,1/48 kHz, shelf con Q alto),
+// si aggiunge una sezione che parte neutra (polo e zero coincidenti) e la cascata viene rifittata tutta: tenuta solo se l'errore scende di almeno 0,05 dB.
+constexpr double kCorrThr = 0.25;
+inline double fineErr (const SecSet& set, const BandCoefs& bc, const Grid& g) {   // 512 punti log 20 Hz - top: controllo finale della correzione
+    ErrAcc e; for (int i = 0; i < 512; ++i) { const double fr = 20.0 * std::pow (g.top / 20.0, i / 511.0); const Phi ph = phiAt (fr, g.fs); double d = 1; for (int k = 0; k < bc.n; ++k) d *= mag2phi (bc.c[k], ph); e.add (d, anaMag2 (set, fr)); }
+    return e.db(); }
+inline void correctNyq (const SecSet& set, const Grid& g, BandCoefs& out) {
+    if (set.n >= kMaxSecs) return; double fmx = 0; for (int k = 0; k < set.n; ++k) fmx = std::max (fmx, set.s[k].f0); if (fmx < g.fs * 0.1) return;   // sotto fs/10 gli errori restano sotto 0,25 dB: niente controllo (costo)
+    const double e0 = cascadeErr (set, out, g); if (! (e0 > kCorrThr)) return;
+    SecSet s2 = set; Sec& id = s2.s[s2.n++]; id.f0 = g.fs / 4; id.n[0] = 1; id.n[1] = 1; id.n[2] = 0; id.d[0] = 1; id.d[1] = 1; id.d[2] = 0;
+    BandCoefs t; designCascade (s2, g, t, true); if (t.n != s2.n) return; for (int k = 0; k < t.n; ++k) if (! stable (t.c[k])) return;
+    if (cascadeErr (set, t, g) < e0 - 0.05 && fineErr (set, t, g) < fineErr (set, out, g) - 0.01) out = t;   // tenuta solo se migliora anche su 512 punti
+}
 // precise = false: progetto veloce (qualita e costo della 0.4.3), usato mentre i parametri cambiano; il motore passa al preciso dopo 50 ms fermi
-inline void designBand (const BandParams& b, double gainDb, const Grid& g, BandCoefs& out, bool precise = true) {
+// corr = false: niente sezione di correzione (bande dinamiche: la tabella dei guadagni usa una sola sezione)
+inline void designBand (const BandParams& b, double gainDb, const Grid& g, BandCoefs& out, bool precise = true, bool corr = true) {
     SecSet set; sectionsFor (b, gainDb, set); out.n = set.n;
     if (b.type == AllPass) {                       // all pass: poli mappati esattamente, numeratore = denominatore invertito
         Coef c; poles (set.s[0].d, 2 * kPi * std::min (b.f, g.fs * 0.49) / g.fs, c.a1, c.a2);
         c.b0 = c.a2; c.b1 = c.a1; c.b2 = 1; out.c[0] = c; out.n = 1; return;
     }
-    if (set.n > 1 && precise) { designCascade (set, g, out, b.type == HighCut || b.type == BandPass); return; }   // veloce: sezione per sezione (come 0.4.3)
-    for (int i = 0; i < set.n; ++i) out.c[i] = designSec (set.s[i], g, precise);
-    out.c[0].b0 *= set.k; out.c[0].b1 *= set.k; out.c[0].b2 *= set.k;
+    if (set.n > 1 && precise) designCascade (set, g, out, b.type == HighCut || b.type == BandPass);   // veloce: sezione per sezione (come 0.4.3)
+    else { for (int i = 0; i < set.n; ++i) out.c[i] = designSec (set.s[i], g, precise);
+           out.c[0].b0 *= set.k; out.c[0].b1 *= set.k; out.c[0].b2 *= set.k; }
+    if (precise && corr) correctNyq (set, g, out);
 }
 inline double bandMag2 (const BandCoefs& bc, double fr, double fs) { const Phi q = phiAt (fr, fs); double m = 1; for (int i = 0; i < bc.n; ++i) m *= mag2phi (bc.c[i], q); return m; }
 
@@ -386,7 +409,10 @@ inline double kneeFn (double over, double W) { if (W <= 0) return std::max (0.0,
 constexpr double kDynSlope = 0.75;    // 4:1 dentro il RANGE
 constexpr int kFrame = 32;            // frame dinamico fisso (il risultato non dipende dal blocco della DAW)
 constexpr int kPkHold = 256;          // Peak: tenuta del picco su almeno un periodo della banda (fino a 256 frame)
-constexpr int kSettlePerChunk = 2;    // progetti precisi (assestamento) al massimo per blocco
+constexpr int kSettlePerChunk = 2;    // progetti precisi (assestamento) al massimo ogni kSettleTick campioni
+constexpr int kAlign = 128;           // 0.4.8: elaborazione in sottoblocchi allineati alla posizione assoluta: il risultato non dipende dal blocco della DAW
+constexpr int kRamp = 512;            // 0.4.8: rampa dei coefficienti di lunghezza fissa (10,7 ms a 48 kHz) per le bande statiche (prima: lunga quanto il blocco della DAW)
+constexpr int kSettleTick = 512;      // 0.4.8: assestamenti decisi ogni 512 campioni assoluti (prima: a ogni blocco della DAW)
 constexpr int kDynCells = 97;         // tabella dei guadagni dinamici: 96 passi tra 0 e il RANGE (minimo 0.125 dB), interpolazione lineare dei coefficienti
 constexpr double kSineRmsDb = 3.0102999566398120;   // Peak: picco - 3.01 dB, una sinusoide legge il suo valore RMS
 inline double dynDelta (double levelDb, const BandParams& b) {
@@ -457,7 +483,7 @@ public:
 
     Engine() { for (int i = 0; i < kMaxBands; ++i) { meterDelta[i] = 0; meterLevel[i] = -120; } }
     void prepare (double sampleRate, int maxBlock) {
-        fs = sampleRate; grid.init (fs); N = std::max (maxBlock, 32);
+        fs = sampleRate; grid.init (fs); N = std::max (maxBlock, 32); absPos = 0;
         for (auto* v : { &L, &R, &M, &S, &dL, &dR, &sL, &sR, &sM, &sS, &xL, &xR, &oL, &oR, &pL, &pR }) v->assign ((size_t) N, 0.0);
         for (auto& b : st) { b = BandState(); } for (auto& b : old) { b = BandState(); }
         fadeLen = std::max (1, (int) std::lround (0.015 * fs)); settleLen = std::max (1, (int) std::lround (0.05 * fs)); primed = false; aParam = 1 - std::exp (-kFrame / (0.01 * fs)); soloW = 0; chPrev = 0; chPos = 2 * fadeLen;
@@ -475,12 +501,13 @@ public:
             return;
         }
         const bool dynOn = p.dyn && canDyn (p.type); const double g = hasGain (p.type) ? p.gain * glob.scale : 0;
-        BandCoefs nc; designBand (p, g, grid, nc, ! primed); s.precise = ! primed; s.quiet = 0;
+        BandCoefs nc; designBand (p, g, grid, nc, ! primed, ! dynOn); s.precise = ! primed; s.quiet = 0;
         // stessa forma = stesso tipo, stessa collocazione, stesso numero di sezioni: si interpola. Altrimenti dissolvenza vecchia -> nuova.
-        const bool sameShape = s.active && s.p.type == p.type && s.p.slope == p.slope && s.p.place == p.place && nc.n == s.tgt.n && s.dynOn == dynOn;   // dinamica on/off: dissolvenza (il salto di guadagno non si interpola bene)
+        const bool sameShape = s.active && s.p.type == p.type && s.p.slope == p.slope && s.p.place == p.place && (nc.n == s.tgt.n || (! dynOn && ! s.dynOn && std::abs (nc.n - s.tgt.n) == 1)) && s.dynOn == dynOn;
+        if (sameShape && nc.n != s.tgt.n) matchSecs (s, nc);   // 0.4.8: con o senza sezione di correzione si interpola lo stesso   // dinamica on/off: dissolvenza (il salto di guadagno non si interpola bene)
         if (s.active && ! sameShape) fadeOut (i);
         const bool fresh = ! sameShape;
-        s.dynOn = dynOn; s.p = p; s.scale = glob.scale; s.g = g; s.tgt = nc;
+        s.dynOn = dynOn; s.p = p; s.scale = glob.scale; s.g = g; if (! fresh && ! dynOn) startRamp (s, nc); else s.tgt = nc;
         if (dynOn) { BandParams dp; detShape (p, dp); designBand (dp, 0, grid, s.det, false); }   // filtro del detector solo per le bande dinamiche (prima: progettato a ogni cambio anche quando non serviva)
         if (s.dynOn) {   // costanti a frequenza di frame: attacco/rilascio sul livello in dB, media RMS su 8 periodi della banda (10-80 ms)
             s.aA = 1 - std::exp (-kFrame / (std::max (0.05, p.att) * 1e-3 * fs)); s.aR = 1 - std::exp (-kFrame / (std::max (1.0, p.rel) * 1e-3 * fs));
@@ -490,7 +517,7 @@ public:
             s.dynC[0] = nc.c[0]; s.dynValid[0] = s.dynGen;
         }
         else s.delta = 0;
-        if (fresh) { s.delta = 0; s.cur = s.tgt; s.fr0 = s.tgt; s.phase = 0; std::memset (s.z, 0, sizeof (s.z)); std::memset (s.dz, 0, sizeof (s.dz));
+        if (fresh) { s.delta = 0; s.cur = s.tgt; s.fr0 = s.tgt; s.rfrom = s.tgt; s.rpos = kRamp; s.phase = 0; std::memset (s.z, 0, sizeof (s.z)); std::memset (s.dz, 0, sizeof (s.dz));
                      std::memset (s.acc2, 0, sizeof (s.acc2)); std::memset (s.pk, 0, sizeof (s.pk)); std::memset (s.pkRing, 0, sizeof (s.pkRing)); s.pkPos = 0; std::memset (s.ms, 0, sizeof (s.ms)); s.lvl = -120; s.detInit = true; s.thrS = p.thr;
                      s.fpos = 0; s.flen = primed ? fadeLen : 0; }
         else if (s.dynOn) dynTarget (s, s.delta, s.tgt);
@@ -503,7 +530,9 @@ public:
     // L/R in place; scL/scR = sidechain (o nullptr)
     void process (float* Lio, float* Rio, const float* scL, const float* scR, int n) {
         primed = true;
-        for (int i0 = 0; i0 < n; i0 += N) processChunk (Lio + i0, Rio + i0, scL ? scL + i0 : nullptr, scR ? scR + i0 : nullptr, std::min (N, n - i0));
+        for (int i0 = 0; i0 < n; ) {   // sottoblocchi che non attraversano mai un multiplo di kAlign (contato dall'inizio): rampe e assestamenti identici con qualsiasi blocco
+            const int len = std::min ({ N, n - i0, kAlign - (int) (absPos % (unsigned long long) kAlign) });
+            processChunk (Lio + i0, Rio + i0, scL ? scL + i0 : nullptr, scR ? scR + i0 : nullptr, len); absPos += (unsigned long long) len; i0 += len; }
     }
 
 private:
@@ -514,6 +543,7 @@ private:
         double acc2[2] = {}, pk[2] = {}, ms[2] = {}, lvl = -120, aRms = 0;   // detector: somma dei quadrati e picco del frame, media RMS, livello (dB) con attacco/rilascio
         double dynCell = 0.125; int dynSign = -1; unsigned dynGen = 1; unsigned dynValid[kDynCells] = {}; Coef dynC[kDynCells];
         bool precise = true; int quiet = 0;   // progetto preciso dopo 50 ms senza cambi di parametri (prima: veloce)
+        BandCoefs rfrom; int rpos = kRamp;     // bande statiche: rampa da rfrom a tgt, posizione rpos su kRamp campioni
         bool detInit = false;                 // primo frame dopo l'attivazione: il detector parte dal livello misurato (niente salita da -120 dB)
         double thrS = -24;                    // soglia levigata (10 ms): automazione della soglia senza gradini di guadagno
         int fpos = 0, flen = 0; double w0 = 1;   // dissolvenza: in entrata (banda nuova) o in uscita (copia in old[])
@@ -602,6 +632,23 @@ private:
             zl[2 * k] = l1; zl[2 * k + 1] = l2; zr[2 * k] = r1; zr[2 * k + 1] = r2;
         }
     }
+    // stesso filtro con una sezione in piu o in meno (correzione vicino a Nyquist): la cascata piu corta si completa con sezioni neutre (b0 = 1),
+    // le sezioni nuove partono da stato zero; l'interpolazione dei coefficienti resta stabile (triangolo di stabilita convesso)
+    static void matchSecs (BandState& s, BandCoefs& nc) {
+        const int m = std::max (nc.n, s.tgt.n);
+        for (int k = nc.n; k < m; ++k) nc.c[k] = Coef();
+        for (int k = s.tgt.n; k < m; ++k) { s.tgt.c[k] = Coef(); s.cur.c[k] = Coef(); s.fr0.c[k] = Coef(); s.rfrom.c[k] = Coef(); for (int c = 0; c < 2; ++c) { s.z[c][2 * k] = 0; s.z[c][2 * k + 1] = 0; } }
+        nc.n = m; s.tgt.n = m; s.cur.n = std::max (s.cur.n, m); s.fr0.n = std::max (s.fr0.n, m); s.rfrom.n = std::max (s.rfrom.n, m);
+    }
+    // coefficienti istantanei di una banda statica (a meta rampa: interpolati come nel filtro) e avvio di una rampa nuova verso nc
+    static void startRamp (BandState& s, const BandCoefs& nc) {
+        if (s.rpos < kRamp) { const double t = (double) s.rpos; BandCoefs c = s.rfrom;
+            for (int k = 0; k < s.tgt.n; ++k) { const Coef& a = s.rfrom.c[k]; const Coef& b = s.tgt.c[k]; Coef& q = c.c[k];
+                q.b0 = a.b0 + (b.b0 - a.b0) / kRamp * t; q.b1 = a.b1 + (b.b1 - a.b1) / kRamp * t; q.b2 = a.b2 + (b.b2 - a.b2) / kRamp * t; q.a1 = a.a1 + (b.a1 - a.a1) / kRamp * t; q.a2 = a.a2 + (b.a2 - a.a2) / kRamp * t; }
+            c.n = s.tgt.n; s.rfrom = c; }
+        else { s.rfrom = s.cur; s.rfrom.n = s.tgt.n; }
+        s.tgt = nc; s.rpos = coefEq (s.rfrom, nc) ? kRamp : 0; if (s.rpos == kRamp) s.cur = nc;
+    }
     static bool coefEq (const BandCoefs& a, const BandCoefs& b) { return a.n == b.n && std::memcmp (a.c, b.c, sizeof (Coef) * (size_t) a.n) == 0; }
     // coefficienti per il guadagno dinamico delta: tabella a passi fissi (progettati solo quando servono) + interpolazione lineare.
     // 0.4.3 riprogettava la banda intera a ogni frame in cui delta cambiava di oltre 0.02 dB (16 bande in movimento: 7 % di un core).
@@ -652,8 +699,11 @@ private:
         if (ms) for (int i = 0; i < n; ++i) { M[(size_t) i] = 0.5 * (L[(size_t) i] + R[(size_t) i]); S[(size_t) i] = 0.5 * (L[(size_t) i] - R[(size_t) i]); }
         double* ch[2]; double* sc[2]; const bool useSC = s.dynOn && s.p.sc && haveSC; const int nc = chans (place, ch, sc, useSC);
         if (! s.dynOn) {
-            if (! coefEq (s.cur, s.tgt)) { if (nc == 2) runLerp2 (s.cur, s.tgt, s.z[0], s.z[1], ch[0], ch[1], 0, n); else runLerp (s.cur, s.tgt, s.z[0], ch[0], 0, n); s.cur = s.tgt; }
-            else if (nc == 2) run2 (s.cur, s.z[0], s.z[1], ch[0], ch[1], n); else run (s.cur, s.z[0], ch[0], n);
+            int m = 0;   // rampa di lunghezza fissa (indipendente dal blocco), poi coefficienti fermi
+            if (s.rpos < kRamp) { m = std::min (n, kRamp - s.rpos);
+                if (nc == 2) runFrame2 (s.rfrom, s.tgt, s.z[0], s.z[1], ch[0], ch[1], 0, m, s.rpos, kRamp); else runFrame (s.rfrom, s.tgt, s.z[0], ch[0], 0, m, s.rpos, kRamp);
+                s.rpos += m; if (s.rpos >= kRamp) s.cur = s.tgt; }
+            if (m < n) { if (nc == 2) run2 (s.tgt, s.z[0], s.z[1], ch[0] + m, ch[1] + m, n - m); else run (s.tgt, s.z[0], ch[0] + m, n - m); }
         } else {
             const Coef& q = s.det.c[0];   // detector a una sezione (BP/LP/HP 12 dB)
             constexpr int F = kFrame;
@@ -687,12 +737,12 @@ private:
     void processChunk (float* Lio, float* Rio, const float* scL, const float* scR, int n) {
         {   // INPUT: guadagno d'ingresso con rampa di 20 ms; dL/dR restano il segnale originale (per il BYPASS)
             const double tgi = std::pow (10.0, glob.inDb / 20.0), gia = 1 - std::exp (-1 / (0.01 * fs)); double gi = inG, gi1 = inG1;
-            for (int i = 0; i < n; ++i) {   // un campione NaN/Inf in ingresso diventa 0 (0.4.3: un solo NaN rendeva l'uscita NaN per sempre)
-                float l = Lio[i], r = Rio[i]; if (! (std::abs (l) <= 3.0e38f)) l = 0; if (! (std::abs (r) <= 3.0e38f)) r = 0;
+            for (int i = 0; i < n; ++i) {   // un campione NaN/Inf o oltre +60 dBFS in ingresso diventa 0 (0.4.3: un solo NaN rendeva l'uscita NaN per sempre)
+                float l = Lio[i], r = Rio[i]; if (! (std::abs (l) <= kMaxIn)) l = 0; if (! (std::abs (r) <= kMaxIn)) r = 0;
                 gi1 += (tgi - gi1) * gia; gi += (gi1 - gi) * gia; dL[(size_t) i] = l; dR[(size_t) i] = r; L[(size_t) i] = l * gi; R[(size_t) i] = r * gi; }
             inG = gi; inG1 = gi1; }
         const bool haveSC = scL != nullptr && scR != nullptr;
-        if (haveSC) for (int i = 0; i < n; ++i) { double l = scL[i], r = scR[i]; if (! (std::abs (l) <= 3.0e38)) l = 0; if (! (std::abs (r) <= 3.0e38)) r = 0; sL[(size_t) i] = l; sR[(size_t) i] = r; sM[(size_t) i] = 0.5 * (l + r); sS[(size_t) i] = 0.5 * (l - r); }
+        if (haveSC) for (int i = 0; i < n; ++i) { double l = scL[i], r = scR[i]; if (! (std::abs (l) <= kMaxIn)) l = 0; if (! (std::abs (r) <= kMaxIn)) r = 0; sL[(size_t) i] = l; sR[(size_t) i] = r; sM[(size_t) i] = 0.5 * (l + r); sS[(size_t) i] = 0.5 * (l - r); }
         // SOLO: il percorso solo lavora su una copia del segnale; le bande continuano a girare sotto (nessun salto all'uscita dal solo).
         // Accensione/spegnimento con dissolvenza di 15 ms; filtro del solo interpolato quando la banda si muove o si allarga.
         const bool soloOn = glob.solo >= 0 && glob.solo < kMaxBands && st[glob.solo].active;
@@ -721,12 +771,12 @@ private:
             if (! coefEq (soloSt.c, soloSt.tgt)) { runLerp (soloSt.c, soloSt.tgt, soloSt.z[0], pL.data(), 0, n); runLerp (soloSt.c, soloSt.tgt, soloSt.z[1], pR.data(), 0, n); soloSt.c = soloSt.tgt; }
             else run2 (soloSt.c, soloSt.z[0], soloSt.z[1], pL.data(), pR.data(), n);
         }
-        int settleBudget = kSettlePerChunk;   // al massimo 2 progetti precisi per blocco: dopo un cambio di preset le 32 bande si assestano in 16 blocchi, non tutte insieme
+        int settleBudget = absPos % (unsigned long long) kSettleTick == 0 ? kSettlePerChunk : 0;   // al massimo 2 progetti precisi ogni 512 campioni: dopo un cambio di preset le 32 bande si assestano in 16 passi, non tutte insieme
         for (int b = 0; b < kMaxBands; ++b) {   // bande ferme da 50 ms: progetto preciso (interpolato dal veloce lungo il blocco)
             BandState& s = st[b]; if (! s.active || s.precise) continue;
             s.quiet += n; if (s.quiet < settleLen || settleBudget <= 0) continue; --settleBudget;
-            BandCoefs nc; designBand (s.p, s.g, grid, nc, true); s.precise = true;
-            if (s.dynOn) { ++s.dynGen; s.dynC[0] = nc.c[0]; s.dynValid[0] = s.dynGen; dynTarget (s, s.delta, s.tgt); } else s.tgt = nc;
+            BandCoefs nc; designBand (s.p, s.g, grid, nc, true, ! s.dynOn); s.precise = true;
+            if (s.dynOn) { ++s.dynGen; s.dynC[0] = nc.c[0]; s.dynValid[0] = s.dynGen; dynTarget (s, s.delta, s.tgt); } else { if (nc.n != s.tgt.n) matchSecs (s, nc); startRamp (s, nc); }
         }
         bool msLive = false;   // bande Mid/Side consecutive (senza dissolvenze in corso): una sola conversione L/R -> M/S e ritorno
         for (int b = 0; b < kMaxBands; ++b) {
@@ -782,7 +832,7 @@ private:
     double fs = 48000; int N = 512; Grid grid; Global glob;
     std::vector<double> L, R, M, S, dL, dR, sL, sR, sM, sS, xL, xR, oL, oR, pL, pR;
     BandState st[kMaxBands], old[kMaxBands]; SoloState soloSt; double outG = 1, outG1 = 1, inG = 1, inG1 = 1, byp = 0, panA = 1, panB = 1, panA1 = 1, panB1 = 1, pol = 0, soloW = 0;
-    Oversampled8x osm[3][2]; double dcm[3][4] = {}, aParam = 0.0645; int lastChm = 0, chPrev = 0, chPos = 1440, fadeLen = 720, settleLen = 2400; bool primed = false;
+    Oversampled8x osm[3][2]; double dcm[3][4] = {}, aParam = 0.0645; int lastChm = 0, chPrev = 0, chPos = 1440, fadeLen = 720, settleLen = 2400; bool primed = false; unsigned long long absPos = 0;
 };
 
 } // namespace tsrq

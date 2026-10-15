@@ -335,6 +335,36 @@ int main() {
           worst = std::max (worst, std::abs (outDb - dynDelta (lvl, b))); ++cases; }
       ok (worst < 0.05, "scarto massimo tra guadagno misurato e atteso: %.4f dB su 162 casi (RMS e Peak)", worst); }
 
+    std::printf ("== 22. CORREZIONE VICINO A NYQUIST: shelf a 14,8-20 kHz (Q 0,5, +-18 dB) e Low Cut a 20 kHz, 44,1 e 48 kHz (0.4.7: fino a 2,94 dB) ==\n");
+    { double worst = 0; int nc2 = 0;
+      for (double fs : { 44100.0, 48000.0 }) { Grid g; g.init (fs);
+        for (double f : { 14811.369, 20000.0 }) for (int t : { (int) LowShelf, (int) HighShelf }) for (double gn : { -18.0, 18.0 }) { BandParams b = band (t, f, gn, 0.5); worst = std::max (worst, maxErr (b, fs, g, -30)); BandCoefs bc; designBand (b, gn, g, bc); nc2 += bc.n == 2; }
+        BandParams lc = band (LowCut, 20000, 0, .71, 12); worst = std::max (worst, maxErr (lc, fs, g, -30)); }
+      ok (worst < 0.1, "errore massimo dall'analogico (20 Hz-20 kHz, sopra -30 dB) %.3f dB (< 0,1 dB)", worst);
+      ok (nc2 >= 13, "progetti con la sezione di correzione: %.0f su 16 (i casi che sbagliavano oltre 1 dB sono 13)", nc2);
+      // nel motore: banda ferma (precisa, 2 sezioni) -> trascinata (veloce, 1 sezione + neutra) -> ferma (precisa): uscita finita, invariante al blocco, guadagno giusto a 15 e 19 kHz
+      const double fs = 44100; const int n = (int) fs * 2; auto runB = [&] (int bl) { std::vector<float> L ((size_t) n), R ((size_t) n); for (int i = 0; i < n; ++i) L[(size_t) i] = R[(size_t) i] = (float) (0.1 * std::sin (2 * kPi * 15000 * i / fs) + 0.1 * std::sin (2 * kPi * 19000 * i / fs));
+          Engine e; e.prepare (fs, 4096); Engine::Global gl; e.setGlobal (gl);
+          for (int j0 = 0; j0 < n; j0 += 1024) { const double t = j0 / fs, gn = t < 0.3 ? 12.0 : t < 0.6 ? 12.0 + 6 * (t - 0.3) / 0.3 : 18.0; e.setBand (0, band (HighShelf, 20000, gn, 0.5));   // parametri ogni 1024 campioni in tutti e due i casi
+            for (int i0 = j0; i0 < std::min (n, j0 + 1024); i0 += bl) e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, std::min ({ bl, n - i0, j0 + 1024 - i0 })); } return L; };
+      const auto A = runB (64), B = runB (1024); double mx = 0; bool fin = true; for (int i = 0; i < n; ++i) { fin = fin && std::isfinite (A[(size_t) i]); mx = std::max (mx, (double) std::abs (A[(size_t) i] - B[(size_t) i])); }
+      ok (fin && mx == 0, "veloce -> preciso con una sezione in piu: uscita finita e identica al bit con blocchi da 64 e da 1024 (scarto %.1f dBFS)", mx > 0 ? 20 * std::log10 (mx) : -300.0);
+      SecSet set; sectionsFor (band (HighShelf, 20000, 18, 0.5), 18, set); double w = 0; const int s0 = n - 16384;
+      auto amp = [&] (const std::vector<float>& x, double f) { double re = 0, im = 0; for (int i = s0; i < n; ++i) { const double win = 0.5 - 0.5 * std::cos (2 * kPi * (i - s0) / 16384.0); re += x[(size_t) i] * win * std::cos (2 * kPi * f * i / fs); im += x[(size_t) i] * win * std::sin (2 * kPi * f * i / fs); } return std::hypot (re, im); };
+      std::vector<float> X ((size_t) n); for (int i = 0; i < n; ++i) X[(size_t) i] = (float) (0.1 * std::sin (2 * kPi * 15000 * i / fs) + 0.1 * std::sin (2 * kPi * 19000 * i / fs));
+      for (double f : { 15000.0, 19000.0 }) w = std::max (w, std::abs (20 * std::log10 (amp (A, f) / amp (X, f)) - db (anaMag2 (set, f))));
+      ok (w < 0.1, "nel motore, dopo l'assestamento: guadagno a 15 e 19 kHz scarto dall'analogico %.3f dB (< 0,1 dB)", w); }
+
+    std::printf ("== 23. INGRESSO ASSURDO: un campione 1e30 / 1e10 / 1e5 (0.4.7: fino a 1,6 s di uscita fuori scala) ==\n");
+    { const double fs = 48000; int worstBad = 0; double keep = 0;
+      for (double big : { 1e30, 1e10, 1e5, 999.0 }) { Engine e; e.prepare (fs, 4096); Engine::Global gl; e.setGlobal (gl); e.setBand (0, band (Bell, 1000, 4, 1)); e.setBand (1, band (LowCut, 40, 0, .71, 24));
+        const int n = (int) fs * 4; std::vector<float> L ((size_t) n), R ((size_t) n); for (int i = 0; i < n; ++i) L[(size_t) i] = R[(size_t) i] = (float) (0.1 * std::sin (2 * kPi * 440 * i / fs)); L[48000] = R[48000] = (float) big;
+        for (int i0 = 0; i0 < n; i0 += 512) e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, 512);
+        int bad = 0; for (int i = 0; i < n; ++i) if (! std::isfinite (L[(size_t) i]) || std::abs (L[(size_t) i]) > 4) ++bad;
+        if (big > 1000) worstBad = std::max (worstBad, bad); else keep = std::abs (L[48000]); }
+      ok (worstBad == 0, "campioni d'uscita non finiti o oltre +12 dBFS: %.0f (atteso 0)", worstBad);
+      ok (keep > 500, "un campione da 999 (+60 dBFS, ancora valido) passa: uscita %.0f", keep); }
+
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;
 }
