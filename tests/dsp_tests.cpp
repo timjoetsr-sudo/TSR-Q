@@ -2,6 +2,7 @@
 #include "../Source/TsrqDsp.h"
 #include <cstdio>
 #include <random>
+#include <memory>
 #include <chrono>
 #include <complex>
 using namespace tsrq;
@@ -364,6 +365,18 @@ int main() {
         if (big > 1000) worstBad = std::max (worstBad, bad); else keep = std::abs (L[48000]); }
       ok (worstBad == 0, "campioni d'uscita non finiti o oltre +12 dBFS: %.0f (atteso 0)", worstBad);
       ok (keep > 500, "un campione da 999 (+60 dBFS, ancora valido) passa: uscita %.0f", keep); }
+
+    std::printf ("== 24. AVVIO DOPO PREPARE: il primo blocco esce gia con OUTPUT/INPUT/bypass/polarita/pan/Character impostati (0.4.8: rampa da 0 dB per 160 ms) ==\n");
+    { const double fs = 48000; const char* nm[] = { "OUTPUT -12 dB", "INPUT -12 dB", "OUTPUT -inf", "BYPASS con EQ", "polarita invertita", "pan +50", "Character Warm" };
+      for (int c = 0; c < 7; ++c) { auto cfg = [&] (Engine& e) { Engine::Global gl; switch (c) { case 0: gl.outDb = -12; break; case 1: gl.inDb = -12; break; case 2: gl.outDb = -60; break; case 3: gl.bypass = true; break; case 4: gl.invert = true; break; case 5: gl.pan = .5; break; default: gl.character = 2; }
+          e.setGlobal (gl); e.setBand (0, band (Bell, 1000, 4, 1)); e.setBand (1, band (LowCut, 40, 0, .71, 24)); };
+        const int n = (int) fs / 2; std::vector<float> L ((size_t) n), R ((size_t) n); std::mt19937 rg (8); std::uniform_real_distribution<float> u (-.5f, .5f); for (int i = 0; i < n; ++i) { L[(size_t) i] = u (rg); R[(size_t) i] = u (rg); } auto L2 = L, R2 = R;
+        auto pa = std::make_unique<Engine>(), pb = std::make_unique<Engine>(); Engine& a = *pa; Engine& b = *pb;   // nello heap: due motori in piu sullo stack di main lo facevano traboccare
+        a.prepare (fs, 512); cfg (a); for (int i0 = 0; i0 < n; i0 += 512) a.process (L.data() + i0, R.data() + i0, nullptr, nullptr, std::min (512, n - i0));
+        b.prepare (fs, 512); cfg (b); { std::vector<float> z ((size_t) fs, 0.f), z2 = z; for (int i0 = 0; i0 < (int) fs; i0 += 512) b.process (z.data() + i0, z2.data() + i0, nullptr, nullptr, std::min (512, (int) fs - i0)); }
+        cfg (b); for (int i0 = 0; i0 < n; i0 += 512) b.process (L2.data() + i0, R2.data() + i0, nullptr, nullptr, std::min (512, n - i0));
+        double mx = 0; for (int i = 0; i < n; ++i) mx = std::max ({ mx, (double) std::abs (L[(size_t) i] - L2[(size_t) i]), (double) std::abs (R[(size_t) i] - R2[(size_t) i]) });
+        std::printf ("  %s\n", nm[c]); ok (mx == 0, "motore appena preparato = motore a regime, scarto %.1f dBFS (atteso nessuno)", mx > 0 ? 20 * std::log10 (mx) : -300.0); } }
 
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;

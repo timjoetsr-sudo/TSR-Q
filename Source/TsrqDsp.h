@@ -529,6 +529,7 @@ public:
 
     // L/R in place; scL/scR = sidechain (o nullptr)
     void process (float* Lio, float* Rio, const float* scL, const float* scR, int n) {
+        if (! primed) snapGlobals();   // primo blocco dopo prepare: guadagni, bypass, polarita, pan e Character partono gia al valore impostato (prima: rampa da 0 dB / attivo / Clean)
         primed = true;
         for (int i0 = 0; i0 < n; ) {   // sottoblocchi che non attraversano mai un multiplo di kAlign (contato dall'inizio): rampe e assestamenti identici con qualsiasi blocco
             const int len = std::min ({ N, n - i0, kAlign - (int) (absPos % (unsigned long long) kAlign) });
@@ -844,6 +845,12 @@ private:
         outG = g; outG1 = g1; byp = by; panA = pa; panB = pb; panA1 = pa1; panB1 = pb1; pol = po;
     }
 
+    void snapGlobals() {
+        const bool mute = glob.outDb <= -60; outG = outG1 = mute ? 0.0 : std::pow (10.0, (glob.outDb + glob.autoGainDb) / 20.0);
+        inG = inG1 = std::pow (10.0, glob.inDb / 20.0); byp = glob.bypass ? 1 : 0; pol = glob.invert ? 1 : 0;
+        const double p = std::clamp (glob.pan, -1.0, 1.0); panA = panA1 = std::min (1.0, 1 - p); panB = panB1 = std::min (1.0, 1 + p);
+        lastChm = chPrev = glob.character; chPos = 2 * fadeLen;
+    }
     void chPath (int m, double l, double r, double& ol, double& orr, double dcA) {   // Character del modo m (0 = Clean, passa invariato)
         if (! m) { ol = l; orr = r; return; }
         double* d = dcm[m]; l = osm[m][0].run (m, l); r = osm[m][1].run (m, r);
