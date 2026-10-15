@@ -517,7 +517,7 @@ public:
             s.dynC[0] = nc.c[0]; s.dynValid[0] = s.dynGen;
         }
         else s.delta = 0;
-        if (fresh) { s.delta = 0; s.cur = s.tgt; s.fr0 = s.tgt; s.rfrom = s.tgt; s.rpos = kRamp; s.phase = 0; std::memset (s.z, 0, sizeof (s.z)); std::memset (s.dz, 0, sizeof (s.dz));
+        if (fresh) { s.delta = 0; s.cur = s.tgt; s.fr0 = s.tgt; s.rfrom = s.tgt; s.rc = s.tgt; s.rpos = kRamp; s.phase = 0; std::memset (s.z, 0, sizeof (s.z)); std::memset (s.dz, 0, sizeof (s.dz));
                      std::memset (s.acc2, 0, sizeof (s.acc2)); std::memset (s.pk, 0, sizeof (s.pk)); std::memset (s.pkRing, 0, sizeof (s.pkRing)); s.pkPos = 0; std::memset (s.ms, 0, sizeof (s.ms)); s.lvl = -120; s.detInit = true; s.thrS = p.thr;
                      s.fpos = 0; s.flen = primed ? fadeLen : 0; }
         else if (s.dynOn) dynTarget (s, s.delta, s.tgt);
@@ -544,6 +544,7 @@ private:
         double dynCell = 0.125; int dynSign = -1; unsigned dynGen = 1; unsigned dynValid[kDynCells] = {}; Coef dynC[kDynCells];
         bool precise = true; int quiet = 0;   // progetto preciso dopo 50 ms senza cambi di parametri (prima: veloce)
         BandCoefs rfrom; int rpos = kRamp;     // bande statiche: rampa da rfrom a tgt, posizione rpos su kRamp campioni
+        BandCoefs rc, rd;                     // rampa: coefficienti dell'ultimo campione e incremento per campione (sommati in sequenza: identici con qualsiasi divisione in blocchi)
         bool detInit = false;                 // primo frame dopo l'attivazione: il detector parte dal livello misurato (niente salita da -120 dB)
         double thrS = -24;                    // soglia levigata (10 ms): automazione della soglia senza gradini di guadagno
         int fpos = 0, flen = 0; double w0 = 1;   // dissolvenza: in entrata (banda nuova) o in uscita (copia in old[])
@@ -632,22 +633,41 @@ private:
             zl[2 * k] = l1; zl[2 * k + 1] = l2; zr[2 * k] = r1; zr[2 * k + 1] = r2;
         }
     }
+    // rampa incrementale: c += d a ogni campione, c resta nello stato (stesse somme nello stesso ordine comunque il blocco sia diviso)
+    static void runInc (BandCoefs& c, const BandCoefs& d, double* z, double* x, int n) {
+        for (int k = 0; k < c.n; ++k) {
+            const Coef& q = d.c[k]; double b0 = c.c[k].b0, b1 = c.c[k].b1, b2 = c.c[k].b2, a1 = c.c[k].a1, a2 = c.c[k].a2, z1 = z[2 * k], z2 = z[2 * k + 1];
+            for (int i = 0; i < n; ++i) { b0 += q.b0; b1 += q.b1; b2 += q.b2; a1 += q.a1; a2 += q.a2;
+                const double xi = x[i], y = b0 * xi + z1; z1 = b1 * xi - a1 * y + z2; z2 = b2 * xi - a2 * y; x[i] = y; }
+            c.c[k] = Coef { b0, b1, b2, a1, a2 }; z[2 * k] = z1; z[2 * k + 1] = z2;
+        }
+    }
+    static void runInc2 (BandCoefs& c, const BandCoefs& d, double* zl, double* zr, double* xl, double* xr, int n) {
+        for (int k = 0; k < c.n; ++k) {
+            const Coef& q = d.c[k]; double b0 = c.c[k].b0, b1 = c.c[k].b1, b2 = c.c[k].b2, a1 = c.c[k].a1, a2 = c.c[k].a2;
+            double l1 = zl[2 * k], l2 = zl[2 * k + 1], r1 = zr[2 * k], r2 = zr[2 * k + 1];
+            for (int i = 0; i < n; ++i) { b0 += q.b0; b1 += q.b1; b2 += q.b2; a1 += q.a1; a2 += q.a2;
+                const double xa = xl[i], xb = xr[i], ya = b0 * xa + l1, yb = b0 * xb + r1;
+                l1 = b1 * xa - a1 * ya + l2; r1 = b1 * xb - a1 * yb + r2; l2 = b2 * xa - a2 * ya; r2 = b2 * xb - a2 * yb; xl[i] = ya; xr[i] = yb; }
+            c.c[k] = Coef { b0, b1, b2, a1, a2 }; zl[2 * k] = l1; zl[2 * k + 1] = l2; zr[2 * k] = r1; zr[2 * k + 1] = r2;
+        }
+    }
     // stesso filtro con una sezione in piu o in meno (correzione vicino a Nyquist): la cascata piu corta si completa con sezioni neutre (b0 = 1),
     // le sezioni nuove partono da stato zero; l'interpolazione dei coefficienti resta stabile (triangolo di stabilita convesso)
     static void matchSecs (BandState& s, BandCoefs& nc) {
         const int m = std::max (nc.n, s.tgt.n);
         for (int k = nc.n; k < m; ++k) nc.c[k] = Coef();
-        for (int k = s.tgt.n; k < m; ++k) { s.tgt.c[k] = Coef(); s.cur.c[k] = Coef(); s.fr0.c[k] = Coef(); s.rfrom.c[k] = Coef(); for (int c = 0; c < 2; ++c) { s.z[c][2 * k] = 0; s.z[c][2 * k + 1] = 0; } }
-        nc.n = m; s.tgt.n = m; s.cur.n = std::max (s.cur.n, m); s.fr0.n = std::max (s.fr0.n, m); s.rfrom.n = std::max (s.rfrom.n, m);
+        for (int k = s.tgt.n; k < m; ++k) { s.tgt.c[k] = Coef(); s.cur.c[k] = Coef(); s.fr0.c[k] = Coef(); s.rfrom.c[k] = Coef(); s.rc.c[k] = Coef(); s.rd.c[k] = Coef { 0, 0, 0, 0, 0 }; for (int c = 0; c < 2; ++c) { s.z[c][2 * k] = 0; s.z[c][2 * k + 1] = 0; } }
+        nc.n = m; s.tgt.n = m; s.cur.n = std::max (s.cur.n, m); s.fr0.n = std::max (s.fr0.n, m); s.rfrom.n = std::max (s.rfrom.n, m); s.rc.n = std::max (s.rc.n, m); s.rd.n = std::max (s.rd.n, m);
     }
     // coefficienti istantanei di una banda statica (a meta rampa: interpolati come nel filtro) e avvio di una rampa nuova verso nc
     static void startRamp (BandState& s, const BandCoefs& nc) {
-        if (s.rpos < kRamp) { const double t = (double) s.rpos; BandCoefs c = s.rfrom;
-            for (int k = 0; k < s.tgt.n; ++k) { const Coef& a = s.rfrom.c[k]; const Coef& b = s.tgt.c[k]; Coef& q = c.c[k];
-                q.b0 = a.b0 + (b.b0 - a.b0) / kRamp * t; q.b1 = a.b1 + (b.b1 - a.b1) / kRamp * t; q.b2 = a.b2 + (b.b2 - a.b2) / kRamp * t; q.a1 = a.a1 + (b.a1 - a.a1) / kRamp * t; q.a2 = a.a2 + (b.a2 - a.a2) / kRamp * t; }
-            c.n = s.tgt.n; s.rfrom = c; }
+        if (s.rpos < kRamp) { s.rfrom = s.rc; s.rfrom.n = s.tgt.n; }   // rampa in corso: si riparte dai coefficienti dell'ultimo campione (continuita esatta)
         else { s.rfrom = s.cur; s.rfrom.n = s.tgt.n; }
-        s.tgt = nc; s.rpos = coefEq (s.rfrom, nc) ? kRamp : 0; if (s.rpos == kRamp) s.cur = nc;
+        s.tgt = nc; s.rpos = coefEq (s.rfrom, nc) ? kRamp : 0; if (s.rpos == kRamp) { s.cur = nc; return; }
+        s.rc = s.rfrom; s.rd.n = nc.n;
+        for (int k = 0; k < nc.n; ++k) { const Coef& a = s.rfrom.c[k]; const Coef& b = nc.c[k]; Coef& d = s.rd.c[k];
+            d.b0 = (b.b0 - a.b0) / kRamp; d.b1 = (b.b1 - a.b1) / kRamp; d.b2 = (b.b2 - a.b2) / kRamp; d.a1 = (b.a1 - a.a1) / kRamp; d.a2 = (b.a2 - a.a2) / kRamp; }
     }
     static bool coefEq (const BandCoefs& a, const BandCoefs& b) { return a.n == b.n && std::memcmp (a.c, b.c, sizeof (Coef) * (size_t) a.n) == 0; }
     // coefficienti per il guadagno dinamico delta: tabella a passi fissi (progettati solo quando servono) + interpolazione lineare.
@@ -701,7 +721,7 @@ private:
         if (! s.dynOn) {
             int m = 0;   // rampa di lunghezza fissa (indipendente dal blocco), poi coefficienti fermi
             if (s.rpos < kRamp) { m = std::min (n, kRamp - s.rpos);
-                if (nc == 2) runFrame2 (s.rfrom, s.tgt, s.z[0], s.z[1], ch[0], ch[1], 0, m, s.rpos, kRamp); else runFrame (s.rfrom, s.tgt, s.z[0], ch[0], 0, m, s.rpos, kRamp);
+                if (nc == 2) runInc2 (s.rc, s.rd, s.z[0], s.z[1], ch[0], ch[1], m); else runInc (s.rc, s.rd, s.z[0], ch[0], m);
                 s.rpos += m; if (s.rpos >= kRamp) s.cur = s.tgt; }
             if (m < n) { if (nc == 2) run2 (s.tgt, s.z[0], s.z[1], ch[0] + m, ch[1] + m, n - m); else run (s.tgt, s.z[0], ch[0] + m, n - m); }
         } else {
