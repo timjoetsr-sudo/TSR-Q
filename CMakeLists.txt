@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(TSRQ VERSION 0.4.8 LANGUAGES C CXX)
+project(TSRQ VERSION 0.4.9 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # stessi arrotondamenti su ogni CPU/compilatore (niente FMA automatiche): il progetto dei filtri deve dare lo stesso risultato su Mac arm64, Intel e Linux
@@ -65,3 +65,6 @@ target_include_directories(tsrq_dsp_tests PRIVATE Source)
 
 add_executable(tsrq_stem_tests tests/stem_tests.cpp)
 target_include_directories(tsrq_stem_tests PRIVATE Source)
+
+add_executable(tsrq_quality_csv tests/quality_csv.cpp)   # DSP quality pass: metriche in CSV (aliasing, THD+N, null, latenza, zipper, CPU, dinamica, avvio, robustezza)
+target_include_directories(tsrq_quality_csv PRIVATE Source)
