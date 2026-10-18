@@ -39,6 +39,22 @@ inline Coef fromSvf (const Svf& q) {   // inverso di toSvf (s = (1 - z^-1) / (1 
     return Coef { (n2 + n1 + n0) / a0, 2 * (n0 - n2) / a0, (n2 - n1 + n0) / a0, 2 * (g * g - 1) / a0, (1 - k * g + g * g) / a0 };
 }
 inline bool firstOrd (const Coef& c) { return std::abs (c.a2) < 1e-12 && std::abs (c.b2) < 1e-12; }   // sezione del primo ordine (un polo): in SVF diventerebbe polo + zero cancellati
+    // stato equivalente tra le due strutture (stessa H(z) nell'istante del passaggio): si eguagliano le prime due uscite a ingresso nullo.
+// Sezione non osservabile (neutra, polo cancellato da uno zero): lo stato non conta e va a zero.
+inline void svfZir (const Svf& q, double i1, double i2, double& y0, double& y1) {   // prime due uscite a ingresso nullo dallo stato (i1, i2)
+    const double h1 = 1 / (1 + q.g * (q.g + q.k)), h2 = q.g * h1, h3 = q.g * h2, c1 = q.mb - q.mh * q.k, c2 = q.ml - q.mh;
+    double v1 = h1 * i1 - h2 * i2, v2 = h2 * i1 + (1 - h3) * i2; y0 = c1 * v1 + c2 * v2; const double j1 = 2 * v1 - i1, j2 = 2 * v2 - i2;
+    v1 = h1 * j1 - h2 * j2; v2 = h2 * j1 + (1 - h3) * j2; y1 = c1 * v1 + c2 * v2; }
+inline void tdfToSvf (const Coef& c, const Svf& q, double* z) {
+    const double y0 = z[0], y1 = -c.a1 * z[0] + z[1]; double p0, p1, r0, r1; svfZir (q, 1, 0, p0, p1); svfZir (q, 0, 1, r0, r1);
+    // soglie lontane dai denormali: con FTZ/DAZ attivi (ScopedNoDenormals nel plugin) 1e-12 * 1e-300 diventava 0 e si divideva 0 per 0 (NaN trovato da pluginval)
+    const double m = std::max ({ std::abs (p0), std::abs (p1), std::abs (r0), std::abs (r1) }), det = p0 * r1 - r0 * p1;
+    if (! (m > 1e-9)) { z[0] = z[1] = 0; return; }   // l'uscita non dipende dallo stato (sezione neutra, b = a)
+    if (! (std::abs (det) > 1e-9 * m * m)) {   // stato in parte non osservabile: si conserva la parte che conta (pseudo-inversa a norma minima)
+        const double nn = p0 * p0 + p1 * p1 + r0 * r0 + r1 * r1; z[0] = (p0 * y0 + p1 * y1) / nn; z[1] = (r0 * y0 + r1 * y1) / nn; return; }
+    z[0] = (y0 * r1 - r0 * y1) / det; z[1] = (p0 * y1 - y0 * p1) / det; }
+inline void svfToTdf (const Coef& c, const Svf& q, double* z) {
+    double y0, y1; svfZir (q, z[0], z[1], y0, y1); z[0] = y0; z[1] = y1 + c.a1 * y0; }
 // biquad stabile -> SVF con la stessa H(z): sostituzione bilineare z = (1 + s) / (1 - s) su numeratore e denominatore
 // (stabilita: D(1) > 0 e D(-1) > 0, quindi g reale e positivo)
 inline Svf toSvf (const Coef& c) {
@@ -696,20 +712,6 @@ private:
     static void runIncS2 (SvfSet& c, const SvfSet& d, BandCoefs& rc, const BandCoefs& rd, double* zl, double* zr, double* xl, double* xr, int n) {
         for (int k = 0; k < c.n; ++k) { if (c.on[k]) svfMod2<true> (c.s[k], d.s[k], c.s[k], 0, zl + 2 * k, zr + 2 * k, xl, xr, n);
             else { Coef c2 = rc.c[k]; incSec (rc.c[k], rd.c[k], zl + 2 * k, xl, n); incSec (c2, rd.c[k], zr + 2 * k, xr, n); } } }
-    // stato equivalente tra le due strutture (stessa H(z) nell'istante del passaggio): si eguagliano le prime due uscite a ingresso nullo.
-    // Sezione non osservabile (neutra, polo cancellato da uno zero): lo stato non conta e va a zero.
-    static void svfZir (const Svf& q, double i1, double i2, double& y0, double& y1) {   // prime due uscite a ingresso nullo dallo stato (i1, i2)
-        const double h1 = 1 / (1 + q.g * (q.g + q.k)), h2 = q.g * h1, h3 = q.g * h2, c1 = q.mb - q.mh * q.k, c2 = q.ml - q.mh;
-        double v1 = h1 * i1 - h2 * i2, v2 = h2 * i1 + (1 - h3) * i2; y0 = c1 * v1 + c2 * v2; const double j1 = 2 * v1 - i1, j2 = 2 * v2 - i2;
-        v1 = h1 * j1 - h2 * j2; v2 = h2 * j1 + (1 - h3) * j2; y1 = c1 * v1 + c2 * v2; }
-    static void tdfToSvf (const Coef& c, const Svf& q, double* z) {
-        const double y0 = z[0], y1 = -c.a1 * z[0] + z[1]; double p0, p1, r0, r1; svfZir (q, 1, 0, p0, p1); svfZir (q, 0, 1, r0, r1);
-        const double det = p0 * r1 - r0 * p1, sc = std::max ({ std::abs (p0 * r1), std::abs (r0 * p1), 1e-300 });
-        if (std::abs (det) < 1e-12 * sc) {   // stato in parte non osservabile: si conserva la parte che conta (pseudo-inversa a norma minima)
-            const double nn = p0 * p0 + p1 * p1 + r0 * r0 + r1 * r1; if (nn < 1e-300) { z[0] = z[1] = 0; return; } z[0] = (p0 * y0 + p1 * y1) / nn; z[1] = (r0 * y0 + r1 * y1) / nn; return; }
-        z[0] = (y0 * r1 - r0 * y1) / det; z[1] = (p0 * y1 - y0 * p1) / det; }
-    static void svfToTdf (const Coef& c, const Svf& q, double* z) {
-        double y0, y1; svfZir (q, z[0], z[1], y0, y1); z[0] = y0; z[1] = y1 + c.a1 * y0; }
     // stesso filtro con una sezione in piu o in meno (correzione vicino a Nyquist): la cascata piu corta si completa con sezioni neutre (b0 = 1),
     // le sezioni nuove partono da stato zero; l'interpolazione dei coefficienti resta stabile (triangolo di stabilita convesso)
     static void matchSecs (BandState& s, BandCoefs& nc) {

@@ -24,6 +24,14 @@ static void fftMag (std::vector<double>& x, std::vector<double>& mag) {
         for (size_t i = 0; i < N; i += len) { std::complex<double> w (1); for (size_t k = 0; k < len / 2; ++k) { auto u = a[i + k], v = a[i + k + len / 2] * w; a[i + k] = u + v; a[i + k + len / 2] = u - v; w *= wl; } } }
     mag.resize (N / 2); for (size_t k = 0; k < N / 2; ++k) mag[k] = std::norm (a[k]);
 }
+#if defined(__x86_64__) || defined(_M_X64)
+#include <xmmintrin.h>
+static void setFtz (bool on) { _mm_setcsr (on ? (_mm_getcsr() | 0x8040) : (_mm_getcsr() & ~0x8040u)); }
+#elif defined(__aarch64__)
+static void setFtz (bool on) { unsigned long long r; asm volatile ("mrs %0, fpcr" : "=r" (r)); r = on ? (r | (1ull << 24)) : (r & ~(1ull << 24)); asm volatile ("msr fpcr, %0" :: "r" (r)); }
+#else
+static void setFtz (bool) {}
+#endif
 static BandParams band (int type, double f, double g, double q, int slope = 12, int place = Stereo) { BandParams b; b.used = true; b.type = type; b.f = f; b.gain = g; b.q = q; b.slope = slope; b.place = place; return b; }
 
 int main() {
@@ -401,6 +409,13 @@ int main() {
       std::vector<float> A, B, C; run1 (band (LowShelf, 100, 30, 40), band (LowShelf, 100, 30, 40), 300, 0.25, A); run1 (band (LowShelf, 5000, -30, 40), band (LowShelf, 5000, -30, 40), 300, 0.25, B); run1 (band (LowShelf, 100, 30, 40), band (LowShelf, 5000, -30, 40), 300, 0.25, C);
       double pa = 0, pb = 0, pc = 0; for (int i = 40000; i < 48000; ++i) pa = std::max (pa, (double) std::abs (A[(size_t) i])); for (int i = 60000; i < 72000; ++i) pb = std::max (pb, (double) std::abs (B[(size_t) i])); for (int i = 48000; i < 49440; ++i) pc = std::max (pc, (double) std::abs (C[(size_t) i]));
       ok (20 * std::log10 (pc / std::max (pa, pb)) < 0.5, "Low Shelf Q40 +30 dB 100 Hz -> -30 dB 5 kHz, tono 300 Hz: picco %.2f dB oltre i due regimi (< 0,5; b2eaa83: +38 dB)", 20 * std::log10 (pc / std::max (pa, pb))); }
+
+    std::printf ("== 27. CONVERSIONE BIQUAD -> SVF CON FLUSH-TO-ZERO (come nel plugin): sezione neutra (b = a), stato nullo -> nessun NaN (2e763be: 0/0, trovato da pluginval) ==\n");
+    { setFtz (true); const Coef c { 1, -1.7771790535722753, 0.89686294475956618, -1.7771790535722753, 0.89686294475956618 }; const Svf q = toSvf (c); bool fin = true;
+      for (double z0 : { 0.0, 1e-3, -0.5 }) { double z[2] = { z0, -z0 / 2 }; tdfToSvf (c, q, z); fin = fin && std::isfinite (z[0]) && std::isfinite (z[1]); svfToTdf (c, q, z); fin = fin && std::isfinite (z[0]) && std::isfinite (z[1]); }
+      Grid g; g.init (44100); int bad = 0;   // tutte le sezioni neutre e quasi neutre dei progetti con guadagno 0
+      for (int t : { LowShelf, HighShelf, TiltShelf, Bell }) for (double f = 20; f < 22000; f *= 1.3) for (double qq : { 0.1, 1.0, 3.28, 40.0 }) { BandCoefs bc; designBand (band (t, f, 0, qq), 0, g, bc); for (int k = 0; k < bc.n; ++k) { double z[2] = { 0, 0 }; tdfToSvf (bc.c[k], toSvf (bc.c[k]), z); if (! std::isfinite (z[0]) || ! std::isfinite (z[1])) ++bad; } }
+      setFtz (false); ok (fin && bad == 0, "stati finiti con FTZ/DAZ attivi: sezioni con stato nullo non finite %.0f (atteso 0)", bad); }
 
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;
