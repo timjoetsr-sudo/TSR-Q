@@ -33,7 +33,12 @@ struct Coef { double b0 = 1, b1 = 0, b2 = 0, a1 = 0, a2 = 0; };
 struct BandCoefs { int n = 0; Coef c[kMaxSecs]; };
 // sezione come SVF trapezoidale: g = tan(pi f / fs), k = 1/Q, uscita = mh*passa-alto + mb*passa-banda(g s) + ml*passa-basso (valori di default = sezione neutra)
 struct Svf { double g = 1, k = 2, mh = 1, mb = 2, ml = 1; };
-struct SvfSet { int n = 0; Svf s[kMaxSecs]; };
+struct SvfSet { int n = 0; Svf s[kMaxSecs]; bool on[kMaxSecs] = {}; };   // on: sezione che in questo momento gira come SVF (le altre come biquad)
+inline Coef fromSvf (const Svf& q) {   // inverso di toSvf (s = (1 - z^-1) / (1 + z^-1))
+    const double g = q.g, k = q.k, n2 = q.mh, n1 = q.mb * g, n0 = q.ml * g * g, a0 = 1 + k * g + g * g;
+    return Coef { (n2 + n1 + n0) / a0, 2 * (n0 - n2) / a0, (n2 - n1 + n0) / a0, 2 * (g * g - 1) / a0, (1 - k * g + g * g) / a0 };
+}
+inline bool firstOrd (const Coef& c) { return std::abs (c.a2) < 1e-12 && std::abs (c.b2) < 1e-12; }   // sezione del primo ordine (un polo): in SVF diventerebbe polo + zero cancellati
 // biquad stabile -> SVF con la stessa H(z): sostituzione bilineare z = (1 + s) / (1 - s) su numeratore e denominatore
 // (stabilita: D(1) > 0 e D(-1) > 0, quindi g reale e positivo)
 inline Svf toSvf (const Coef& c) {
@@ -512,7 +517,8 @@ public:
         const bool dynOn = p.dyn && canDyn (p.type); const double g = hasGain (p.type) ? p.gain * glob.scale : 0;
         BandCoefs nc; designBand (p, g, grid, nc, ! primed, ! dynOn); s.precise = ! primed; s.quiet = 0;
         // stessa forma = stesso tipo, stessa collocazione, stesso numero di sezioni: si interpola. Altrimenti dissolvenza vecchia -> nuova.
-        const bool sameShape = s.active && s.p.type == p.type && s.p.slope == p.slope && s.p.place == p.place && (nc.n == s.tgt.n || (! dynOn && ! s.dynOn && std::abs (nc.n - s.tgt.n) == 1)) && s.dynOn == dynOn;
+        bool sameShape = s.active && s.p.type == p.type && s.p.slope == p.slope && s.p.place == p.place && (nc.n == s.tgt.n || (! dynOn && ! s.dynOn && std::abs (nc.n - s.tgt.n) == 1)) && s.dynOn == dynOn;
+        if (sameShape && ! dynOn && primed && bigJump (s.p, s.g, p, g)) sameShape = false;
         if (sameShape && nc.n != s.tgt.n) matchSecs (s, nc);   // 0.4.8: con o senza sezione di correzione si interpola lo stesso   // dinamica on/off: dissolvenza (il salto di guadagno non si interpola bene)
         if (s.active && ! sameShape) fadeOut (i);
         const bool fresh = ! sameShape;
@@ -526,7 +532,7 @@ public:
             s.dynC[0] = nc.c[0]; s.dynValid[0] = s.dynGen;
         }
         else s.delta = 0;
-        if (fresh) { s.delta = 0; s.cur = s.tgt; s.fr0 = s.tgt; s.rfrom = s.tgt; s.rc = s.tgt; s.svf = false; s.rpos = kRamp; s.phase = 0; std::memset (s.z, 0, sizeof (s.z)); std::memset (s.dz, 0, sizeof (s.dz));
+        if (fresh) { s.delta = 0; s.cur = s.tgt; s.fr0 = s.tgt; s.rfrom = s.tgt; s.rc = s.tgt; s.svf = false; for (int k = 0; k < kMaxSecs; ++k) s.rcS.on[k] = false; s.rpos = kRamp; s.phase = 0; std::memset (s.z, 0, sizeof (s.z)); std::memset (s.dz, 0, sizeof (s.dz));
                      std::memset (s.acc2, 0, sizeof (s.acc2)); std::memset (s.pk, 0, sizeof (s.pk)); std::memset (s.pkRing, 0, sizeof (s.pkRing)); s.pkPos = 0; std::memset (s.ms, 0, sizeof (s.ms)); s.lvl = -120; s.detInit = true; s.thrS = p.thr;
                      s.fpos = 0; s.flen = primed ? fadeLen : 0; }
         else if (s.dynOn) dynTarget (s, s.delta, s.tgt);
@@ -681,8 +687,15 @@ private:
         zl[0] = l1; zl[1] = l2; zr[0] = r1; zr[1] = r2;
     }
     static Svf svfDelta (const Svf& a, const Svf& b, double len) { return Svf { (b.g - a.g) / len, (b.k - a.k) / len, (b.mh - a.mh) / len, (b.mb - a.mb) / len, (b.ml - a.ml) / len }; }
-    static void runIncS (SvfSet& c, const SvfSet& d, double* z, double* x, int n) { for (int k = 0; k < c.n; ++k) svfMod<true> (c.s[k], d.s[k], c.s[k], 0, z + 2 * k, x, n); }
-    static void runIncS2 (SvfSet& c, const SvfSet& d, double* zl, double* zr, double* xl, double* xr, int n) { for (int k = 0; k < c.n; ++k) svfMod2<true> (c.s[k], d.s[k], c.s[k], 0, zl + 2 * k, zr + 2 * k, xl, xr, n); }
+    static void incSec (Coef& c, const Coef& q, double* z, double* x, int n) {   // una sezione biquad con coefficienti incrementali
+        double b0 = c.b0, b1 = c.b1, b2 = c.b2, a1 = c.a1, a2 = c.a2, z1 = z[0], z2 = z[1];
+        for (int i = 0; i < n; ++i) { b0 += q.b0; b1 += q.b1; b2 += q.b2; a1 += q.a1; a2 += q.a2; const double xi = x[i], y = b0 * xi + z1; z1 = b1 * xi - a1 * y + z2; z2 = b2 * xi - a2 * y; x[i] = y; }
+        c = Coef { b0, b1, b2, a1, a2 }; z[0] = z1; z[1] = z2; }
+    static void runIncS (SvfSet& c, const SvfSet& d, BandCoefs& rc, const BandCoefs& rd, double* z, double* x, int n) {
+        for (int k = 0; k < c.n; ++k) { if (c.on[k]) svfMod<true> (c.s[k], d.s[k], c.s[k], 0, z + 2 * k, x, n); else incSec (rc.c[k], rd.c[k], z + 2 * k, x, n); } }
+    static void runIncS2 (SvfSet& c, const SvfSet& d, BandCoefs& rc, const BandCoefs& rd, double* zl, double* zr, double* xl, double* xr, int n) {
+        for (int k = 0; k < c.n; ++k) { if (c.on[k]) svfMod2<true> (c.s[k], d.s[k], c.s[k], 0, zl + 2 * k, zr + 2 * k, xl, xr, n);
+            else { Coef c2 = rc.c[k]; incSec (rc.c[k], rd.c[k], zl + 2 * k, xl, n); incSec (c2, rd.c[k], zr + 2 * k, xr, n); } } }
     // stato equivalente tra le due strutture (stessa H(z) nell'istante del passaggio): si eguagliano le prime due uscite a ingresso nullo.
     // Sezione non osservabile (neutra, polo cancellato da uno zero): lo stato non conta e va a zero.
     static void svfZir (const Svf& q, double i1, double i2, double& y0, double& y1) {   // prime due uscite a ingresso nullo dallo stato (i1, i2)
@@ -692,7 +705,8 @@ private:
     static void tdfToSvf (const Coef& c, const Svf& q, double* z) {
         const double y0 = z[0], y1 = -c.a1 * z[0] + z[1]; double p0, p1, r0, r1; svfZir (q, 1, 0, p0, p1); svfZir (q, 0, 1, r0, r1);
         const double det = p0 * r1 - r0 * p1, sc = std::max ({ std::abs (p0 * r1), std::abs (r0 * p1), 1e-300 });
-        if (std::abs (det) < 1e-12 * sc) { z[0] = z[1] = 0; return; }
+        if (std::abs (det) < 1e-12 * sc) {   // stato in parte non osservabile: si conserva la parte che conta (pseudo-inversa a norma minima)
+            const double nn = p0 * p0 + p1 * p1 + r0 * r0 + r1 * r1; if (nn < 1e-300) { z[0] = z[1] = 0; return; } z[0] = (p0 * y0 + p1 * y1) / nn; z[1] = (r0 * y0 + r1 * y1) / nn; return; }
         z[0] = (y0 * r1 - r0 * y1) / det; z[1] = (p0 * y1 - y0 * p1) / det; }
     static void svfToTdf (const Coef& c, const Svf& q, double* z) {
         double y0, y1; svfZir (q, z[0], z[1], y0, y1); z[0] = y0; z[1] = y1 + c.a1 * y0; }
@@ -701,7 +715,7 @@ private:
     static void matchSecs (BandState& s, BandCoefs& nc) {
         const int m = std::max (nc.n, s.tgt.n);
         for (int k = nc.n; k < m; ++k) nc.c[k] = Coef();
-        for (int k = s.tgt.n; k < m; ++k) { s.tgt.c[k] = Coef(); s.cur.c[k] = Coef(); s.fr0.c[k] = Coef(); s.rfrom.c[k] = Coef(); s.rc.c[k] = Coef(); s.rd.c[k] = Coef { 0, 0, 0, 0, 0 }; s.rcS.s[k] = Svf(); s.rdS.s[k] = Svf { 0, 0, 0, 0, 0 }; for (int c = 0; c < 2; ++c) { s.z[c][2 * k] = 0; s.z[c][2 * k + 1] = 0; } }
+        for (int k = s.tgt.n; k < m; ++k) { s.tgt.c[k] = Coef(); s.cur.c[k] = Coef(); s.fr0.c[k] = Coef(); s.rfrom.c[k] = Coef(); s.rc.c[k] = Coef(); s.rd.c[k] = Coef { 0, 0, 0, 0, 0 }; s.rcS.s[k] = Svf(); s.rcS.on[k] = false; s.rdS.s[k] = Svf { 0, 0, 0, 0, 0 }; for (int c = 0; c < 2; ++c) { s.z[c][2 * k] = 0; s.z[c][2 * k + 1] = 0; } }
         nc.n = m; s.tgt.n = m; s.cur.n = std::max (s.cur.n, m); s.fr0.n = std::max (s.fr0.n, m); s.rfrom.n = std::max (s.rfrom.n, m); s.rc.n = std::max (s.rc.n, m); s.rd.n = std::max (s.rd.n, m); s.rcS.n = std::max (s.rcS.n, m); s.rdS.n = std::max (s.rdS.n, m);
     }
     // coefficienti istantanei di una banda statica (a meta rampa: interpolati come nel filtro) e avvio di una rampa nuova verso nc
@@ -712,19 +726,23 @@ private:
     static bool svfRamp (int type) { return ! (type == Bell || type == Notch || type == AllPass); }
     void startRamp (BandState& s, const BandCoefs& nc) {
         const bool mid = s.rpos < kRamp;   // rampa in corso: si riparte dai coefficienti dell'ultimo campione (continuita esatta)
-        if (! mid) { s.rfrom = s.cur; s.rfrom.n = s.tgt.n; if (coefEq (s.rfrom, nc)) { s.tgt = nc; s.cur = nc; return; } s.rc = s.rfrom; s.svf = false; }
+        if (! mid) { s.rfrom = s.cur; s.rfrom.n = s.tgt.n; if (coefEq (s.rfrom, nc)) { s.tgt = nc; s.cur = nc; return; } s.rc = s.rfrom; for (int k = 0; k < kMaxSecs; ++k) s.rcS.on[k] = false; }
         s.tgt = nc; s.rpos = 0;
-        for (int k = s.rc.n; k < s.tgt.n; ++k) s.rc.c[k] = Coef();
-        s.rc.n = std::max (s.rc.n, s.tgt.n);
-        if (svfRamp (s.p.type) && ! s.svf) {   // si passa a SVF con lo stato equivalente (uscita invariata nell'istante del passaggio)
-            s.rcS.n = s.rc.n; for (int k = 0; k < s.rc.n; ++k) { s.rcS.s[k] = toSvf (s.rc.c[k]); for (int c = 0; c < 2; ++c) tdfToSvf (s.rc.c[k], s.rcS.s[k], &s.z[c][2 * k]); }
-            s.svf = true; }
-        if (s.svf) { for (int k = s.rcS.n; k < s.tgt.n; ++k) s.rcS.s[k] = Svf(); s.rcS.n = s.rdS.n = s.tgt.n;
-            for (int k = 0; k < s.tgt.n; ++k) s.rdS.s[k] = svfDelta (s.rcS.s[k], toSvf (nc.c[k]), kRamp); }
-        else { s.rc.n = s.rd.n = s.tgt.n;
-            for (int k = 0; k < s.tgt.n; ++k) { const Coef& a = s.rc.c[k]; const Coef& b = nc.c[k]; Coef& d = s.rd.c[k];
-                d.b0 = (b.b0 - a.b0) / kRamp; d.b1 = (b.b1 - a.b1) / kRamp; d.b2 = (b.b2 - a.b2) / kRamp; d.a1 = (b.a1 - a.a1) / kRamp; d.a2 = (b.a2 - a.a2) / kRamp; } }
+        for (int k = s.rc.n; k < s.tgt.n; ++k) { s.rc.c[k] = Coef(); s.rcS.on[k] = false; }
+        s.rc.n = s.rd.n = s.rcS.n = s.rdS.n = s.tgt.n; s.svf = false;
+        for (int k = 0; k < s.tgt.n; ++k) {   // per sezione: SVF se il tipo lo prevede e nessuno dei due estremi e del primo ordine; il passaggio conserva lo stato equivalente
+            bool& on = s.rcS.on[k]; const Coef now = on ? fromSvf (s.rcS.s[k]) : s.rc.c[k];
+            const bool want = svfRamp (s.p.type) && ! firstOrd (now) && ! firstOrd (nc.c[k]);
+            if (want && ! on) { s.rcS.s[k] = toSvf (now); for (int c = 0; c < 2; ++c) tdfToSvf (now, s.rcS.s[k], &s.z[c][2 * k]); on = true; }
+            else if (! want && on) { for (int c = 0; c < 2; ++c) svfToTdf (now, s.rcS.s[k], &s.z[c][2 * k]); s.rc.c[k] = now; on = false; }
+            if (on) { s.rdS.s[k] = svfDelta (s.rcS.s[k], toSvf (nc.c[k]), kRamp); s.svf = true; }
+            else { const Coef& p = s.rc.c[k]; const Coef& q = nc.c[k]; s.rd.c[k] = Coef { (q.b0 - p.b0) / kRamp, (q.b1 - p.b1) / kRamp, (q.b2 - p.b2) / kRamp, (q.a1 - p.a1) / kRamp, (q.a2 - p.a2) / kRamp }; }
+        }
     }
+    // salto grande in un solo cambio (oltre un'ottava, Q x2 o 12 dB) per tagli, shelf, passa-banda e tilt: dissolvenza tra vecchio e nuovo filtro invece della rampa
+    // (rampa su un salto grande: si attraversano filtri intermedi lontani da entrambi; Low Shelf Q40 +30 -> -30 dB 100 Hz -> 5 kHz: tono +34 dB, misurato)
+    static bool bigJump (const BandParams& a, double ga, const BandParams& b, double gb) {
+        return svfRamp (b.type) && (std::abs (std::log2 (b.f / a.f)) > 1 || std::abs (std::log2 (b.q / a.q)) > 1 || std::abs (gb - ga) > 12); }
     static bool coefEq (const BandCoefs& a, const BandCoefs& b) { return a.n == b.n && std::memcmp (a.c, b.c, sizeof (Coef) * (size_t) a.n) == 0; }
     // coefficienti per il guadagno dinamico delta: tabella a passi fissi (progettati solo quando servono) + interpolazione lineare.
     // 0.4.3 riprogettava la banda intera a ogni frame in cui delta cambiava di oltre 0.02 dB (16 bande in movimento: 7 % di un core).
@@ -763,8 +781,8 @@ private:
             const double wi = s.active ? (s.flen > 0 ? fadeW ((double) (s.fpos + i + 1) / s.flen) : 1.0) : 0.0;
             const double wo = fout ? o.w0 * (1 - fadeW ((double) (o.fpos + i + 1) / o.flen)) : 0.0;
             const double xl = xL[(size_t) i], xr = xR[(size_t) i];
-            L[(size_t) i] = xl + wi * (L[(size_t) i] - xl) + (fout ? wo * (oL[(size_t) i] - xl) : 0.0);
-            R[(size_t) i] = xr + wi * (R[(size_t) i] - xr) + (fout ? wo * (oR[(size_t) i] - xr) : 0.0);
+            L[(size_t) i] = (wi == 1.0 ? L[(size_t) i] : xl + wi * (L[(size_t) i] - xl)) + (fout && wo != 0.0 ? wo * (oL[(size_t) i] - xl) : 0.0);   // pesi 1/0: nessun arrotondamento (uscita identica con qualsiasi blocco)
+            R[(size_t) i] = (wi == 1.0 ? R[(size_t) i] : xr + wi * (R[(size_t) i] - xr)) + (fout && wo != 0.0 ? wo * (oR[(size_t) i] - xr) : 0.0);
         }
         if (fin) { s.fpos += n; if (s.fpos >= s.flen) { s.fpos = 0; s.flen = 0; } }
         if (fout) { o.fpos += n; if (o.fpos >= o.flen) o.active = false; }
@@ -777,11 +795,11 @@ private:
         if (! s.dynOn) {
             int m = 0;   // rampa di lunghezza fissa (indipendente dal blocco), poi coefficienti fermi
             if (s.rpos < kRamp) { const int k = std::min (n, kRamp - s.rpos);
-                if (s.svf) { if (nc == 2) runIncS2 (s.rcS, s.rdS, s.z[0], s.z[1], ch[0] + m, ch[1] + m, k); else runIncS (s.rcS, s.rdS, s.z[0], ch[0] + m, k); }
+                if (s.svf) { if (nc == 2) runIncS2 (s.rcS, s.rdS, s.rc, s.rd, s.z[0], s.z[1], ch[0] + m, ch[1] + m, k); else runIncS (s.rcS, s.rdS, s.rc, s.rd, s.z[0], ch[0] + m, k); }
                 else if (nc == 2) runInc2 (s.rc, s.rd, s.z[0], s.z[1], ch[0] + m, ch[1] + m, k); else runInc (s.rc, s.rd, s.z[0], ch[0] + m, k);
                 s.rpos += k; m += k;
                 if (s.rpos >= kRamp) { s.cur = s.tgt;   // fine della rampa: si torna biquad (stato equivalente con i coefficienti finali)
-                    if (s.svf) { for (int k2 = 0; k2 < s.tgt.n; ++k2) for (int c = 0; c < 2; ++c) svfToTdf (s.tgt.c[k2], s.rcS.s[k2], &s.z[c][2 * k2]); s.svf = false; } s.rc = s.tgt; } }
+                    if (s.svf) { for (int k2 = 0; k2 < s.tgt.n; ++k2) if (s.rcS.on[k2]) { for (int c = 0; c < 2; ++c) svfToTdf (s.tgt.c[k2], s.rcS.s[k2], &s.z[c][2 * k2]); s.rcS.on[k2] = false; } s.svf = false; } s.rc = s.tgt; } }
             if (m < n) { if (nc == 2) run2 (s.tgt, s.z[0], s.z[1], ch[0] + m, ch[1] + m, n - m); else run (s.tgt, s.z[0], ch[0] + m, n - m); }
         } else {
             const Coef& q = s.det.c[0];   // detector a una sezione (BP/LP/HP 12 dB)

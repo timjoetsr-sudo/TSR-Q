@@ -390,6 +390,18 @@ int main() {
       for (const auto& c : cases) for (double T : { 0.0, 0.02, 0.1 }) { BandParams a = band ((int) c[1], c[2], c[1] == HighShelf ? 12 : 0, c[1] == BandPass ? 10 : c[1] == HighShelf ? 2 : .71, c[1] == HighCut || c[1] == LowCut ? 48 : 12); w = std::max (w, mov (c[0], a, c[3], c[4], T)); }
       ok (w < 0.5, "salti e spazzate (0, 20, 100 ms) di High/Low Cut 48 dB, Band Pass Q10, High Shelf: picco oltre il percorso %.2f dB (< 0,5 dB)", w); }
 
+    std::printf ("== 26. MOVIMENTO, revisione esterna: sezioni del primo ordine senza click, salti grandi in dissolvenza ==\n");
+    { auto run1 = [&] (BandParams a, BandParams b, double tf, double amp, std::vector<float>& L) { auto pe = std::make_unique<Engine>(); Engine& e = *pe; e.prepare (48000, 512); Engine::Global gl; e.setGlobal (gl);
+          const int n = 72000; L.assign ((size_t) n, 0.f); std::vector<float> R ((size_t) n); for (int i = 0; i < n; ++i) L[(size_t) i] = R[(size_t) i] = (float) (amp * std::sin (2 * kPi * tf * i / 48000));
+          for (int i = 0; i < n; i += 64) { e.setBand (0, i >= 48000 ? b : a); e.process (L.data() + i, R.data() + i, nullptr, nullptr, 64); } };
+      double w = -300; for (int t : { LowCut, LowShelf, HighShelf, TiltShelf }) { BandParams a = band (t, 100, hasGain (t) ? 6 : 0, .71, 6), b = a; b.f = 101; std::vector<float> A, B; run1 (a, a, 1000, 0.25, A); run1 (a, b, 1000, 0.25, B);
+          double da = 0, db2 = 0; for (int i = 47000; i < 49440; ++i) { da = std::max (da, (double) std::abs (A[(size_t) i] - 2 * A[(size_t) i - 1] + A[(size_t) i - 2])); db2 = std::max (db2, (double) std::abs (B[(size_t) i] - 2 * B[(size_t) i - 1] + B[(size_t) i - 2])); }
+          w = std::max (w, 20 * std::log10 (db2 / da)); }   // click = gradino: la differenza seconda sale (tono 1 kHz: 0,0043 di regime)
+      ok (w < 0.5, "pendenza 6 dB/oct, frequenza 100 -> 101 Hz: differenza seconda dell'uscita %.2f dB oltre quella del filtro fermo (< 0,5; b2eaa83: +15 dB, click)", w);
+      std::vector<float> A, B, C; run1 (band (LowShelf, 100, 30, 40), band (LowShelf, 100, 30, 40), 300, 0.25, A); run1 (band (LowShelf, 5000, -30, 40), band (LowShelf, 5000, -30, 40), 300, 0.25, B); run1 (band (LowShelf, 100, 30, 40), band (LowShelf, 5000, -30, 40), 300, 0.25, C);
+      double pa = 0, pb = 0, pc = 0; for (int i = 40000; i < 48000; ++i) pa = std::max (pa, (double) std::abs (A[(size_t) i])); for (int i = 60000; i < 72000; ++i) pb = std::max (pb, (double) std::abs (B[(size_t) i])); for (int i = 48000; i < 49440; ++i) pc = std::max (pc, (double) std::abs (C[(size_t) i]));
+      ok (20 * std::log10 (pc / std::max (pa, pb)) < 0.5, "Low Shelf Q40 +30 dB 100 Hz -> -30 dB 5 kHz, tono 300 Hz: picco %.2f dB oltre i due regimi (< 0,5; b2eaa83: +38 dB)", 20 * std::log10 (pc / std::max (pa, pb))); }
+
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;
 }
