@@ -378,6 +378,18 @@ int main() {
         double mx = 0; for (int i = 0; i < n; ++i) mx = std::max ({ mx, (double) std::abs (L[(size_t) i] - L2[(size_t) i]), (double) std::abs (R[(size_t) i] - R2[(size_t) i]) });
         std::printf ("  %s\n", nm[c]); ok (mx == 0, "motore appena preparato = motore a regime, scarto %.1f dBFS (atteso nessuno)", mx > 0 ? 20 * std::log10 (mx) : -300.0); } }
 
+    std::printf ("== 25. MOVIMENTO: salti e spazzate di tagli e passa-banda senza picchi (0.4.9: High Cut 48 dB 20 kHz -> 200 Hz a 192 kHz +11,5 dB su un tono 100 Hz) ==\n");
+    { auto mov = [&] (double fs, BandParams a, double fB, double tf, double T) {   // picco del tono oltre il massimo del filtro lungo il percorso (dB)
+          auto pe = std::make_unique<Engine>(); Engine& e = *pe; e.prepare (fs, 512); Engine::Global gl; e.setGlobal (gl);
+          const int n = (int) (fs * (1.2 + T)), j = (int) fs; std::vector<float> L ((size_t) n), R ((size_t) n); for (int i = 0; i < n; ++i) L[(size_t) i] = R[(size_t) i] = (float) (0.25 * std::sin (2 * kPi * tf * i / fs));
+          for (int i = 0; i < n; i += 64) { BandParams b = a; if (i >= j) b.f = a.f * std::pow (fB / a.f, T > 0 ? std::min (1.0, (i - j) / (T * fs)) : 1.0); e.setBand (0, b); e.process (L.data() + i, R.data() + i, nullptr, nullptr, std::min (64, n - i)); }
+          double pk = 0; for (int i = j; i < n; ++i) pk = std::max (pk, (double) std::abs (L[(size_t) i]));
+          Grid g; g.init (fs); double m = 0; for (int k = 0; k <= 200; ++k) { BandParams b = a; b.f = a.f * std::pow (fB / a.f, k / 200.0); BandCoefs c; designBand (b, b.gain, g, c, true); m = std::max (m, bandMag2 (c, tf, fs)); }
+          return 20 * std::log10 (pk / (0.25 * std::sqrt (m))); };
+      double w = -99; const double cases[][5] = { { 192000, HighCut, 20000, 200, 100 }, { 48000, HighCut, 20000, 200, 100 }, { 48000, LowCut, 30, 300, 2000 }, { 48000, BandPass, 100, 10000, 1000 }, { 48000, HighShelf, 1000, 15000, 6000 } };
+      for (const auto& c : cases) for (double T : { 0.0, 0.02, 0.1 }) { BandParams a = band ((int) c[1], c[2], c[1] == HighShelf ? 12 : 0, c[1] == BandPass ? 10 : c[1] == HighShelf ? 2 : .71, c[1] == HighCut || c[1] == LowCut ? 48 : 12); w = std::max (w, mov (c[0], a, c[3], c[4], T)); }
+      ok (w < 0.5, "salti e spazzate (0, 20, 100 ms) di High/Low Cut 48 dB, Band Pass Q10, High Shelf: picco oltre il percorso %.2f dB (< 0,5 dB)", w); }
+
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;
 }
