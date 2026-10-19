@@ -79,15 +79,26 @@ inline void push (SecSet& o, double f0, double n0, double n1, double n2, double 
     if (o.n >= kMaxSecs) return;
     Sec& s = o.s[o.n++]; s.f0 = f0; s.n[0] = n0; s.n[1] = n1; s.n[2] = n2; s.d[0] = d0; s.d[1] = d1; s.d[2] = d2;
 }
+// Definizioni di forma uguali a FabFilter Pro-Q 4 (0.6.0): costanti ricavate dalle risposte di Pro-Q 4 misurate a 192 kHz sul Mac di Tim
+// (docs/test_0.6.0). Valgono nell'intervallo misurato; fuori (Q < 0.3 o > 10 per shelf e tilt) sono [NON VERIFICATO].
+constexpr double kPqShelfC = 0.70335, kPqShelfP = 0.46594;   // shelf e tilt a 12 dB/oct: Q effettivo = 0.70335 * Q^0.46594 (Q = 0.3 ... 10)
+constexpr double kPqCutQMax = 28.2843;                        // taglio: Q della sezione piu risonante al massimo 28.28 (misurato a 72 e 96 dB/oct con Q 10)
+inline double pqShelfQ (double Q) { return kPqShelfC * std::pow (Q, kPqShelfP); }
+inline double pqCutZero (int slope, double Q) {               // zero aggiunto ai tagli (Pro-Q: pendenza piu dolce lontano dal taglio); 0 = nessuno
+    switch (slope) { case 12: return 0.0871 / std::min (Q, 2.78); case 18: return 0.0779; case 24: return 0.0843; case 36: return 0.0838; default: return 0; } }
+inline bool pqCutMeasured (int slope) { return slope == 12 || slope == 18 || slope == 24 || slope == 36 || slope == 48 || slope == 72 || slope == 96; }
 inline void sectionsFor (const BandParams& b, double gainDb, SecSet& o) {
     o.n = 0; o.k = 1;
     const double f = b.f, Q = b.q, A = std::pow (10.0, gainDb / 40.0), sA = std::sqrt (A);
     switch (b.type) {
-        case Bell: { const double Qe = b.gq ? std::min (40.0, Q * (1.0 + std::abs (gainDb) / 15.0)) : Q; push (o, f, 1, A / Qe, 1, 1, 1 / (A * Qe), 1); break; }
-        case LowShelf:  if (b.slope <= 6) push (o, f, A * A, A, 0, 1, A, 0); else push (o, f, A * A, A * sA / Q, A, 1, sA / Q, A); break;
-        case HighShelf: if (b.slope <= 6) push (o, f, A, A * A, 0, A, 1, 0); else push (o, f, A, A * sA / Q, A * A, A, sA / Q, 1); break;
-        case TiltShelf: push (o, f, 1, A, 0, A, 1, 0); break;
-        case Notch:     push (o, f, 1, 0, 1, 1, 1 / Q, 1); break;
+        case Bell: { const double Qe = (b.gq ? std::min (40.0, Q * (1.0 + std::abs (gainDb) / 15.0)) : Q) / std::sqrt (2.0); push (o, f, 1, A / Qe, 1, 1, 1 / (A * Qe), 1); break; }
+        case LowShelf:  if (b.slope <= 6) push (o, f, A * A, A, 0, 1, A, 0); else { const double q = pqShelfQ (Q); push (o, f, A * A, A * sA / q, A, 1, sA / q, A); } break;
+        case HighShelf: if (b.slope <= 6) push (o, f, A, A * A, 0, A, 1, 0); else { const double q = pqShelfQ (Q); push (o, f, A, A * sA / q, A * A, A, sA / q, 1); } break;
+        case TiltShelf:   // 12 dB/oct e oltre: high shelf di 2 x guadagno abbassato del guadagno (da -g a +g, come Pro-Q 4); 6 dB/oct: primo ordine (da -g/2 a +g/2) [forma di Pro-Q NON VERIFICATA]
+            if (b.slope <= 6) push (o, f, 1, A, 0, A, 1, 0);
+            else { const double T = A * A, sT = A, q = pqShelfQ (Q); push (o, f, T, T * sT / q, T * T, T, sT / q, 1); o.k = 1 / T; }
+            break;
+        case Notch:     push (o, f, 1, 0, 1, 1, std::sqrt (2.0) / Q, 1); break;
         case BandPass: {   // 6 dB/oct = una sezione passa-banda; 12…96 dB/oct = passa-alto + passa-basso Butterworth di ordine slope/6 ai bordi della banda, picco a 0 dB
             const int N = std::clamp ((int) std::lround (b.slope / 6.0), 1, 16);
             if (N == 1) { push (o, f, 0, 1 / Q, 0, 1, 1 / Q, 1); break; }
@@ -100,14 +111,17 @@ inline void sectionsFor (const BandParams& b, double gainDb, SecSet& o) {
         case AllPass:   push (o, f, 1, -1 / Q, 1, 1, 1 / Q, 1); break;   // progettato a parte (fase non minima)
         case LowCut: case HighCut: {
             const int N = std::clamp ((int) std::lround (b.slope / 6.0), 1, 16); double qs[8]; const int nq = butterQs (N, qs);
-            // Low/High Cut: solo taglio Butterworth, nessuna risonanza (mai sopra 0 dB): il Q non si usa
-            const bool hp = b.type == LowCut;
+            // pendenze misurate su Pro-Q 4 (12, 18, 24, 36, 48, 72, 96): Butterworth con il Q utente sulla sezione piu risonante (Q 1 = Butterworth) e lo zero di Pro-Q;
+            // 6 e 30 dB/oct: Butterworth senza Q (forma di Pro-Q NON VERIFICATA)
+            const bool hp = b.type == LowCut, pq = pqCutMeasured (b.slope); const double a = pq ? pqCutZero (b.slope, Q) : 0;
             if (N % 2) { if (hp) push (o, f, 0, 1, 0, 1, 1, 0); else push (o, f, 1, 0, 0, 1, 1, 0); }
-            for (int i = 0; i < nq; ++i) { if (hp) push (o, f, 0, 0, 1, 1, 1 / qs[i], 1); else push (o, f, 1, 0, 0, 1, 1 / qs[i], 1); }
+            for (int i = 0; i < nq; ++i) {
+                const double qe = (pq && i == nq - 1) ? std::min (qs[i] * Q, kPqCutQMax) : qs[i], z = i == 0 ? a : 0;
+                if (hp) push (o, f, 0, z, 1, 1, 1 / qe, 1); else push (o, f, 1, z, 0, 1, 1 / qe, 1); }
             break;
         }
         case FlatTilt: {
-            const double S = gainDb / std::log2 (1000.0), D = 1.5, r = std::pow (10.0, S * D / 20.0);
+            const double S = 2 * gainDb / std::log2 (1000.0), D = 1.5, r = std::pow (10.0, S * D / 20.0);
             for (double z = 4; z < 60000; z *= std::pow (2.0, D)) push (o, z, 1, 1, 0, 1, 1 / r, 0);
             o.k = 1.0 / std::sqrt (anaMag2 (o, f));
             break;
@@ -354,7 +368,7 @@ inline Coef designSec (const Sec& sc, const Grid& g, bool precise = true) {
 // 1) per ogni sezione tre candidati (matched-z, 3 punti, IRLS); 2) combinazione scelta sull'errore del totale (ricerca a coordinate);
 // 3) se il totale supera ancora 0.02 dB: ogni sezione non passa-alto riadattata al bersaglio totale diviso per le altre (minimax, 2 passate).
 constexpr int kCasPts = 112;
-inline void designCascade (const SecSet& set, const Grid& g, BandCoefs& bc, bool refine) {
+inline void designCascade (const SecSet& set, const Grid& g, BandCoefs& bc, bool refine, int start = -1) {   // start >= 0: partenza forzata dal candidato start di ogni sezione (correzione)
     const int n = set.n; Coef cand[kMaxSecs][3]; bool ok[kMaxSecs][3];
     // punti: la griglia udibile + 17 punti (passo 1/16 di ottava) attorno a ogni frequenza di sezione distinta + punti stretti (Q > 4)
     Phi Ep[kCasPts]; double Et[kCasPts]; int ne = 0;
@@ -380,10 +394,10 @@ inline void designCascade (const SecSet& set, const Grid& g, BandCoefs& bc, bool
     int sel[kMaxSecs];
     auto tot = [&] (const int* sl) { ErrAcc e; for (int i = 0; i < ne; ++i) { double d = 1; for (int k = 0; k < n; ++k) d *= mg[k][sl[k]][i]; e.add (d, Et[i]); } return e.db(); };
     double best = 1e300;
-    for (int j = 0; j < 3; ++j) { int sl[kMaxSecs]; bool all = true; for (int k = 0; k < n; ++k) { sl[k] = ok[k][j] ? j : (ok[k][0] ? 0 : 1); all = all && (ok[k][0] || ok[k][1]); }
+    for (int j = 0; j < 3; ++j) { if (start >= 0 && j != start) continue; int sl[kMaxSecs]; bool all = true; for (int k = 0; k < n; ++k) { sl[k] = ok[k][j] ? j : (ok[k][0] ? 0 : 1); all = all && (ok[k][0] || ok[k][1]); }
         if (! all) continue; const double e = tot (sl); if (e < best) { best = e; for (int k = 0; k < n; ++k) sel[k] = sl[k]; } }
     if (! (best < 1e300)) { for (int k = 0; k < n; ++k) bc.c[k] = cand[k][0]; bc.n = n; return; }
-    for (int pass = 0; pass < 2; ++pass) { bool moved = false; for (int k = 0; k < n; ++k) for (int j = 0; j < 3; ++j) {
+    for (int pass = 0; pass < (start >= 0 ? 0 : 2); ++pass) { bool moved = false; for (int k = 0; k < n; ++k) for (int j = 0; j < 3; ++j) {
         if (j == sel[k] || ! ok[k][j]) continue; const int keep = sel[k]; sel[k] = j; const double e = tot (sel); if (e < best) { best = e; moved = true; } else sel[k] = keep; }
         if (! moved) break; }
     bc.n = n; for (int k = 0; k < n; ++k) bc.c[k] = cand[k][sel[k]];
@@ -416,8 +430,12 @@ inline void correctNyq (const SecSet& set, const Grid& g, BandCoefs& out) {
     if (set.n >= kMaxSecs) return; double fmx = 0; for (int k = 0; k < set.n; ++k) fmx = std::max (fmx, set.s[k].f0); if (fmx < g.fs * 0.1) return;   // sotto fs/10 gli errori restano sotto 0,25 dB: niente controllo (costo)
     const double e0 = cascadeErr (set, out, g); if (! (e0 > kCorrThr)) return;
     SecSet s2 = set; Sec& id = s2.s[s2.n++]; id.f0 = g.fs / 4; id.n[0] = 1; id.n[1] = 1; id.n[2] = 0; id.d[0] = 1; id.d[1] = 1; id.d[2] = 0;
-    BandCoefs t; designCascade (s2, g, t, true); if (t.n != s2.n) return; for (int k = 0; k < t.n; ++k) if (! stable (t.c[k])) return;
-    if (cascadeErr (set, t, g) < e0 - 0.05 && fineErr (set, t, g) < fineErr (set, out, g) - 0.01) out = t;   // tenuta solo se migliora anche su 512 punti
+    // 0.6.0: tre partenze (scelta normale, poi tutte le sezioni dal matched-z, poi dal 3 punti): il rifit parte da un minimo locale diverso.
+    // (una sola partenza: High Shelf 14,8 kHz +18 dB Q analogico 0,51 a 48 kHz restava a 0,24 dB, con Q 0,50 scendeva a 0,004: misurato)
+    BandCoefs best; double be = 1e300;
+    for (int st = -1; st < 2; ++st) { BandCoefs t; designCascade (s2, g, t, true, st); if (t.n != s2.n) continue; bool okk = true; for (int k = 0; k < t.n; ++k) okk = okk && stable (t.c[k]); if (! okk) continue;
+        const double e = cascadeErr (set, t, g); if (e < be) { be = e; best = t; } }
+    if (be < e0 - 0.05 && fineErr (set, best, g) < fineErr (set, out, g) - 0.01) out = best;   // tenuta solo se migliora anche su 512 punti
 }
 // precise = false: progetto veloce (qualita e costo della 0.4.3), usato mentre i parametri cambiano; il motore passa al preciso dopo 50 ms fermi
 // corr = false: niente sezione di correzione (bande dinamiche: la tabella dei guadagni usa una sola sezione)

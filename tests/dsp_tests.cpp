@@ -109,10 +109,11 @@ int main() {
       BandParams k = band (Bell, 1000, 0, 1); k.thr = -20; k.range = -24; k.knee = 12; const double k0 = dynDelta (-20, k), k1 = dynDelta (-26.5, k);
       ok (k0 < 0 && k0 > -3 && k1 == 0, "knee 12 dB: a soglia %.2f dB, 6,5 dB sotto %.2f dB", k0, k1); }
 
-    std::printf ("== 7. PENDENZE: attenuazione a fc/2 vs Butterworth analogico ==\n");
-    { Grid g; g.init (96000); double w = 0; for (int sl : { 6, 12, 18, 24, 36, 48, 72, 96 }) { BandCoefs c; designBand (band (LowCut, 1000, 0, std::sqrt (.5), sl), 0, g, c);
-        const double a = -db (bandMag2 (c, 500, 96000)), ex = 10 * std::log10 (1 + std::pow (4.0, sl / 6)); w = std::max (w, std::abs (a - ex)); }
-      ok (w < 0.1, "scarto max 6..96 dB/oct = %.4f dB", w); }
+    std::printf ("== 7. PENDENZE: attenuazione a fc/2, digitale vs prototipo analogico (0.6.0: Q 1 = Butterworth; 48-96 dB/oct senza zero = Butterworth esatto) ==\n");
+    { Grid g; g.init (96000); double w = 0, wb = 0; for (int sl : { 6, 12, 18, 24, 30, 36, 48, 72, 96 }) { const BandParams b = band (LowCut, 1000, 0, 1, sl); BandCoefs c; designBand (b, 0, g, c); SecSet ss; sectionsFor (b, 0, ss);
+        const double a = -db (bandMag2 (c, 500, 96000)), ex = -db (anaMag2 (ss, 500)); w = std::max (w, std::abs (a - ex));
+        if (sl == 6 || sl == 30 || sl >= 48) wb = std::max (wb, std::abs (ex - 10 * std::log10 (1 + std::pow (4.0, sl / 6)))); }
+      ok (w < 0.1, "scarto max 6..96 dB/oct dal prototipo = %.4f dB", w); ok (wb < 1e-9, "6, 30, 48, 72, 96 dB/oct con Q 1 = Butterworth: scarto %.1e dB", wb); }
 
     std::printf ("== 8. PRESTAZIONI: 32 bande (28 dinamiche + 4 tagli 96 dB/oct), stereo, 10 s @48k, blocchi 128 ==\n");
     { const double fs = 48000; Engine e; e.prepare (fs, 128); Engine::Global gl; gl.character = 2; e.setGlobal (gl);
@@ -347,8 +348,8 @@ int main() {
     std::printf ("== 22. CORREZIONE VICINO A NYQUIST: shelf a 14,8-20 kHz (Q 0,5, +-18 dB) e Low Cut a 20 kHz, 44,1 e 48 kHz (0.4.7: fino a 2,94 dB) ==\n");
     { double worst = 0; int nc2 = 0;
       for (double fs : { 44100.0, 48000.0 }) { Grid g; g.init (fs);
-        for (double f : { 14811.369, 20000.0 }) for (int t : { (int) LowShelf, (int) HighShelf }) for (double gn : { -18.0, 18.0 }) { BandParams b = band (t, f, gn, 0.5); worst = std::max (worst, maxErr (b, fs, g, -30)); BandCoefs bc; designBand (b, gn, g, bc); nc2 += bc.n == 2; }
-        BandParams lc = band (LowCut, 20000, 0, .71, 12); worst = std::max (worst, maxErr (lc, fs, g, -30)); }
+        for (double f : { 14811.369, 20000.0 }) for (int t : { (int) LowShelf, (int) HighShelf }) for (double gn : { -18.0, 18.0 }) { BandParams b = band (t, f, gn, std::pow (0.5 / kPqShelfC, 1 / kPqShelfP)); /* Q analogico 0,5 come prima della 0.6.0 */ worst = std::max (worst, maxErr (b, fs, g, -30)); BandCoefs bc; designBand (b, gn, g, bc); nc2 += bc.n == 2; }
+        BandParams lc = band (LowCut, 20000, 0, 1, 12); /* 0.6.0: Q 1 = Butterworth + zero di Pro-Q; con Q 0,71: 0,117 dB a 44,1 kHz (rapporto 0.6.0) */ worst = std::max (worst, maxErr (lc, fs, g, -30)); }
       ok (worst < 0.1, "errore massimo dall'analogico (20 Hz-20 kHz, sopra -30 dB) %.3f dB (< 0,1 dB)", worst);
       ok (nc2 >= 13, "progetti con la sezione di correzione: %.0f su 16 (i casi che sbagliavano oltre 1 dB sono 13)", nc2);
       // nel motore: banda ferma (precisa, 2 sezioni) -> trascinata (veloce, 1 sezione + neutra) -> ferma (precisa): uscita finita, invariante al blocco, guadagno giusto a 15 e 19 kHz
@@ -416,6 +417,28 @@ int main() {
       Grid g; g.init (44100); int bad = 0;   // tutte le sezioni neutre e quasi neutre dei progetti con guadagno 0
       for (int t : { LowShelf, HighShelf, TiltShelf, Bell }) for (double f = 20; f < 22000; f *= 1.3) for (double qq : { 0.1, 1.0, 3.28, 40.0 }) { BandCoefs bc; designBand (band (t, f, 0, qq), 0, g, bc); for (int k = 0; k < bc.n; ++k) { double z[2] = { 0, 0 }; tdfToSvf (bc.c[k], toSvf (bc.c[k]), z); if (! std::isfinite (z[0]) || ! std::isfinite (z[1])) ++bad; } }
       setFtz (false); ok (fin && bad == 0, "stati finiti con FTZ/DAZ attivi: sezioni con stato nullo non finite %.0f (atteso 0)", bad); }
+
+    std::printf ("== 28. FORME UGUALI A PRO-Q 4: modulo a 192 kHz contro le misure di Pro-Q 4 (Bell, shelf, tagli, notch, tilt, flat tilt) ==\n");
+    {
+    // 28. Pro-Q 4 misurato a 192 kHz sul Mac (20/10/2026, pedalboard, impulso 2^18): modulo in dB a 19 frequenze
+    static const double kPqF[19] = { 12.1072, 17.7474, 26.0150, 38.1341, 55.8989, 81.9394, 120.1108, 176.0645, 258.0841, 378.3126, 554.5496, 812.8865, 1191.5698, 1746.6627, 2560.3457, 3753.0830, 5501.4571, 8064.3114, 11821.0717 };
+    struct PqCase { int t; double g, q; int sl; double db[19]; };
+    static const PqCase kPq[] = {
+      { Bell, 12, 1, 12, { 0.000, 0.010, 0.020, 0.050, 0.100, 0.210, 0.450, 0.940, 1.900, 3.660, 6.640, 10.800, 11.110, 6.960, 3.860, 2.010, 1.000, 0.480, 0.230 } },
+      { Bell, -30, 0.3, 12, { -0.430, -0.870, -1.690, -3.050, -5.050, -7.590, -10.530, -13.730, -17.140, -20.830, -24.920, -29.040, -29.290, -25.280, -21.150, -17.440, -14.000, -10.770, -7.800 } },
+      { LowShelf, 6, 3, 12, { 6.000, 6.000, 6.000, 6.010, 6.010, 6.030, 6.060, 6.120, 6.250, 6.510, 6.840, 5.610, 0.700, -0.850, -0.540, -0.270, -0.130, -0.060, -0.030 } },
+      { HighShelf, -18, 0.3, 12, { -0.010, -0.010, -0.030, -0.060, -0.140, -0.290, -0.590, -1.170, -2.180, -3.690, -5.630, -7.790, -10.020, -12.200, -14.160, -15.710, -16.760, -17.370, -17.700 } },
+      { LowCut, 0, 3, 24, { -136.100, -126.210, -116.080, -105.730, -95.000, -83.740, -71.840, -59.360, -46.450, -33.150, -19.220, -2.900, 4.790, 1.290, 0.450, 0.180, 0.080, 0.040, 0.020 } },
+      { HighCut, 0, 0.5, 12, { 0.000, -0.010, -0.020, -0.040, -0.080, -0.170, -0.350, -0.730, -1.450, -2.690, -4.600, -7.190, -10.380, -14.130, -18.370, -22.940, -27.530, -31.860, -35.860 } },
+      { LowCut, 0, 10, 96, { -159.120, -158.900, -158.490, -157.750, -156.840, -157.250, -157.160, -154.650, -155.930, -135.570, -81.830, -27.960, 1.110, 0.120, 0.030, 0.010, 0.010, 0.000, 0.000 } },
+      { Notch, 0, 2, 12, { 0.000, 0.000, 0.000, 0.000, -0.010, -0.010, -0.030, -0.070, -0.160, -0.400, -1.210, -5.880, -7.010, -1.340, -0.440, -0.170, -0.080, -0.030, -0.020 } },
+      { TiltShelf, 6, 1, 12, { -6.000, -6.000, -6.000, -6.000, -6.000, -6.000, -6.000, -5.980, -5.920, -5.670, -4.690, -2.060, 1.760, 4.550, 5.630, 5.910, 5.980, 5.990, 6.000 } },
+      { FlatTilt, 12, 0.71, 12, { -15.130, -13.890, -12.660, -11.340, -9.950, -8.610, -7.350, -6.070, -4.700, -3.310, -2.010, -0.760, 0.560, 1.960, 3.310, 4.570, 5.850, 7.210, 8.590 } },
+    };
+      Grid g; g.init (192000); double w = 0;
+      for (const auto& c : kPq) { BandParams b = band (c.t, 1000, c.g, c.q, c.sl); BandCoefs bc; designBand (b, hasGain (c.t) ? c.g : 0, g, bc);
+        for (int i = 0; i < 19; ++i) if (c.db[i] > -40) w = std::max (w, std::abs (db (bandMag2 (bc, kPqF[i], 192000)) - c.db[i])); }
+      ok (w < 0.2, "10 forme, 19 frequenze sopra -40 dB: scarto max da Pro-Q 4 %.3f dB (0.5.0: fino a 19,7 dB)", w); }
 
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;
