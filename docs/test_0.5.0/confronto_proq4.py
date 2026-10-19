@@ -29,20 +29,25 @@ with open(os.path.join(HERE, "confronto_proq4_parametri.txt"), "w") as f:
     for k, v in proq0.parameters.items(): f.write(f"{k}\t{v}\n")
 MAP = {
     "tsrq": dict(used=lambda b: f"band_{b}_used", type=lambda b: f"band_{b}_type", freq=lambda b: f"band_{b}_freq_hz", gain=lambda b: f"band_{b}_gain_db", q=lambda b: f"band_{b}_q", slope=lambda b: f"band_{b}_slope"),
-    "proq": dict(used=lambda b: find(proq0, b, ["used"], "used"), type=lambda b: find(proq0, b, ["shape"], "shape"), freq=lambda b: find(proq0, b, ["freq"], "frequency"),
-                 gain=lambda b: find(proq0, b, ["gain"], "gain"), q=lambda b: find(proq0, b, ["q"], "q"), slope=lambda b: find(proq0, b, ["slope"], "slope")),
+    # nomi letti da Pro-Q 4 sul Mac di Tim (proq_params.txt, 605 parametri, 20/10/2026)
+    "proq": dict(used=lambda b: f"band_{b}_used", type=lambda b: f"band_{b}_shape", freq=lambda b: f"band_{b}_frequency", gain=lambda b: f"band_{b}_gain", q=lambda b: f"band_{b}_q", slope=lambda b: f"band_{b}_slope"),
 }
-for k in ("used", "type", "freq", "gain", "q", "slope"): MAP["proq"][k](1)   # verifica subito: si ferma qui se manca qualcosa
+for k in ("used", "type", "freq", "gain", "q", "slope"):
+    if MAP["proq"][k](1) not in proq0.parameters: sys.exit(f"ERRORE: Pro-Q 4 non ha il parametro {MAP['proq'][k](1)}")
 TYPES = {"tsrq": {"Bell": "Bell", "Low Shelf": "Low Shelf", "High Shelf": "High Shelf", "Low Cut": "Low Cut", "High Cut": "High Cut", "Notch": "Notch", "Band Pass": "Band Pass"},
          "proq": {"Bell": "Bell", "Low Shelf": "Low Shelf", "High Shelf": "High Shelf", "Low Cut": "Low Cut", "High Cut": "High Cut", "Notch": "Notch", "Band Pass": "Band Pass"}}
 
 def load(which, bands, fs_note=""):
     p = pb.load_plugin(a.tsrq if which == "tsrq" else a.proq); m = MAP[which]
     for i, b in enumerate(bands, 1):
-        setattr(p, m["used"](i), True); setattr(p, m["type"](i), TYPES[which][b["t"]]); setattr(p, m["freq"](i), float(b["f"]))
+        setattr(p, m["used"](i), "Used" if which == "proq" else True); setattr(p, m["type"](i), TYPES[which][b["t"]]); setattr(p, m["freq"](i), float(b["f"]))
         if "g" in b: setattr(p, m["gain"](i), float(b["g"]))
         if "q" in b: setattr(p, m["q"](i), float(b["q"]))
-        if "s" in b: setattr(p, m["slope"](i), f"{b['s']} dB/oct")
+        if "s" in b:
+            for cand in (f"{b['s']} dB/oct", f"{b['s']}.0 dB/oct"):
+                try: setattr(p, m["slope"](i), cand); break
+                except Exception: pass
+            else: sys.exit(f"ERRORE: pendenza {b['s']} dB/oct non accettata da {which}")
     return p
 
 def ir(p, fs, n=1 << 16):
@@ -53,6 +58,8 @@ def mag_db(h, fs, freqs):
 rows = []
 def out(sez, caso, metrica, t, q, unita):
     rows.append((sez, caso, metrica, t, q, unita)); print(f"{sez:12s} {caso:46s} {metrica:34s} TSR Q {t:10.3f}   Pro-Q 4 {q:10.3f}  {unita}"); sys.stdout.flush()
+    with open(os.path.join(HERE, "confronto_proq4.csv"), "w") as f:
+        f.write("sezione,caso,metrica,tsrq,proq4,unita\n"); [f.write(",".join(str(v) for v in r) + "\n") for r in rows]
 
 # ---------- 1. cramping vicino a Nyquist: risposta a 48 kHz contro la stessa a 192 kHz (riferimento senza Nyquist vicino) ----------
 F = np.geomspace(20, 20000, 400)

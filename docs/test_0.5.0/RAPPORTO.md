@@ -90,3 +90,20 @@ Ho provato il codice dello script mettendo TSR Q in tutti e due i posti [M]. I n
 - Bell in automazione casuale estrema (+28 dB, uguale alla 0.4.9).
 - Low Cut con blocco 4096 a 44,1 kHz (+13,3 dB). Non so se sia l'effetto del percorso (risonanza con Q fino a 40) o un difetto.
 - Il prototipo e la pagina A/B in JS non hanno la rampa SVF. La parità JS = C++ passa comunque, ma gli scenari di parità non contengono salti grandi.
+
+## Confronto reale con Pro-Q 4 (Mac di Tim, 20/10/2026, TSR Q 0.5.0 da CI `707beb1`, pedalboard) [M]
+
+| Misura | TSR Q | Pro-Q 4 |
+|---|---|---|
+| Cramping Bell 10 kHz +12 Q2 (max \|48k − 192k\|) | 0,059 dB | 0,215 dB |
+| Cramping Bell 16 kHz −9 Q4 | 0,037 dB | 0,212 dB |
+| Cramping High Shelf 8 kHz +6 | 0,007 dB | 0,094 dB |
+| Cramping High Cut 15 kHz 24 dB | 0,039 dB | 0,715 dB |
+| Salto HC48 20 kHz → 200 Hz, 48k / 192k | +0,017 / +0,017 dB | +0,117 / +0,114 dB |
+| Salto LC48 30 → 300 Hz, 48k / 192k | +0,003 / +0,003 dB | +0,473 / +0,044 dB |
+| Salto HS +12 Q2 1 → 15 kHz, 48k / 192k | 0,000 / 0,000 dB | +0,343 / +0,534 dB |
+| Latenza riportata / reale | 0 / 0 | 0 / 0 |
+| CPU 8 bande, blocco 512 @48k | **34,1 µs** | **16,3 µs** |
+
+- **Forma** a parità di impostazioni, differenza massima TSR Q − Pro-Q 4 a 192 kHz: Bell 1 kHz Q1 0,99 dB; Bell 10 kHz 1,79 dB; HS 0,45 dB; HC24 2,95 dB; LC48 2,94 dB. **TSR Q non è identico a Pro-Q 4**. La causa probabile, cioè una diversa definizione di Q e pendenza, è [NV].
+- Pro-Q 4 ha 605 parametri: modi Zero Latency / Natural Phase / Linear Phase, dinamica spettrale per banda, pendenze continue a passi di 0,1 dB/oct.
