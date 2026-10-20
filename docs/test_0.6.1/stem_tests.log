@@ -142,8 +142,8 @@ PASS MELODY: shelf solo su LEFT → Right identico al bit, Left cambiato
 PASS VOCAL: gain automatizzato ±12 dB ogni 256 campioni, salto max uscita 0.1363 vs ingresso 0.1364 (≤ ×4 = guadagno max)
 PASS parametri estremi (Q 0.025/40, ±30 dB, 96 dB/oct, 10 Hz/30 kHz) a 44.1–192 kHz: uscita sempre finita
 PASS HH-1 (silenzio): uscita esattamente zero
-PASS silenzio non rallenta (denormali): 31.50 ms vs audio 32.59 ms
-PASS 32 bande (16 dinamiche) stereo a 48 kHz: 62.07× più veloce del tempo reale (un core)
+PASS silenzio non rallenta (denormali): 32.61 ms vs audio 35.14 ms
+PASS 32 bande (16 dinamiche) stereo a 48 kHz: 57.16× più veloce del tempo reale (un core)
 PASS mix di tutti gli stem, catena bus, 28 giri (~10 min): stabile, RMS giro 2 vs 28 diff 0.0000 dB
 PASS SOLO banda 3 kHz Q4: 3 kHz passa (0.003 dB), 200 Hz tagliato (-40.21 dB)
 

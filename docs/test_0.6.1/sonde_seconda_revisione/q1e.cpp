@@ -1,0 +1,3 @@
+#include "q1_autom_rt.cpp"
+struct P{ ~P(){ int n=tsrq::dbgN.load(); int disc=0; long long maxgap=0,prev=0; for(int i=0;i<n;++i){ auto&e=tsrq::dbgEv[i]; if(e.kind==2) ++disc; if(i>5 && e.t-prev>maxgap) maxgap=e.t-prev; prev=e.t; } std::printf("conflitti %d (ultimo a t=%lld, slot %d) ",tsrq::dbgClash.load(),tsrq::dbgClashT,tsrq::dbgClashS); std::printf("consegne %d, scartate %d, intervallo massimo tra consegne %lld campioni\n",n,disc,maxgap);
+  for(int i=1;i<n;++i){ auto&e=tsrq::dbgEv[i]; auto&p=tsrq::dbgEv[i-1]; if(e.t-p.t>3000 || e.kind==2) std::printf("  t=%lld kind %d gen %u (prev gen %u t=%lld) slot %d from %d chained %d\n",e.t,e.kind,e.gen,p.gen,p.t,e.fc,e.ff,(int)e.ch); } } } pp;

@@ -29,8 +29,8 @@ PASS knee 12 dB: a soglia -1.12 dB, 6,5 dB sotto -0.00 dB
 PASS scarto max 6..96 dB/oct dal prototipo = 0.0012 dB
 PASS 6, 30, 48, 72, 96 dB/oct con Q 1 = Butterworth: scarto 8.9e-16 dB
 == 8. PRESTAZIONI: 32 bande (28 dinamiche + 4 tagli 96 dB/oct), stereo, 10 s @48k, blocchi 128 ==
-   tempo per 10 s di audio: 352 ms -> 3.5 % di un core
-PASS piu veloce del tempo reale (x28.4)
+   tempo per 10 s di audio: 351 ms -> 3.5 % di un core
+PASS piu veloce del tempo reale (x28.5)
 == 9. USCITA: OUTPUT -inf/+36, pan L/R e M/S (bilanciamento lineare, centro 0 dB), polarita ==
 PASS OUTPUT a -60 = -inf: uscita 0.0e+00 / 0.0e+00 (attesa zero esatto)
 PASS OUTPUT +36 dB: misurato 36.000 dB
@@ -68,8 +68,8 @@ PASS alias peggiore con oversampling 8x sotto -100 dB rispetto alla fondamentale
    filtro OS @44.1k: modulo 1 kHz -0.000 dB, 10 kHz -0.000 dB, 18 kHz 0.000 dB, 20 kHz 0.000 dB | ritardo di gruppo 1 kHz 7.36, 10 kHz 8.86, 18 kHz 17.87 campioni
 PASS banda passante piatta fino a 18 kHz @44.1k (scarto max 0.000 dB)
    nota: con Character attivo il suono passa da questi filtri (ritardo di fase indicato sopra); con Clean nessun oversampling e nessun ritardo
-   CPU, 10 s stereo @48k senza bande: Clean 11 ms, Warm con OS 8x 210 ms
-PASS costo del Character con oversampling 8x: 210 ms per 10 s (2.1 % di un core)
+   CPU, 10 s stereo @48k senza bande: Clean 12 ms, Warm con OS 8x 204 ms
+PASS costo del Character con oversampling 8x: 204 ms per 10 s (2.0 % di un core)
 == 12. SOLO: allargando o spostando la banda durante il solo cambia cio che si ascolta ==
 PASS solo su 1 kHz, tono a 2,5 kHz: Q 4 -> -9.9 dB, allargata a Q 0.3 -> -0.8 dB (si sente di piu)
 PASS spostata a 2,5 kHz durante il solo: 0.0 dB (prima -9.9 dB)
@@ -164,7 +164,7 @@ PASS risoluzione: latenza = picco, simmetrica; scarto dal modulo analogico 0.006
 PASS risoluzione: latenza = picco, simmetrica; scarto dal modulo analogico 0.002 dB (< 0.01)
 PASS blocchi 1/7/64/333/4096/casuali = blocchi da 512, al bit (scarto 0.0e+00); Bell spostato a ogni blocco da 512: uscita finita, picco 0.48
 == 30. LINEAR PHASE IN TEMPO REALE: progetti nel thread dedicato (come nel plugin) = progetti nel thread audio, dopo la consegna ==
-   blocco piu lento nel thread audio: progetti nel thread audio 7.17 ms, thread dedicato 0.76 ms
+   blocco piu lento nel thread audio: progetti nel thread audio 3.93 ms, thread dedicato 2.23 ms
 PASS ultimi 100 blocchi: thread dedicato = thread audio, scarto 0.0e+00 (< 1e-6); uscita finita
 == 31. LINEAR PHASE, DIFETTI DELLA REVISIONE ESTERNA: statica<->dinamica, banda tolta, richiesta vecchia, detector, All Pass, eventi, automazione ==
 PASS statica <-> dinamica in Linear Phase: scarto massimo dal guadagno 0.30 dB (0.6.0 di prima: 12 dB)
@@ -172,6 +172,8 @@ PASS banda tolta e rimessa: scarto 0.000 dB; dopo il ritorno a Zero Latency 0.00
 PASS tempo reale -> offline -> tempo reale: guadagno finale -12.00 dB (atteso -12; 0.6.0 di prima: 0)
 PASS detector con una banda statica dopo: Zero Latency +6.74 dB, Linear Phase +6.74 dB (0.6.0 di prima: +6,74 contro 0,00)
 PASS All Pass 1 kHz: fase Zero Latency 179.8 gradi, Linear Phase 179.8 gradi (0.6.0 di prima: 0)
+PASS Low Cut 96 dB/oct che entra: minimo durante la dissolvenza -0.66 dB, finale -0.27 dB (buco al massimo 1,5 dB)
+PASS due bande dinamiche in serie: Zero Latency +5.24 dB, Linear Phase +5.24 dB
 == 32. LINEAR PHASE: eventi senza click e automazione senza bande laterali (sonde della revisione esterna) ==
 PASS banda on/off, cambio di tipo, salto di frequenza: energia sopra 4 kHz al massimo -114.9 dBFS (dissolvenza lineare: -77,6)
 PASS Bell 0 -> +12 dB in 1,4 s su un seno 1 kHz: energia spuria -105.6 dB (coseno rialzato: -61,8)

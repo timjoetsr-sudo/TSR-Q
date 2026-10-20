@@ -517,6 +517,17 @@ int main() {
             std::vector<float> L ((size_t) n, 0.f), R ((size_t) n, 0.f); L[0] = R[0] = 1; for (int i = 0; i < n; i += 512) e.process (L.data() + i, R.data() + i, nullptr, nullptr, std::min (512, n - i));
             std::complex<double> a = 0; for (int i = lat; i < n; ++i) a += (double) L[(size_t) i] * std::polar (1.0, -2 * kPi * 1000 * (i - lat) / fs); ph[mode] = std::arg (a) * 180 / kPi; }
         ok (std::abs (std::abs (ph[0]) - std::abs (ph[1])) < 0.5, "All Pass 1 kHz: fase Zero Latency %.1f gradi, Linear Phase %.1f gradi (0.6.0 di prima: 0)", ph[0], ph[1]); }
+      // f) Low Cut 96 dB/oct a 100 Hz che entra in Linear Phase, seno 110 Hz: niente buco durante la dissolvenza (0.6.1 prima della seconda revisione: -20,5 dB)
+      { Run R (1, true); BandParams b = band (LowCut, 100, 0, 1, 96); b.used = false; for (int k = 0; k < 100; ++k) { R.e.setBand (0, b); R.blk (110); }
+        b.used = true; const size_t s0 = R.out.size(); for (int k = 0; k < 120; ++k) { R.e.setBand (0, b); R.blk (110); }
+        const double fin = rmsDb (R.out, R.out.size() - 4800, R.out.size()); double mn = 1e9; for (size_t i = s0; i + 480 <= R.out.size(); i += 480) mn = std::min (mn, rmsDb (R.out, i, i + 480));
+        ok (mn > fin - 1.5, "Low Cut 96 dB/oct che entra: minimo durante la dissolvenza %.2f dB, finale %.2f dB (buco al massimo 1,5 dB)", mn, fin); }
+      // g) due bande dinamiche in serie (espande +12, poi comprime): stesso guadagno in Zero Latency e Linear Phase (0.6.1 prima della seconda revisione: +5,24 contro +12)
+      { double gg[2]; for (int mode = 0; mode < 2; ++mode) { Engine e; e.prepare (fs, 512); e.configurePhase (mode, 1); Engine::Global g; e.setGlobal (g);
+            BandParams d0 = band (Bell, 1000, 0, 1); d0.dyn = true; d0.thr = -40; d0.range = 12; d0.knee = 0; BandParams d1 = band (Bell, 1000, 0, 1); d1.dyn = true; d1.thr = -20; d1.range = -12; d1.knee = 0;
+            std::vector<float> l (512), r (512), all; double ph2 = 0; for (int k = 0; k < 300; ++k) { e.setBand (0, d0); e.setBand (1, d1); for (int i = 0; i < 512; ++i) { l[(size_t) i] = r[(size_t) i] = (float) (0.1 * std::sin (ph2)); ph2 += 2 * kPi * 1000 / fs; }
+                e.process (l.data(), r.data(), nullptr, nullptr, 512); all.insert (all.end(), l.begin(), l.end()); } gg[mode] = rmsDb (all, all.size() - 9600, all.size()); }
+        ok (std::abs (gg[0] - gg[1]) < 0.1, "due bande dinamiche in serie: Zero Latency %+.2f dB, Linear Phase %+.2f dB", gg[0], gg[1]); }
     }
 
     std::printf ("== 32. LINEAR PHASE: eventi senza click e automazione senza bande laterali (sonde della revisione esterna) ==\n");

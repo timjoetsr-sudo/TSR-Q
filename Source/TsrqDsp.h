@@ -554,7 +554,7 @@ class LinPhase {
 public:
     static constexpr int kRes = 5, kSlots = 3;
     static int firLen (int res, double fs) {   // Low 4096 ... Maximum 65536 a 44,1/48 kHz; x2 a 88,2/96, x4 a 176,4/192, x8 a 352,8/384 (stessa risoluzione in Hz)
-        int L = 4096 << std::clamp (res, 0, kRes - 1); if (fs > 60000) L *= 2; if (fs > 120000) L *= 2; if (fs > 240000) L *= 2; return L; }
+        int L = 4096 << std::clamp (res, 0, kRes - 1); if (fs > 60000) L *= 2; if (fs > 120000) L *= 2; if (fs > 240000) L *= 2; return std::min (L, 262144); }   // al massimo 262144: a 352,8/384 kHz Maximum = risoluzione di Very High (memoria e picco di calcolo: revisione esterna)
     static int partLen (int L) { return std::clamp (L / 64, 256, 2048); }   // al massimo 2048: picco di calcolo per blocco limitato (revisione esterna: 4096 a 192 kHz Maximum = 1,2 x la scadenza di un blocco da 64)
     static constexpr double kBeta = 3.0;   // finestra di Kaiser: beta 3 (0.6.0 prima: 9). Bell 40 Hz Q4 a L 8192: 1,50 dB contro 2,92; nessuna perdita sotto -80 dB nei casi misurati
     LinPhase() = default; LinPhase (const LinPhase&) = delete; LinPhase& operator= (const LinPhase&) = delete;
@@ -566,7 +566,7 @@ public:
     // alloca e avvia il thread di progetto: fuori dal thread audio
     void configure (int firL, double sampleRate) {
         stopWorker();
-        L = firL; B = partLen (L); K = L / B; NF = 2 * B; fs = sampleRate; flen = std::max (2 * B, 512);
+        L = firL; B = partLen (L); K = L / B; NF = 2 * B; fs = sampleRate; flen = std::max ({ 2 * B, 512, L / 16 }) / B * B;   // dissolvenza lunga quanto l'intervallo tra i progetti (L/16 oltre 8192): l'automazione resta a catena anche a Maximum (0.6.1: -69,5 dB)
         fL.init (L); fB.init (NF);
         win.resize ((size_t) L); const double i0 = besselI0 (kBeta); for (int i = 0; i < L; ++i) { const double t = 2.0 * i / L - 1; win[(size_t) i] = besselI0 (kBeta * std::sqrt (std::max (0.0, 1 - t * t))) / i0; }
         win[0] = 0;   // tap 0 senza simmetrico (n = L non esiste): a zero, cosi il FIR e esattamente simmetrico attorno a L/2 (con beta 3 valeva 0,2)
@@ -591,7 +591,7 @@ public:
     void process (double* x0, double* x1, int n, double* w, unsigned* mc, unsigned* mf, double* f0, double* f1) {   // f0/f1: parte del FIR vecchio ((1 - w) * vecchio) contenuta in x0/x1
         for (int i = 0; i < n; ++i) {
             if (pos == 0 && done == 0 && ffrom < 0) { const int rs = readySlot.load (std::memory_order_acquire);   // progetto immediato (il primo) pronto prima del blocco: vale gia per questo blocco
-                if (rs >= 0 && readyInstant.load() && readyGen.load() > appliedGen) { fcur = rs; appliedGen = readyGen.load(); readySlot.store (-1, std::memory_order_release); cur.store (fcur); cv.notify_one(); } }
+                if (rs >= 0 && readyInstant.load() && readyGen.load() > appliedGen) { fcur = rs; appliedGen = readyGen.load(); cur.store (fcur); readySlot.store (-1, std::memory_order_release); cv.notify_one(); } }
             inL[(size_t) (B + pos)] = x0[i]; inR[(size_t) (B + pos)] = x1[i];
             x0[i] = outL[(size_t) pos]; x1[i] = outR[(size_t) pos]; w[i] = outW[(size_t) pos]; mc[i] = outMc; mf[i] = outMf; f0[i] = outFL[(size_t) pos]; f1[i] = outFR[(size_t) pos];
             ++pos; const int target = (int) ((long long) (K - 1) * pos / B);   // partizioni 1..K-1 del prossimo blocco distribuite sui campioni (nessun picco di calcolo)
@@ -659,8 +659,9 @@ private:
         if (ffrom >= 0) { ffpos += B; if (ffpos >= flen) { ffrom = -1; sinceEnd = 0; } } else if (sinceEnd < 1000000) sinceEnd += B;
         if (ffrom < 0) { const int rs = readySlot.load (std::memory_order_acquire);
             if (rs >= 0) { const unsigned gn = readyGen.load();
-                if (gn > appliedGen) { if (readyInstant.load()) fcur = rs; else { ffrom = fcur; fcur = rs; ffpos = 0; chained = sinceEnd <= std::max (2048, 4 * B); } appliedGen = gn; }
-                readySlot.store (-1, std::memory_order_release); cv.notify_one(); } }
+                if (gn > appliedGen) { if (readyInstant.load()) fcur = rs; else { ffrom = fcur; fcur = rs; ffpos = 0; chained = sinceEnd <= std::max (2048, 4 * B) + flen; } appliedGen = gn; }
+                cur.store (fcur); fadeFrom.store (ffrom);   // prima gli slot in uso, poi lo slot pronto si libera: il thread di progetto non deve mai vedere lo slot appena preso come libero
+                readySlot.store (-1, std::memory_order_release); cv.notify_one(); } }   // (0.6.1 li pubblicava dopo: corsa trovata da ThreadSanitizer, salti fino a 3,5 dB nell'automazione)
         cur.store (fcur); fadeFrom.store (ffrom);
     }
     void run() {   // thread di progetto: prende l'ultima richiesta, progetta nello slot libero, la consegna al thread audio
@@ -711,7 +712,7 @@ public:
         lin.reset();   // ferma il thread di progetto e libera la memoria del modo precedente
         if (phaseMode == 1 && fs > 0) { lin = std::make_unique<LinPhase>(); lin->configure (LinPhase::firLen (phaseRes, fs), fs); lin->setSync (linSync); const int la = lin->latency(); dlyDry.setup (la); dlyRaw.setup (la); dlySc.setup (la); }
         else { dlyDry.setup (0); dlyRaw.setup (0); dlySc.setup (0); }
-        linDirty = true; linOnce = false; outG = outG1 = 0; for (auto& b : st) { std::memset (b.z, 0, sizeof (b.z)); std::memset (b.sz, 0, sizeof (b.sz)); b.flen = 0; }
+        linDirty = true; linOnce = false; outG = outG1 = 0; for (auto& b : st) { std::memset (b.z, 0, sizeof (b.z)); std::memset (b.sz, 0, sizeof (b.sz)); std::memset (b.sdz, 0, sizeof (b.sdz)); b.flen = 0; b.lpFromDyn = false; b.linTail = false; }
         for (auto& o : old) o.active = false;   // nessuna copia in dissolvenza sopravvive al cambio di modo (revisione esterna: +10 dB al ritorno)
         kW.assign ((size_t) N, 1.0); kMc.assign ((size_t) N, 0u); kMf.assign ((size_t) N, 0u); sxL.assign ((size_t) N, 0.0); sxR.assign ((size_t) N, 0.0); sxM.assign ((size_t) N, 0.0); sxS.assign ((size_t) N, 0.0); kk.assign ((size_t) N, 0.0); kxL.assign ((size_t) N, 0.0); kxR.assign ((size_t) N, 0.0); fxL.assign ((size_t) N, 0.0); fxR.assign ((size_t) N, 0.0); tgL.assign ((size_t) N, 0.0); tgR.assign ((size_t) N, 0.0);
     }
@@ -739,6 +740,7 @@ public:
         if (sameShape && nc.n != s.tgt.n) matchSecs (s, nc);   // 0.4.8: con o senza sezione di correzione si interpola lo stesso   // dinamica on/off: dissolvenza (il salto di guadagno non si interpola bene)
         if (s.active && ! sameShape) fadeOut (i);
         const bool fresh = ! sameShape;
+        { const bool wasIir = s.active && iirOnly (s); BandState tmpS = s; tmpS.dynOn = dynOn; tmpS.p = p; if (wasIir && ! iirOnly (tmpS) && linActive()) s.lpFromDyn = true; }   // Linear Phase: da biquad a FIR, il biquad resta finche il FIR non la contiene
         s.dynOn = dynOn; s.p = p; s.scale = glob.scale; s.g = g; if (! fresh && ! dynOn) startRamp (s, nc); else s.tgt = nc;
         if (dynOn) { BandParams dp; detShape (p, dp); designBand (dp, 0, grid, s.det, false); }   // filtro del detector solo per le bande dinamiche (prima: progettato a ogni cambio anche quando non serviva)
         if (s.dynOn) {   // costanti a frequenza di frame: attacco/rilascio sul livello in dB, media RMS su 8 periodi della banda (10-80 ms)
@@ -783,6 +785,7 @@ private:
         double thrS = -24;                    // soglia levigata (10 ms): automazione della soglia senza gradini di guadagno
         double sz[2][kMaxSecs * 2] = {};      // Linear Phase: stato della banda statica nella catena del detector
         bool linTail = false;                 // Linear Phase: la banda ha suonato come biquad; la sua coda va finita prima di fermarla
+        bool lpFromDyn = false; double sdz[2][kMaxSecs * 2] = {};   // stato della banda dinamica nella catena del detector (Linear Phase)               // Linear Phase: banda diventata statica da dinamica (o da All Pass): suona come biquad finche il FIR non la contiene
         int fpos = 0, flen = 0; double w0 = 1;   // dissolvenza: in entrata (banda nuova) o in uscita (copia in old[])
     };
     struct SoloState { int id = -1; BandParams src; BandCoefs c, tgt; double z[2][kMaxSecs * 2] = {}; int place = 0; };
@@ -1036,8 +1039,8 @@ private:
         const int place = s.p.place; const bool ms = (place == Mid || place == Side) && ! msReady;
         if (ms) for (int i = 0; i < n; ++i) { M[(size_t) i] = 0.5 * (L[(size_t) i] + R[(size_t) i]); S[(size_t) i] = 0.5 * (L[(size_t) i] - R[(size_t) i]); }
         double* ch[2]; double* sc[2]; const bool useSC = s.dynOn && s.p.sc && haveSC; const int nc = chans (place, ch, sc, useSC);
-        double* sd[2] = { nullptr, nullptr }; const bool useSide = s.dynOn && ! useSC && sideOn;   // Linear Phase: detector sulla catena delle bande precedenti
-        if (useSide) { switch (place) { case Left: sd[0] = sxL.data(); break; case Right: sd[0] = sxR.data(); break;
+        double* sd[2] = { nullptr, nullptr }; const bool sideRun = s.dynOn && sideOn && bi >= 0, useSide = sideRun && ! useSC;   // Linear Phase: detector sulla catena delle bande precedenti
+        if (sideRun) { switch (place) { case Left: sd[0] = sxL.data(); break; case Right: sd[0] = sxR.data(); break;
                 case Mid: case Side: for (int i = 0; i < n; ++i) { sxM[(size_t) i] = 0.5 * (sxL[(size_t) i] + sxR[(size_t) i]); sxS[(size_t) i] = 0.5 * (sxL[(size_t) i] - sxR[(size_t) i]); } sd[0] = place == Mid ? sxM.data() : sxS.data(); break;
                 default: sd[0] = sxL.data(); sd[1] = sxR.data(); } }
         if (! s.dynOn) {
@@ -1061,6 +1064,7 @@ private:
                     s.dz[c][0] = z1; s.dz[c][1] = z2; s.acc2[c] = a2s; s.pk[c] = pk;
                 }
                 if (nc == 2) runFrame2 (s.fr0, s.tgt, s.z[0], s.z[1], ch[0], ch[1], i0, i1, s.phase, F); else runFrame (s.fr0, s.tgt, s.z[0], ch[0], i0, i1, s.phase, F);
+                if (sideRun) { if (nc == 2) runFrame2 (s.fr0, s.tgt, s.sdz[0], s.sdz[1], sd[0], sd[1], i0, i1, s.phase, F); else runFrame (s.fr0, s.tgt, s.sdz[0], sd[0], i0, i1, s.phase, F); }   // la catena del detector passa anche dalle bande dinamiche (come in Zero Latency)
                 s.phase += i1 - i0; i0 = i1;
                 if (s.phase == F) {   // fine frame: livello (RMS vero o picco - 3.01 dB) -> attacco/rilascio in dB -> guadagno -> coefficienti dalla tabella
                     s.phase = 0; s.cur = s.tgt; double inst, fpk = 0;
@@ -1076,6 +1080,7 @@ private:
                 }
             }
             if (bi >= 0) meterDelta[bi].store ((float) s.delta, std::memory_order_relaxed);
+            if (sideRun && (place == Mid || place == Side)) for (int i = 0; i < n; ++i) { sxL[(size_t) i] = sxM[(size_t) i] + sxS[(size_t) i]; sxR[(size_t) i] = sxM[(size_t) i] - sxS[(size_t) i]; }
         }
         if (ms) for (int i = 0; i < n; ++i) { L[(size_t) i] = M[(size_t) i] + S[(size_t) i]; R[(size_t) i] = M[(size_t) i] - S[(size_t) i]; }
     }
@@ -1236,6 +1241,11 @@ private:
                 const double fl = fxL[(size_t) i], fr = fxR[(size_t) i], cl = L[(size_t) i] - fl, cr = R[(size_t) i] - fr;
                 tgL[(size_t) i] = (lc ? cl : 0.0) + (lf ? fl : 0.0); tgR[(size_t) i] = (lc ? cr : 0.0) + (lf ? fr : 0.0);
                 if (lc || lf) any = true; if (! (lc && lf)) whole = false; }
+            bool inBoth = true; for (int i = 0; i < n; ++i) if (! ((kMc[(size_t) i] & kMf[(size_t) i]) & bit)) { inBoth = false; break; }
+            if (inBoth) s.lpFromDyn = false;
+            // banda statica che entra o esce: solo il FIR (dissolvenza tra due FIR). Il biquad a fase minima insieme al FIR a fase lineare si cancellava vicino ai tagli ripidi
+            // (Low Cut 96 dB/oct: buco di -20 dB, revisione esterna). Il biquad serve solo ai passaggi dinamica <-> statica.
+            if (s.active && ! iirOnly (s) && ! s.lpFromDyn && ! (o.active && iirOnly (o))) any = false;
             const bool runIt = any || iirOnly (s) || (o.active && iirOnly (o));
             if (! runIt && s.linTail) {   // la banda e appena entrata nel FIR: la sua coda (stato del biquad) continua a suonare con ingresso nullo, poi si spegne
                 double mx = 0; for (int i = 0; i < n; ++i) { kxL[(size_t) i] = L[(size_t) i]; kxR[(size_t) i] = R[(size_t) i]; L[(size_t) i] = R[(size_t) i] = 0; }
