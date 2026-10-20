@@ -246,6 +246,8 @@ body{background:radial-gradient(ellipse at 50% 30%,#1c1d20,#030304 72%)}
 /* cornice: in alto niente (il display tocca il bordo della finestra), in basso 10 px come a sinistra: tutto il contenuto sale di 34 px */
 #ed{border-top:0;border-top-left-radius:0;border-top-right-radius:0}
 #ed>:not(.veins):not(.outp):not(svg){margin-top:-34px}
+/* 0.6.1: bordi senza macchie (richiesta di Tim): cornice in tinta unita, niente venature, grana o luci */
+#ed{background:#0f1012!important;border-radius:0!important;box-shadow:none!important}#ed>.veins{display:none!important}#ed::before,#ed::after{display:none!important}#ed>svg.lobes{display:none!important}body.plugin{background:#0f1012!important}
 #ed.kb .bisl.bp,#ed.kb .dpill{margin-top:-52px}
 body.plugin{align-items:flex-start;overflow:hidden}
 #ed .bisl.nt{transition:none!important}
@@ -974,7 +976,7 @@ if (typeof module !== 'undefined') module.exports = TSRQ;
 /* ====== TSR Q \u00b7 editor (riproduzione 1:1 dell'editor JUCE v0.1.0) ====== */
 const EW = 1180, EH = 706;   /* 0.6.1: proporzioni di Pro-Q 4 (misurate sulla schermata del Mac: contenuto 1903 x 1138 px Retina = 951 x 569 punti) */
 /* 0.6.0: display senza bordi laterali (come Pro-Q 4): il grafico va da bordo a bordo, sotto una barra con OUTPUT; meter OUT dentro il display, a destra */
-const LAY = { gx: 0, gy: 34, gw: EW, gh: EH - 22, side: 34 };   /* barra in basso 22 px (0.6.1 prima: 31) */   /* barra in basso 31 px e striscia del meter 34 px: come Pro-Q 4 (50 / 1138 e 54 / 1903) */   /* gy 34: tutto il contenuto sale di 34 px (CSS margin-top) */   /* niente cornice in alto (c'e il bordo della finestra del Mac), sotto sottile come a sinistra (10 px) */
+const LAY = { gx: 10, gy: 34, gw: EW - 10, gh: EH - 22, side: 34 };   /* cornice a sinistra di 10 px, come quella in alto */   /* barra in basso 22 px (0.6.1 prima: 31) */   /* barra in basso 31 px e striscia del meter 34 px: come Pro-Q 4 (50 / 1138 e 54 / 1903) */   /* gy 34: tutto il contenuto sale di 34 px (CSS margin-top) */   /* niente cornice in alto (c'e il bordo della finestra del Mac), sotto sottile come a sinistra (10 px) */
 const T0 = { panelTop: '#2c3035', panelBot: '#1b1e22', edge: '#3d434a', silver: '#c9ced6', ink: '#eef2f6', dim: '#8b939d', screen: '#0d1014', accent: '#ffd23f', dyn: '#5ac8fa', spec: '#9aa1aa', pInk: '#c9ced6', pDim: '#8b939d', logo: '#c9ced6', title: '#eef2f6', disInk: 'rgba(139,147,157,.4)',
   kArcBg: 'rgba(255,255,255,.15)', kArc: '#c9ced6', kBody0: '#6c737c', kBody1: '#23272c', kFace0: '#3a4048', kFace1: '#1a1d21', kRim: 'rgba(255,255,255,.19)', kInd: '#ffffff', kShadow: 'rgba(0,0,0,.55)', sep: 'rgba(255,255,255,.08)', name: 'PRECISION DYNAMIC EQ' };
 const C = Object.assign({}, T0, window.THEME || {});
@@ -1202,7 +1204,7 @@ function flush() { if (!dirty) return; dirty = false; autoGainDb = computeAuto()
 'use strict';
 /* ====== grafico EQ + analizzatore (porting di EqGraph) ====== */
 const graph = (() => {
-  const G = { primary: -1, sel: new Set(), fftOrder: 13, decay: 40, avg: 0.3, peakHold: false, freeze: false, showPre: true, showPost: true, showSC: false, rangeDb: 12, EQY0: 0.37346 * EH, EQH: 0.28120 * EH, optDyn: true, anaRange: 90, tilt: 4.5, fLo: 8.707, fHi: 35551 };   /* asse delle frequenze di Pro-Q 4: 20 Hz al 9,72 % della larghezza, una decade = 26,9 % */
+  const G = { primary: -1, sel: new Set(), fftOrder: 13, decay: 40, avg: 0.3, peakHold: false, freeze: false, showPre: true, showPost: true, showSC: false, rangeDb: 12, EQY0: 0.37346 * EH, EQH: 0.28120 * EH, optDyn: true, anaRange: 90, tilt: 4.5, fLo: 9.368, fHi: 35449 };   /* asse delle frequenze di Pro-Q 4: 20 Hz al 9,72 % della larghezza, una decade = 26,9 % */
   const SIDE = LAY.side; const PL = { x: 0, y: 10, w: GW - SIDE, h: GH - 10 - 22 };   // niente fascia a sinistra: la griglia parte dal bordo   // griglia fino in alto: logo, nome e tasti stanno dentro la griglia   // y 46: sopra c'\u00e8 la fascia con tasti e logo   // fasce laterali senza griglia: meter
   const fMax = () => Math.min(30000, fsNow() / 2);
   const vLo = () => Math.max(5, G.fLo), vHi = () => G.fHi;   /* asse fisso come Pro-Q 4 (anche oltre Nyquist; le curve si fermano a fs/2) */   /* vista: zoom/pan dell'asse delle frequenze */
@@ -1299,7 +1301,7 @@ const graph = (() => {
   G.nodePos = nodePos;
   G.X = X; G.Fx = Fx; G.Y = Y; G.Dy = Dy; G.AY = AY; G.PL = PL;
   G._specPost = () => specPost;
-  G.view = () => ({ lo: vLo(), hi: vHi() }); G.setView = (lo, hi) => { const mx = fMax(); lo = clamp(lo, 10, mx / 1.5); hi = clamp(hi, lo * 1.5, mx); G.fLo = lo; G.fHi = hi >= mx * .999 ? 35551 : hi; };
+  G.view = () => ({ lo: vLo(), hi: vHi() }); G.setView = (lo, hi) => { const mx = fMax(); lo = clamp(lo, 10, mx / 1.5); hi = clamp(hi, lo * 1.5, mx); G.fLo = lo; G.fHi = hi >= mx * .999 ? 35449 : hi; };
   G.specDb = x => (N && playing && specPost) ? specY(G.showPost ? specPost : specPre, x) : null;   /* spettro (dB con inclinazione) per i picchi */
   const rangePos = i => { const b = P.bands[i], z = rcurves[i]; if (!z || !b.used || b.byp || !b.dyn || !canDyn(b.type)) return null; const x = X(Math.min(b.freq, fMax())), k = clamp(Math.round((x - PL.x) / PL.w * (z.length - 1)), 0, z.length - 1); return { x, y: Y(clamp(z[k], -G.rangeDb, G.rangeDb)) }; };
   G.rangePos = rangePos;
@@ -1956,6 +1958,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 (() => { const KO2 = knobs.find(k => k.name === 'OUTPUT'); if (!KO2) throw new Error('TSRQ: knob OUTPUT non trovato');
   const BH = EH - LAY.gh, top = LAY.gy + LAY.gh, LWo = 70, x = EW - 12 - LWo;
   KO2.cv.style.display = 'none';
+  { const lb = el('div', 'lborder', ed, px(0, LAY.gy, LAY.gx, LAY.gh)); Object.assign(lb.style, { background: '#0f1012', pointerEvents: 'none', zIndex: 3 }); }   /* cornice sinistra: stessa grandezza e colore del bordo alto (8 px a 952 di larghezza) */
   for (const e of [KO2.lab, KO2.inp]) Object.assign(e.style, { left: x + 'px', top: (top + (BH - 18) / 2) + 'px', width: LWo + 'px', height: '18px', textAlign: 'right' });
   const lab = KO2.lab; lab.style.cursor = 'ns-resize'; lab.style.touchAction = 'none'; lab.title = 'Output: trascina su/gi\u00f9 (Shift = fine), rotella, doppio clic per scrivere il valore';
   let drag = null;
