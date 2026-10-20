@@ -1000,7 +1000,7 @@ const FONT = '"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif';
 
 /* ---------- stato (= parametri APVTS) ---------- */
 function defBand(i) { return { used: 0, byp: 0, type: 0, freq: 40 * Math.pow(2, i * 9 / 31), gain: 0, q: 1, slope: 3, place: 0, dyn: 0, thr: -24, range: -1.5, att: 5, rel: 80, knee: 6, det: 0, sc: 0 }; }
-let P = { bands: Array.from({ length: NB }, (_, i) => defBand(i)), inp: 0, out: 0, scale: 100, auto: 0, char: 0, bypass: 0, pan: 0, panMS: 0, inv: 0, gq: 0 };
+let P = { bands: Array.from({ length: NB }, (_, i) => defBand(i)), inp: 0, out: 0, scale: 100, auto: 0, char: 0, bypass: 0, pan: 0, panMS: 0, inv: 0, gq: 0, phase: 0, lpres: 1 };
 const snap = () => JSON.stringify(P);
 const undoStack = [], redoStack = []; let lastSnap = snap();
 function txn() { const s = snap(); if (s !== lastSnap) { undoStack.push(lastSnap); if (undoStack.length > 200) undoStack.shift(); redoStack.length = 0; lastSnap = s; } }
@@ -1941,6 +1941,22 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
     g.fillStyle = C.ink; g.beginPath(); g.arc(cx + Math.cos(ang) * (R - 4), cy + Math.sin(ang) * (R - 4), 1.6, 0, 7); g.fill(); };
   const prev = drawKnob; drawKnob = k => k === KO2 ? compact(k) : prev(k);
   compact(KO2); panelSync(); })();
+
+/* ====== 0.6.0: modo di elaborazione nella barra in basso (come Pro-Q 4): Zero Latency / Linear Phase + risoluzione ====== */
+(() => { const st = document.createElement('style');
+  st.textContent = '#ed .pmode{all:unset;box-sizing:border-box;position:absolute;height:20px;padding:0 9px;border-radius:5px;font:600 11px ' + FONT + ';letter-spacing:.03em;color:#9aa4ae;cursor:pointer;display:flex;align-items:center;gap:5px;z-index:5}' +
+    '#ed .pmode:hover{color:#e6f7ff;background:rgba(79,209,255,.07)}#ed .pmode.on{color:#FFE45C}#ed .pmode i{font-style:normal;opacity:.6;font-size:9px}';
+  document.head.appendChild(st);
+  const MODES = ['Zero Latency', 'Linear Phase'], RES = ['Low', 'Medium', 'High', 'Very High', 'Maximum'];
+  const top = LAY.gy + LAY.gh + (EH - LAY.gh - 20) / 2;
+  const bm = el('button', 'pmode', ed, px(12, top, 120, 20)), br = el('button', 'pmode', ed, px(136, top, 110, 20)); bm.type = br.type = 'button';
+  bm.title = 'Modo di elaborazione'; br.title = 'Risoluzione Linear Phase (pi\u00f9 alta = pi\u00f9 precisa alle basse frequenze, pi\u00f9 latenza)';
+  const sync = () => { const m = P.phase | 0, r = P.lpres | 0; bm.innerHTML = MODES[m] + ' <i>\u25be</i>'; bm.classList.toggle('on', m === 1);
+    br.style.display = m === 1 ? 'flex' : 'none'; br.innerHTML = RES[r] + ' <i>\u25be</i>'; };
+  const set = (k, v) => { txn(); P[k] = v; commit(); dirty = true; sync(); };
+  const menuAt = (b, items, cur, k) => { const r = b.getBoundingClientRect(); openMenu(items.map((t, i) => ({ text: t, checked: i === cur, fn: () => set(k, i) })), r.left, r.top - 4 - items.length * 26, Math.max(140, r.width)); };
+  bm.onclick = () => menuAt(bm, MODES, P.phase | 0, 'phase'); br.onclick = () => menuAt(br, RES, P.lpres | 0, 'lpres');
+  sync(); (function w() { const k = (P.phase | 0) + ':' + (P.lpres | 0); if (k !== w.k) { w.k = k; sync(); } requestAnimationFrame(w); })(); })();
 
 'use strict';
 /* ====== manopole dell'isola scure come la cornice ====== */

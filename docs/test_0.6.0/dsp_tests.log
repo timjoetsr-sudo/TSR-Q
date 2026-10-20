@@ -29,8 +29,8 @@ PASS knee 12 dB: a soglia -1.12 dB, 6,5 dB sotto -0.00 dB
 PASS scarto max 6..96 dB/oct dal prototipo = 0.0012 dB
 PASS 6, 30, 48, 72, 96 dB/oct con Q 1 = Butterworth: scarto 8.9e-16 dB
 == 8. PRESTAZIONI: 32 bande (28 dinamiche + 4 tagli 96 dB/oct), stereo, 10 s @48k, blocchi 128 ==
-   tempo per 10 s di audio: 297 ms -> 3.0 % di un core
-PASS piu veloce del tempo reale (x33.6)
+   tempo per 10 s di audio: 451 ms -> 4.5 % di un core
+PASS piu veloce del tempo reale (x22.2)
 == 9. USCITA: OUTPUT -inf/+36, pan L/R e M/S (bilanciamento lineare, centro 0 dB), polarita ==
 PASS OUTPUT a -60 = -inf: uscita 0.0e+00 / 0.0e+00 (attesa zero esatto)
 PASS OUTPUT +36 dB: misurato 36.000 dB
@@ -68,8 +68,8 @@ PASS alias peggiore con oversampling 8x sotto -100 dB rispetto alla fondamentale
    filtro OS @44.1k: modulo 1 kHz -0.000 dB, 10 kHz -0.000 dB, 18 kHz 0.000 dB, 20 kHz 0.000 dB | ritardo di gruppo 1 kHz 7.36, 10 kHz 8.86, 18 kHz 17.87 campioni
 PASS banda passante piatta fino a 18 kHz @44.1k (scarto max 0.000 dB)
    nota: con Character attivo il suono passa da questi filtri (ritardo di fase indicato sopra); con Clean nessun oversampling e nessun ritardo
-   CPU, 10 s stereo @48k senza bande: Clean 17 ms, Warm con OS 8x 172 ms
-PASS costo del Character con oversampling 8x: 172 ms per 10 s (1.7 % di un core)
+   CPU, 10 s stereo @48k senza bande: Clean 13 ms, Warm con OS 8x 175 ms
+PASS costo del Character con oversampling 8x: 175 ms per 10 s (1.8 % di un core)
 == 12. SOLO: allargando o spostando la banda durante il solo cambia cio che si ascolta ==
 PASS solo su 1 kHz, tono a 2,5 kHz: Q 4 -> -9.9 dB, allargata a Q 0.3 -> -0.8 dB (si sente di piu)
 PASS spostata a 2,5 kHz durante il solo: 0.0 dB (prima -9.9 dB)
@@ -151,6 +151,21 @@ PASS Low Shelf Q40 +30 dB 100 Hz -> -30 dB 5 kHz, tono 300 Hz: picco -0.11 dB ol
 PASS stati finiti con FTZ/DAZ attivi: sezioni con stato nullo non finite 0 (atteso 0)
 == 28. FORME UGUALI A PRO-Q 4: modulo a 192 kHz contro le misure di Pro-Q 4 (Bell, shelf, tagli, notch, tilt, flat tilt) ==
 PASS 10 forme, 19 frequenze sopra -40 dB: scarto max da Pro-Q 4 0.121 dB (0.5.0: fino a 19,7 dB)
+== 29. LINEAR PHASE: latenza riportata = picco, risposta simmetrica, modulo = analogico, invarianza al blocco, automazione ==
+   risoluzione 0: latenza 2304, picco a 2304, asimmetria 0.0e+00
+PASS risoluzione: latenza = picco, simmetrica; scarto dal modulo analogico 1.135 dB (< 1.50)
+   risoluzione 1: latenza 4352, picco a 4352, asimmetria 0.0e+00
+PASS risoluzione: latenza = picco, simmetrica; scarto dal modulo analogico 0.308 dB (< 0.40)
+   risoluzione 2: latenza 8448, picco a 8448, asimmetria 7.1e-15
+PASS risoluzione: latenza = picco, simmetrica; scarto dal modulo analogico 0.083 dB (< 0.10)
+   risoluzione 3: latenza 16896, picco a 16896, asimmetria 2.8e-17
+PASS risoluzione: latenza = picco, simmetrica; scarto dal modulo analogico 0.021 dB (< 0.03)
+   risoluzione 4: latenza 33792, picco a 33792, asimmetria 2.2e-11
+PASS risoluzione: latenza = picco, simmetrica; scarto dal modulo analogico 0.005 dB (< 0.01)
+PASS blocchi 1/7/64/333/4096/casuali = blocchi da 512, al bit (scarto 0.0e+00); Bell spostato a ogni blocco da 512: uscita finita, picco 0.49
+== 30. LINEAR PHASE IN TEMPO REALE: progetti nel thread dedicato (come nel plugin) = progetti nel thread audio, dopo la consegna ==
+   blocco piu lento nel thread audio: progetti nel thread audio 4.66 ms, thread dedicato 2.31 ms
+PASS ultimi 100 blocchi: thread dedicato = thread audio, scarto 0.0e+00 (< 1e-6); uscita finita
 
 RISULTATO: tutti i test PASS
 exit 0

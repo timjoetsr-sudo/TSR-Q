@@ -113,6 +113,8 @@ private:
     std::atomic<float>* gIn = nullptr; std::atomic<float>* gOut = nullptr; std::atomic<float>* gScale = nullptr; std::atomic<float>* gAuto = nullptr;
     std::atomic<float>* gChar = nullptr; std::atomic<float>* gByp = nullptr;
     std::atomic<float>* gPan = nullptr; std::atomic<float>* gPanMode = nullptr; std::atomic<float>* gInv = nullptr; std::atomic<float>* gGq = nullptr;
+    std::atomic<float>* gPhase = nullptr; std::atomic<float>* gLpRes = nullptr; int phaseApplied = 0, resApplied = 1;
+    std::vector<float> wdL, wdR; int wPos = 0; void setWaveDelay (int n) { wdL.assign ((size_t) std::max (0, n), 0.f); wdR.assign ((size_t) std::max (0, n), 0.f); wPos = 0; }   // 0.6.0: modo applicato al motore (cambiato dal timer)
     std::atomic<double> sr { 48000.0 };
     std::atomic<int> ccMap[128];                      // indice del parametro (getParameters()) o -1
     std::atomic<int> learnTarget { -1 };

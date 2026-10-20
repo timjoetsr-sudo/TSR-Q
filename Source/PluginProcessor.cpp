@@ -50,6 +50,8 @@ AudioProcessorValueTreeState::ParameterLayout TsrqProcessor::createLayout() {
     L.add (std::make_unique<AudioParameterBool> (ParameterID { "auto", 1 }, "Auto Gain", false));
     L.add (std::make_unique<AudioParameterChoice> (ParameterID { "char", 1 }, "Character", StringArray { "Clean", "Subtle", "Warm" }, 0));
     L.add (std::make_unique<AudioParameterBool> (ParameterID { "bypass", 1 }, "Bypass", false));
+    L.add (std::make_unique<AudioParameterChoice> (ParameterID { "phase", 1 }, "Processing Mode", StringArray { "Zero Latency", "Linear Phase" }, 0));   // 0.6.0
+    L.add (std::make_unique<AudioParameterChoice> (ParameterID { "lpres", 1 }, "Linear Phase Resolution", StringArray { "Low", "Medium", "High", "Very High", "Maximum" }, 1));
     return L;
 }
 
@@ -64,6 +66,7 @@ TsrqProcessor::TsrqProcessor()
     gIn = apvts.getRawParameterValue ("in"); gOut = apvts.getRawParameterValue ("out"); gScale = apvts.getRawParameterValue ("scale"); gAuto = apvts.getRawParameterValue ("auto");
     gChar = apvts.getRawParameterValue ("char"); gByp = apvts.getRawParameterValue ("bypass");
     gPan = apvts.getRawParameterValue ("pan"); gPanMode = apvts.getRawParameterValue ("panmode"); gInv = apvts.getRawParameterValue ("invert"); gGq = apvts.getRawParameterValue ("gq");
+    gPhase = apvts.getRawParameterValue ("phase"); gLpRes = apvts.getRawParameterValue ("lpres");
     // frequenze di partenza distribuite, così le bande nuove non si sovrappongono
     for (int i = 0; i < tsrq::kMaxBands; ++i) if (auto* p = bp (i, "freq")) p->setValueNotifyingHost (p->convertTo0to1 ((float) (40.0 * std::pow (2.0, i * 9.0 / 31.0))));
     for (auto& c : ccMap) c.store (-1);
@@ -82,7 +85,8 @@ bool TsrqProcessor::isBusesLayoutSupported (const BusesLayout& l) const {
 
 void TsrqProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) {
     sr = sampleRate;
-    engine.prepare (sampleRate, jmax (32, samplesPerBlock));
+    phaseApplied = (int) gPhase->load(); resApplied = (int) gLpRes->load(); engine.setPhaseConfig (phaseApplied, resApplied);
+    engine.prepare (sampleRate, jmax (32, samplesPerBlock)); setLatencySamples (engine.latencySamples()); setWaveDelay (engine.latencySamples());
     monoTmp.assign ((size_t) jmax (32, samplesPerBlock) * 4, 0.0f);
     wavePre.assign ((size_t) (jmax (32, samplesPerBlock) * 4 / kWaveB + 4) * 4, 0.0f); wCnt = 0; for (auto& v : wAccPre) v = 0; for (auto& v : wAccPost) v = 0; lastEnd = -1;
 }
@@ -115,7 +119,7 @@ void TsrqProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midi) 
     tsrq::Engine::Global g; g.inDb = gIn->load(); g.outDb = gOut->load(); g.scale = gScale->load() / 100.0; g.character = (int) gChar->load();
     g.bypass = gByp->load() > 0.5f; g.solo = solo.load(); g.autoGainDb = gAuto->load() > 0.5f ? autoGainDb.load() : 0.0;
     g.pan = gPan->load() / 100.0; g.panMS = gPanMode->load() > 0.5f; g.invert = gInv->load() > 0.5f; g.gq = gGq->load() > 0.5f;
-    engine.setGlobal (g);
+    engine.setGlobal (g); engine.setLinSync (isNonRealtime());   // Linear Phase: rendering offline = progetti nel thread audio (nessun ritardo dell'automazione)
     for (int i = 0; i < tsrq::kMaxBands; ++i) { auto b = readBand (i); b.f = std::min (b.f, fs * 0.495); b.gq = g.gq; engine.setBand (i, b); }
 
     const float* scL = nullptr; const float* scR = nullptr;
@@ -127,7 +131,8 @@ void TsrqProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midi) 
         scLastMs.store (Time::getMillisecondCounterHiRes()); }
     // waveform: min/max per gruppo di kWaveB campioni, prima del motore (i gruppi a cavallo dei blocchi continuano)
     const int maxGroups = (int) wavePre.size() / 4; int kPre = 0;
-    { int c = wCnt; float* a = wAccPre; for (int i = 0; i < n; ++i) { const float l = L[i], r = R ? R[i] : l;
+    { int c = wCnt; float* a = wAccPre; const int wd = (int) wdL.size(); for (int i = 0; i < n; ++i) { float l = L[i], r = R ? R[i] : l;
+            if (wd > 0) { const float tl = wdL[(size_t) wPos], tr = wdR[(size_t) wPos]; wdL[(size_t) wPos] = l; wdR[(size_t) wPos] = r; l = tl; r = tr; if (++wPos == wd) wPos = 0; }   // 0.6.0: ingresso ritardato come l'uscita (Linear Phase)
             if (c == 0) { a[0] = a[1] = l; a[2] = a[3] = r; } else { a[0] = jmin (a[0], l); a[1] = jmax (a[1], l); a[2] = jmin (a[2], r); a[3] = jmax (a[3], r); }
             if (++c == kWaveB) { if (kPre < maxGroups) std::memcpy (wavePre.data() + 4 * kPre, a, 4 * sizeof (float)); ++kPre; c = 0; } } }
     { const float gi = Decibels::decibelsToGain (gIn->load()); float a = 0, b = 0; for (int i = 0; i < n; ++i) { a = jmax (a, std::abs (L[i])); if (R) b = jmax (b, std::abs (R[i])); }
@@ -142,7 +147,7 @@ void TsrqProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midi) 
     for (int i0 = 0; i0 < n; i0 += 1024) { const int m = jmin (1024, n - i0); float tmp[1024];
         for (int i = 0; i < m; ++i) tmp[i] = R ? 0.5f * (L[i0 + i] + R[i0 + i]) : L[i0 + i]; scopePost.push (tmp, m); }
     { float a = 0, b = 0; for (int i = 0; i < n; ++i) { a = jmax (a, std::abs (L[i])); if (R) b = jmax (b, std::abs (R[i])); } maxInto (pkOut[0], a); maxInto (pkOut[1], R ? b : a); }
-    // waveform: stessi gruppi dopo il motore (latenza del motore = 0 campioni: prima e dopo sono allineati)
+    // waveform: stessi gruppi dopo il motore (ingresso ritardato della latenza del motore: prima e dopo sono allineati)
     { int c = wCnt, k = 0; float* a = wAccPost; for (int i = 0; i < n; ++i) { const float l = L[i], r = R ? R[i] : l;
             if (c == 0) { a[0] = a[1] = l; a[2] = a[3] = r; } else { a[0] = jmin (a[0], l); a[1] = jmax (a[1], l); a[2] = jmin (a[2], r); a[3] = jmax (a[3], r); }
             if (++c == kWaveB) { if (k < maxGroups) { float v[8]; std::memcpy (v, wavePre.data() + 4 * k, 4 * sizeof (float)); std::memcpy (v + 4, a, 4 * sizeof (float)); wave.push8 (v); } else wave.dropped.fetch_add (1); ++k; c = 0; } }
@@ -167,6 +172,9 @@ var TsrqProcessor::midiMapAsVar() const {
 
 void TsrqProcessor::timerCallback() {   // auto gain: media in dB della curva statica 20 Hz-20 kHz, calcolata fuori dal thread audio
     applyMidiCC();
+    {   // 0.6.0: cambio di modo (Zero Latency / Linear Phase) o di risoluzione: alloca fuori dal thread audio, con l'elaborazione sospesa, e comunica la latenza all'host
+        const int ph = (int) gPhase->load(), rs = (int) gLpRes->load();
+        if ((ph != phaseApplied || rs != resApplied) && sr.load() > 0) { suspendProcessing (true); engine.configurePhase (ph, rs); setLatencySamples (engine.latencySamples()); setWaveDelay (engine.latencySamples()); suspendProcessing (false); phaseApplied = ph; resApplied = rs; } }
     if (gAuto->load() < 0.5f) return;
     const double fs = sr.load(); if (uiGrid.fs != fs) uiGrid.init (fs);
     const double sc = gScale->load() / 100.0; double sum = 0; tsrq::BandCoefs c[tsrq::kMaxBands]; int nb = 0;

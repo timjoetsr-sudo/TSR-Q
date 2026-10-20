@@ -116,3 +116,79 @@ Metriche di `quality.csv`:
 2. **Low Cut 12 dB/oct a 20 kHz, 44,1 kHz, Q 0,71:** 0,117 dB [M].
 3. **Band Pass e tagli a 6 dB/oct di Pro-Q:** da ricostruire, con nuove misure sul Mac.
 4. **Misure mancanti su Pro-Q 4:** 30 dB/oct, Tilt a 6 dB/oct, All Pass, Q fuori 0,3–10, tagli con f diversa da 1 kHz e con fs di 44,1 e 48 kHz.
+
+## Interfaccia senza bordi laterali (`a5b7b5d`) [M]
+
+- **Display:** va da bordo a bordo della finestra.
+- **Meter OUT:** striscia di 26 px dentro il display, a destra.
+- **OUTPUT:** nella barra in basso.
+- **Finestra:** sempre 1180 × 542. Le grandezze di Pro-Q 4 sono [NV]: il Mac non ha risposto.
+- **Dato letto sul Mac:** nelle preferenze di Pro-Q 4 risulta `InterfaceWidth = 760`, `InterfaceHeight = 335`, `InterfaceLayout = 2`. Non so a quale grandezza corrispondano, né se siano in punti o in pixel [NV].
+
+## Linear Phase [M]
+
+**Cosa fa** [C]
+- Nuovi parametri:
+  - **Processing Mode:** Zero Latency / Linear Phase;
+  - **Linear Phase Resolution:** Low, Medium, High, Very High, Maximum.
+- **Bande statiche:** diventano un unico FIR a fase lineare, che segue il modulo **analogico** di ogni banda (nessun cramping).
+  - Stereo, Left, Right, Mid e Side sono gestite come una matrice 2×2 per frequenza.
+  - Il costo è di due prodotti per frequenza con matrice piena, uno solo se tutte le bande sono Stereo.
+- **FIR:**
+  - finestra di Kaiser β 9;
+  - convoluzione partizionata uniforme;
+  - nuovo progetto dissolto sul vecchio in 2 partizioni.
+- **Progetti:**
+  - in tempo reale, in un thread dedicato (consegna con triplo buffer, senza attese nel thread audio);
+  - nel rendering offline (`isNonRealtime`), nel thread audio.
+- **Bande dinamiche:** restano biquad (fase minima) anche in Linear Phase [C]. Pro-Q 4 le fa a fase lineare: **non è uguale**.
+- **Cosa viene ritardato della stessa latenza:** il bypass (segnale dry), il solo, il sidechain esterno e la waveform "prima".
+
+| Risoluzione | FIR a 44,1/48 kHz | Latenza a 48 kHz | Scarto dal modulo analogico (test 29) |
+|---|---|---|---|
+| Low | 4096 | 2304 | 1,135 dB (a 40 Hz) |
+| Medium | 8192 | 4352 | 0,308 dB |
+| High | 16384 | 8448 | 0,083 dB |
+| Very High | 32768 | 16896 | 0,021 dB |
+| Maximum | 65536 | 33792 | 0,005 dB |
+
+- A 88,2/96 kHz il FIR è il doppio e a 176,4/192 kHz il quadruplo, così la risoluzione in Hz resta la stessa.
+- Le latenze di Pro-Q 4 non sono state misurate [NV]. Quindi le latenze di TSR Q **non** sono state allineate a quelle di Pro-Q.
+
+**Plugin VST3 vero** (pedalboard, che compensa la latenza riportata):
+- risposta all'impulso simmetrica (asimmetria ≤ 3,3e-10);
+- bypass = ingresso, al bit;
+- blocchi da 64 e da 4096 identici a quelli da 512;
+- differenza dal modo Zero Latency, 60 Hz–18 kHz: 0,291 dB (Low), 0,052 (Medium), 0,011 (High), 0,006 (Very High e Maximum).
+
+**CPU a 48 kHz, 8 bande, blocco da 512** (`cpu_linear_phase.cpp`):
+
+| Modo | Tutte Stereo | Con una banda Mid |
+|---|---|---|
+| Zero Latency | 28 µs | 29 µs |
+| Linear Phase Low | 68 µs | 88 µs |
+| Linear Phase Medium | 91 µs | 142 µs |
+| Linear Phase High | 159 µs | 267 µs |
+| Linear Phase Maximum | 158 µs | 261 µs |
+
+- Un progetto costa da 0,6 ms (Low) a 14,7 ms (Maximum con una banda Mid), nel thread dedicato.
+
+**Prove:**
+
+| Prova | Esito |
+|---|---|
+| dsp_tests | tutti PASS (sezioni 29 e 30 nuove) |
+| stem | 113/113 |
+| parità JS = C++ (zero latency) | forme 20/20, casuale 40/40, master 10/10, stem 26/26 |
+| ThreadSanitizer, 2000 blocchi con cambi continui e cambio di risoluzione | nessuna segnalazione |
+| pluginval livello 10 | SUCCESS |
+
+- La sezione 30 verifica il thread dedicato: dopo la consegna l'uscita è uguale al bit a quella con i progetti nel thread audio.
+- Su circa 12 esecuzioni di pluginval in questa sessione, 2 hanno dato segmentation fault **dopo** SUCCESS, alla chiusura. Una era già con `a5b7b5d`, prima del Linear Phase. Altre 3 esecuzioni sotto gdb non l'hanno riprodotto. La causa è [NV].
+- Le metriche Zero Latency del CSV di qualità sono identiche alla 0.6.0. Il confronto A/B della CPU, eseguito tre volte, dà valori uguali entro il rumore.
+
+**Non verificato:**
+- Linear Phase nel prototipo HTML (il motore JS non lo fa: il selettore cambia solo il parametro).
+- Curva disegnata in Linear Phase: resta quella del biquad, quasi uguale all'analogico sotto Nyquist.
+- Comportamento dentro Ableton.
+- Latenze e CPU di Pro-Q 4 in Linear Phase.

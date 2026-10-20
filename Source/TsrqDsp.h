@@ -6,6 +6,12 @@
 #include <algorithm>
 #include <vector>
 #include <cstring>
+#include <complex>
+#include <thread>
+#include <memory>
+#include <mutex>
+#include <condition_variable>
+#include <chrono>
 
 namespace tsrq {
 
@@ -523,6 +529,138 @@ struct Oversampled8x {   // x -> 8 campioni -> saturazione -> 1 campione (ogni s
 // dissolvenza (crossfade) di 15 ms per tutto cio che non si puo interpolare: banda attivata/disattivata, cambio di tipo/pendenza/collocazione,
 // solo acceso/spento, cambio di Character. Curva a coseno rialzato (inizio e fine morbidi). Prima della prima elaborazione: nessuna dissolvenza.
 inline double fadeW (double u) { return u >= 1 ? 1.0 : 0.5 - 0.5 * std::cos (kPi * u); }
+// ---------- 0.6.0: Linear Phase (bande statiche come un unico FIR a fase lineare) ----------
+// Bersaglio = modulo ANALOGICO di ogni banda (nessun cramping), bande nell'ordine dell'indice; Stereo/Left/Right/Mid/Side come matrice 2x2 reale per frequenza.
+// FIR di L campioni (finestra di Kaiser beta 9), simmetrico attorno a L/2; convoluzione partizionata uniforme (overlap-save, partizione B).
+// Latenza = L/2 + B, costante finche non cambia la risoluzione. Ogni nuovo progetto si dissolve sul vecchio in 2 partizioni (coseno rialzato).
+using Cpx = std::complex<double>;
+struct Fft {
+    int n = 0; std::vector<Cpx> w; std::vector<int> rv;
+    void init (int N) {
+        n = N; w.resize ((size_t) N / 2); for (int k = 0; k < N / 2; ++k) w[(size_t) k] = std::polar (1.0, -2 * kPi * k / N);
+        rv.assign ((size_t) N, 0); int lg = 0; while ((1 << lg) < N) ++lg;
+        for (int i = 0; i < N; ++i) { int r = 0; for (int b = 0; b < lg; ++b) if (i & (1 << b)) r |= 1 << (lg - 1 - b); rv[(size_t) i] = r; }
+    }
+    void run (Cpx* a, bool inv) const {   // senza normalizzazione (l'inversa va divisa per n)
+        for (int i = 0; i < n; ++i) if (i < rv[(size_t) i]) std::swap (a[i], a[rv[(size_t) i]]);
+        for (int len = 2; len <= n; len <<= 1) { const int h = len / 2, st = n / len;
+            for (int i = 0; i < n; i += len) for (int j = 0; j < h; ++j) { const Cpx wj = inv ? std::conj (w[(size_t) (j * st)]) : w[(size_t) (j * st)];
+                const Cpx u = a[i + j], v = a[i + j + h] * wj; a[i + j] = u + v; a[i + j + h] = u - v; } }
+    }
+};
+inline double besselI0 (double x) { double s = 1, t = 1; for (int k = 1; k < 60; ++k) { t *= (x / (2 * k)) * (x / (2 * k)); s += t; if (t < 1e-17 * s) break; } return s; }
+
+class LinPhase {
+public:
+    static constexpr int kRes = 5, kSlots = 3;
+    static int firLen (int res, double fs) {   // Low 4096 ... Maximum 65536 a 44,1/48 kHz; x2 a 88,2/96, x4 a 176,4/192 (stessa risoluzione in Hz)
+        int L = 4096 << std::clamp (res, 0, kRes - 1); if (fs > 60000) L *= 2; if (fs > 120000) L *= 2; return L; }
+    static int partLen (int L) { return std::max (256, L / 64); }
+    LinPhase() = default; LinPhase (const LinPhase&) = delete; LinPhase& operator= (const LinPhase&) = delete;
+    ~LinPhase() { stopWorker(); }
+    bool ready() const { return L > 0; }
+    int latency() const { return L > 0 ? L / 2 + B : 0; }
+    // alloca e avvia il thread di progetto: fuori dal thread audio. sync = progetti nel thread audio (test, rendering offline)
+    void configure (int firL, double sampleRate) {
+        stopWorker();
+        L = firL; B = partLen (L); K = L / B; NF = 2 * B; fs = sampleRate;
+        fL.init (L); fB.init (NF);
+        win.resize ((size_t) L); const double be = 9.0, i0 = besselI0 (be); for (int i = 0; i < L; ++i) { const double t = 2.0 * i / L - 1; win[(size_t) i] = besselI0 (be * std::sqrt (std::max (0.0, 1 - t * t))) / i0; }
+        tmp.assign ((size_t) L, Cpx()); mat.assign ((size_t) (L / 2 + 1) * 4, 0.0);
+        for (int s = 0; s < kSlots; ++s) { Hp[s].assign ((size_t) K * NF, Cpx()); Hq[s].assign ((size_t) K * NF, Cpx()); mode[s] = 1; }
+        hb.assign ((size_t) NF, Cpx()); fdl.assign ((size_t) K * NF, Cpx()); fdr.assign ((size_t) K * NF, Cpx()); acc.assign ((size_t) NF, Cpx()); acc2.assign ((size_t) NF, Cpx());
+        inL.assign ((size_t) NF, 0.0); inR.assign ((size_t) NF, 0.0); outL.assign ((size_t) B, 0.0); outR.assign ((size_t) B, 0.0);
+        head = 0; pos = 0; fade = 0; fadeFrom.store (-1); cur.store (0); readySlot.store (-1); readyInstant.store (false); tbMid.store (1); tbBack = 0; tbFront = 2;
+        Req id; id.nb = 0; compute (0, id);   // identita (nessuna banda): impulso unitario al centro = solo ritardo
+        quit.store (false); worker = std::thread ([this] { run(); });
+    }
+    void setSync (bool s) {   // passaggio a sync: si aspetta che il thread di progetto finisca il progetto in corso (stesse aree di lavoro)
+        if (s == sync.load()) return; sync.store (s); if (s) while (busy.load()) std::this_thread::yield(); }
+    // richiesta di progetto (thread audio): bande attive statiche nell'ordine dell'indice
+    void request (const BandParams* p, const double* g, int nb, bool instant) {
+        Req& r = tb[tbBack]; r.nb = nb; r.instant = instant; for (int i = 0; i < nb; ++i) { r.p[i] = p[i]; r.g[i] = g[i]; }
+        if (sync.load()) { const int sl = freeSlot(); compute (sl, r); readyInstant.store (instant); readySlot.store (sl, std::memory_order_release); return; }   // nel thread audio
+        tbBack = tbMid.exchange (tbBack | 4, std::memory_order_acq_rel) & 3; cv.notify_one();   // triplo buffer: consegna senza attese
+    }
+    // in place, x0/x1 = L/R; ritardo L/2 + B
+    void process (double* x0, double* x1, int n) {
+        for (int i = 0; i < n; ++i) { inL[(size_t) (B + pos)] = x0[i]; inR[(size_t) (B + pos)] = x1[i]; x0[i] = outL[(size_t) pos]; x1[i] = outR[(size_t) pos]; if (++pos == B) { block(); pos = 0; } }
+    }
+private:
+    struct Req { int nb = 0; bool instant = false; BandParams p[kMaxBands]; double g[kMaxBands] = {}; };
+    int freeSlot() const { const int c = cur.load (std::memory_order_relaxed), f = fadeFrom.load (std::memory_order_relaxed); for (int s = 0; s < kSlots; ++s) if (s != c && s != f) return s; return 0; }
+    // Y = P Z + Q Zr, Z = X_L + j X_R, Zr[i] = conj (Z[-i]): matrice 2x2 qualsiasi con due prodotti per frequenza (P, Q da a, b, c, d)
+    void compute (int sl, const Req& r) {
+        const int nb2 = L / 2 + 1; SecSet* sets = setsBuf; int pl[kMaxBands];
+        for (int b = 0; b < r.nb; ++b) { sectionsFor (r.p[b], r.g[b], sets[b]); pl[b] = r.p[b].place; }
+        bool diag = true, equal = true;
+        for (int k = 0; k < nb2; ++k) {
+            const double f = (double) k * fs / L; double a = 1, bq = 0, c = 0, d = 1;   // matrice [a b; c d] su (L, R)
+            for (int b = 0; b < r.nb; ++b) { const double m = std::sqrt (anaMag2 (sets[b], f)); double e0, e1, e2, e3;
+                switch (pl[b]) { case Left: e0 = m; e1 = 0; e2 = 0; e3 = 1; break; case Right: e0 = 1; e1 = 0; e2 = 0; e3 = m; break;
+                    case Mid: e0 = e3 = 0.5 * (m + 1); e1 = e2 = 0.5 * (m - 1); break; case Side: e0 = e3 = 0.5 * (1 + m); e1 = e2 = 0.5 * (1 - m); break;
+                    default: e0 = e3 = m; e1 = e2 = 0; }
+                const double na = e0 * a + e1 * c, nbq = e0 * bq + e1 * d, nc = e2 * a + e3 * c, nd = e2 * bq + e3 * d; a = na; bq = nbq; c = nc; d = nd; }
+            double* M = &mat[(size_t) k * 4]; M[0] = a; M[1] = bq; M[2] = c; M[3] = d;
+            if (bq != 0 || c != 0) diag = false; if (a != d) equal = false; }
+        mode[sl] = diag && equal ? 1 : 2;
+        // P = (a + d)/2 + j (c - b)/2, Q = (a - d)/2 + j (c + b)/2 (a, b, c, d: spettri dei quattro FIR reali)
+        std::fill (Hp[sl].begin(), Hp[sl].end(), Cpx()); if (mode[sl] == 2) std::fill (Hq[sl].begin(), Hq[sl].end(), Cpx());
+        for (int e = 0; e < (mode[sl] == 1 ? 1 : 4); ++e) {
+            for (int k = 0; k < nb2; ++k) { const double v = mat[(size_t) k * 4 + e]; tmp[(size_t) k] = v; if (k > 0 && k < L / 2) tmp[(size_t) (L - k)] = v; }
+            fL.run (tmp.data(), true);   // risposta a fase zero (reale, pari), centrata in 0
+            const Cpx wp = e == 0 ? Cpx (0.5, 0) : e == 1 ? Cpx (0, -0.5) : e == 2 ? Cpx (0, 0.5) : Cpx (0.5, 0);
+            const Cpx wq = e == 0 ? Cpx (0.5, 0) : e == 1 ? Cpx (0, 0.5) : e == 2 ? Cpx (0, 0.5) : Cpx (-0.5, 0);
+            for (int p2 = 0; p2 < K; ++p2) { Cpx* h = hb.data();
+                for (int i = 0; i < NF; ++i) h[i] = Cpx(); for (int i = 0; i < B; ++i) { const int nI = p2 * B + i; h[i] = tmp[(size_t) ((nI - L / 2 + L) % L)].real() / L * win[(size_t) nI]; }
+                fB.run (h, false); Cpx* P = &Hp[sl][(size_t) p2 * NF]; Cpx* Q = &Hq[sl][(size_t) p2 * NF];
+                if (mode[sl] == 1) for (int i = 0; i < NF; ++i) P[i] = h[i];
+                else for (int i = 0; i < NF; ++i) { P[i] += wp * h[i]; Q[i] += wq * h[i]; } } }
+    }
+    void accum (int s, Cpx* y) const {
+        std::fill (y, y + NF, Cpx());
+        for (int p2 = 0; p2 < K; ++p2) { const size_t o = (size_t) (((head - p2 + K) % K) * NF); const Cpx* Z = &fdl[o]; const Cpx* P = &Hp[s][(size_t) p2 * NF];
+            if (mode[s] == 1) for (int i = 0; i < NF; ++i) y[i] += P[i] * Z[i];
+            else { const Cpx* Zr = &fdr[o]; const Cpx* Q = &Hq[s][(size_t) p2 * NF]; for (int i = 0; i < NF; ++i) y[i] += P[i] * Z[i] + Q[i] * Zr[i]; } }
+        fB.run (y, true); const double sc = 1.0 / NF; for (int i = 0; i < NF; ++i) y[i] *= sc;
+    }
+    void block() {
+        if (fade == 0) { const int rs = readySlot.load (std::memory_order_acquire);   // nuovo progetto pronto: dissolvenza dal filtro attuale (o subito, il primo)
+            if (rs >= 0) { if (readyInstant.load()) { cur.store (rs); fadeFrom.store (-1); } else { fadeFrom.store (cur.load()); cur.store (rs); fade = 2 * B; fpos = 0; } readySlot.store (-1, std::memory_order_release); cv.notify_one(); } }
+        head = (head + 1) % K; Cpx* X = &fdl[(size_t) head * NF]; Cpx* Xr = &fdr[(size_t) head * NF];
+        for (int i = 0; i < NF; ++i) X[i] = Cpx (inL[(size_t) i], inR[(size_t) i]); fB.run (X, false);
+        for (int i = 0; i < NF; ++i) Xr[i] = std::conj (X[(NF - i) % NF]);
+        for (int i = 0; i < B; ++i) { inL[(size_t) i] = inL[(size_t) (B + i)]; inR[(size_t) i] = inR[(size_t) (B + i)]; }
+        accum (cur.load (std::memory_order_relaxed), acc.data());
+        if (fade > 0) { accum (fadeFrom.load (std::memory_order_relaxed), acc2.data());
+            for (int i = 0; i < B; ++i) { const double w = 0.5 - 0.5 * std::cos (kPi * std::min (1.0, (double) (fpos + i + 1) / (2 * B))); const Cpx o = acc2[(size_t) (B + i)], nw = acc[(size_t) (B + i)];
+                outL[(size_t) i] = o.real() + w * (nw.real() - o.real()); outR[(size_t) i] = o.imag() + w * (nw.imag() - o.imag()); }
+            fpos += B; fade -= B; if (fade <= 0) { fade = 0; fadeFrom.store (-1); } }
+        else for (int i = 0; i < B; ++i) { outL[(size_t) i] = acc[(size_t) (B + i)].real(); outR[(size_t) i] = acc[(size_t) (B + i)].imag(); }
+    }
+    void run() {   // thread di progetto: prende l'ultima richiesta, progetta nello slot libero, la consegna al thread audio
+        std::unique_lock<std::mutex> lk (mx);
+        while (! quit.load()) {
+            cv.wait_for (lk, std::chrono::milliseconds (20));
+            if (quit.load()) break;
+            if (! (tbMid.load (std::memory_order_acquire) & 4) || readySlot.load (std::memory_order_acquire) >= 0) continue;
+            busy.store (true); if (sync.load()) { busy.store (false); continue; }   // il thread audio progetta da se (rendering offline)
+            tbFront = tbMid.exchange (tbFront, std::memory_order_acq_rel) & 3; const Req& r = tb[tbFront];
+            const int sl = freeSlot(); compute (sl, r); readyInstant.store (r.instant); readySlot.store (sl, std::memory_order_release); busy.store (false);
+        }
+    }
+    void stopWorker() { if (worker.joinable()) { quit.store (true); cv.notify_one(); worker.join(); } }
+    std::atomic<bool> sync { true }, busy { false }, readyInstant { false }; int L = 0, B = 0, K = 0, NF = 0, head = 0, pos = 0, fade = 0, fpos = 0, mode[kSlots] = { 1, 1, 1 }; double fs = 48000;
+    std::atomic<int> cur { 0 }, fadeFrom { -1 }, readySlot { -1 }, tbMid { 1 }; int tbBack = 0, tbFront = 2; std::atomic<bool> quit { false };
+    std::thread worker; std::mutex mx; std::condition_variable cv; Req tb[3]; SecSet setsBuf[kMaxBands];
+    Fft fL, fB; std::vector<double> win, mat, inL, inR, outL, outR; std::vector<Cpx> tmp, fdl, fdr, acc, acc2, hb = std::vector<Cpx> (1); std::vector<Cpx> Hp[kSlots], Hq[kSlots];
+};
+
+// ritardo stereo di n campioni (anello), in place
+struct Delay2 { std::vector<double> a, b; int n = 0, w = 0;
+    void setup (int len) { n = len; a.assign ((size_t) std::max (1, len), 0.0); b.assign ((size_t) std::max (1, len), 0.0); w = 0; }
+    void process (double* x, double* y, int m) { if (n <= 0) return; for (int i = 0; i < m; ++i) { const double ta = a[(size_t) w], tb = b[(size_t) w]; a[(size_t) w] = x[i]; b[(size_t) w] = y[i]; x[i] = ta; y[i] = tb; if (++w == n) w = 0; } } };
+
 class Engine {
 public:
     struct Global { double inDb = 0, outDb = 0, autoGainDb = 0, scale = 1; int character = 0; bool bypass = false; int solo = -1;
@@ -537,13 +675,29 @@ public:
         fadeLen = std::max (1, (int) std::lround (0.015 * fs)); settleLen = std::max (1, (int) std::lround (0.05 * fs)); primed = false; aParam = 1 - std::exp (-kFrame / (0.01 * fs)); soloW = 0; chPrev = 0; chPos = 2 * fadeLen;
         for (auto& m : osm) for (auto& o : m) o.reset(); std::memset (dcm, 0, sizeof (dcm));
         outG = outG1 = 1; inG = inG1 = 1; byp = 0; soloSt = SoloState(); lastChm = 0; panA = panB = panA1 = panB1 = 1; pol = 0;
+        rL.assign ((size_t) N, 0.0); rR.assign ((size_t) N, 0.0); configurePhase (phaseMode, phaseRes);
     }
+    // 0.6.0: modo di elaborazione. 0 = Zero Latency (biquad), 1 = Linear Phase (bande statiche in un FIR a fase lineare; le dinamiche restano biquad).
+    // Alloca: va chiamato fuori dal thread audio (il processore sospende l'elaborazione). Dopo il cambio l'uscita riparte da 0 con la rampa di 20 ms.
+    void configurePhase (int mode, int res) {
+        phaseMode = mode == 1 ? 1 : 0; phaseRes = std::clamp (res, 0, LinPhase::kRes - 1);
+        lin.reset();   // ferma il thread di progetto e libera la memoria del modo precedente
+        if (phaseMode == 1 && fs > 0) { lin = std::make_unique<LinPhase>(); lin->configure (LinPhase::firLen (phaseRes, fs), fs); lin->setSync (linSync); const int la = lin->latency(); dlyDry.setup (la); dlyRaw.setup (la); dlySc.setup (la); }
+        else { dlyDry.setup (0); dlyRaw.setup (0); dlySc.setup (0); }
+        linDirty = true; linOnce = false; outG = outG1 = 0; for (auto& b : st) std::memset (b.z, 0, sizeof (b.z));
+    }
+    void setPhaseConfig (int mode, int res) { phaseMode = mode == 1 ? 1 : 0; phaseRes = std::clamp (res, 0, LinPhase::kRes - 1); }   // solo memorizza: prepare() poi alloca
+    int latencySamples() const { return phaseMode == 1 && lin ? lin->latency() : 0; }
+    // true: i progetti Linear Phase avvengono nel thread audio (risultato deterministico: test, rendering offline); false: thread di progetto (tempo reale)
+    void setLinSync (bool s) { linSync = s; if (lin) lin->setSync (s); }
+    int phaseModeNow() const { return phaseMode; }
     // chiamato all'inizio di ogni blocco, dal thread audio
     void setBand (int i, const BandParams& p) {
         BandState& s = st[i]; const bool active = p.used && ! p.bypass;
-        if (! active) { if (s.active) fadeOut (i); s.active = false; s.dynOn = false; s.p = p; meterDelta[i] = 0; meterLevel[i] = -120; return; }
+        if (! active) { if (s.active) { fadeOut (i); linDirty = true; } s.active = false; s.dynOn = false; s.p = p; meterDelta[i] = 0; meterLevel[i] = -120; return; }
         const bool changed = ! same (s.p, p) || s.scale != glob.scale;
         if (! changed && s.active) return;
+        linDirty = true;
         if (s.active && sameFilter (s.p, p) && s.scale == glob.scale && s.p.dyn == p.dyn && s.p.range == p.range) {   // cambiano solo soglia/attacco/rilascio/knee/detector: il filtro resta
             s.p = p; if (s.dynOn) { s.aA = 1 - std::exp (-kFrame / (std::max (0.05, p.att) * 1e-3 * fs)); s.aR = 1 - std::exp (-kFrame / (std::max (1.0, p.rel) * 1e-3 * fs)); }
             return;
@@ -858,8 +1012,16 @@ private:
                 float l = Lio[i], r = Rio[i]; if (! (std::abs (l) <= kMaxIn)) l = 0; if (! (std::abs (r) <= kMaxIn)) r = 0;
                 gi1 += (tgi - gi1) * gia; gi += (gi1 - gi) * gia; dL[(size_t) i] = l; dR[(size_t) i] = r; L[(size_t) i] = l * gi; R[(size_t) i] = r * gi; }
             inG = gi; inG1 = gi1; }
+        const bool linOn = phaseMode == 1 && lin && lin->ready();
+        if (linOn) {   // 0.6.0 Linear Phase: dry (bypass) e copia per il solo ritardati come il FIR; le bande statiche sono nel FIR
+            if (linDirty && (absPos % (unsigned long long) kSettleTick == 0 || ! linOnce)) { linDesign (! linOnce); linDirty = false; linOnce = true; }
+            dlyDry.process (dL.data(), dR.data(), n);
+            for (int i = 0; i < n; ++i) { rL[(size_t) i] = L[(size_t) i]; rR[(size_t) i] = R[(size_t) i]; } dlyRaw.process (rL.data(), rR.data(), n);
+            lin->process (L.data(), R.data(), n); }
         const bool haveSC = scL != nullptr && scR != nullptr;
-        if (haveSC) for (int i = 0; i < n; ++i) { double l = scL[i], r = scR[i]; if (! (std::abs (l) <= kMaxIn)) l = 0; if (! (std::abs (r) <= kMaxIn)) r = 0; sL[(size_t) i] = l; sR[(size_t) i] = r; sM[(size_t) i] = 0.5 * (l + r); sS[(size_t) i] = 0.5 * (l - r); }
+        if (haveSC) { for (int i = 0; i < n; ++i) { double l = scL[i], r = scR[i]; if (! (std::abs (l) <= kMaxIn)) l = 0; if (! (std::abs (r) <= kMaxIn)) r = 0; sL[(size_t) i] = l; sR[(size_t) i] = r; }
+            if (linOn) dlySc.process (sL.data(), sR.data(), n);
+            for (int i = 0; i < n; ++i) { sM[(size_t) i] = 0.5 * (sL[(size_t) i] + sR[(size_t) i]); sS[(size_t) i] = 0.5 * (sL[(size_t) i] - sR[(size_t) i]); } }
         // SOLO: il percorso solo lavora su una copia del segnale; le bande continuano a girare sotto (nessun salto all'uscita dal solo).
         // Accensione/spegnimento con dissolvenza di 15 ms; filtro del solo interpolato quando la banda si muove o si allarga.
         const bool soloOn = glob.solo >= 0 && glob.solo < kMaxBands && st[glob.solo].active;
@@ -880,7 +1042,7 @@ private:
             }
             const int pl = soloSt.place;
             for (int i = 0; i < n; ++i) {
-                const double l = L[(size_t) i], r = R[(size_t) i], m = 0.5 * (l + r), sd = 0.5 * (l - r);
+                const double l = linOn ? rL[(size_t) i] : L[(size_t) i], r = linOn ? rR[(size_t) i] : R[(size_t) i], m = 0.5 * (l + r), sd = 0.5 * (l - r);
                 pL[(size_t) i] = l; pR[(size_t) i] = r;
                 if (pl == Mid) pL[(size_t) i] = pR[(size_t) i] = m; else if (pl == Side) pL[(size_t) i] = pR[(size_t) i] = sd;
                 else if (pl == Left) pR[(size_t) i] = 0; else if (pl == Right) pL[(size_t) i] = 0;
@@ -890,7 +1052,7 @@ private:
         }
         int settleBudget = absPos % (unsigned long long) kSettleTick == 0 ? kSettlePerChunk : 0;   // al massimo 2 progetti precisi ogni 512 campioni: dopo un cambio di preset le 32 bande si assestano in 16 passi, non tutte insieme
         for (int b = 0; b < kMaxBands; ++b) {   // bande ferme da 50 ms: progetto preciso (interpolato dal veloce lungo il blocco)
-            BandState& s = st[b]; if (! s.active || s.precise) continue;
+            BandState& s = st[b]; if (! s.active || s.precise || (linOn && ! s.dynOn)) continue;
             s.quiet += n; if (s.quiet < settleLen || settleBudget <= 0) continue; --settleBudget;
             BandCoefs nc; designBand (s.p, s.g, grid, nc, true, ! s.dynOn); s.precise = true;
             if (s.dynOn) { ++s.dynGen; s.dynC[0] = nc.c[0]; s.dynValid[0] = s.dynGen; dynTarget (s, s.delta, s.tgt); } else { if (nc.n != s.tgt.n) matchSecs (s, nc); startRamp (s, nc); }
@@ -898,6 +1060,7 @@ private:
         bool msLive = false;   // bande Mid/Side consecutive (senza dissolvenze in corso): una sola conversione L/R -> M/S e ritorno
         for (int b = 0; b < kMaxBands; ++b) {
             if (! st[b].active && ! old[b].active) continue;
+            if (linOn && ! (st[b].active && st[b].dynOn) && ! (old[b].active && old[b].dynOn)) continue;   // statica: e nel FIR
             const BandState& s = st[b]; const bool msBand = s.active && s.flen == 0 && ! old[b].active && (s.p.place == Mid || s.p.place == Side);
             if (msBand) {
                 if (! msLive) { for (int i = 0; i < n; ++i) { M[(size_t) i] = 0.5 * (L[(size_t) i] + R[(size_t) i]); S[(size_t) i] = 0.5 * (L[(size_t) i] - R[(size_t) i]); } msLive = true; }
@@ -954,6 +1117,11 @@ private:
     }
     double fs = 48000; int N = 512; Grid grid; Global glob;
     std::vector<double> L, R, M, S, dL, dR, sL, sR, sM, sS, xL, xR, oL, oR, pL, pR;
+    void linDesign (bool instant) {   // bande attive statiche, nell'ordine dell'indice
+        BandParams p[kMaxBands]; double g[kMaxBands]; int nb = 0;
+        for (int b = 0; b < kMaxBands; ++b) { const BandState& s = st[b]; if (! s.active || s.dynOn) continue; p[nb] = s.p; g[nb] = s.g; ++nb; }
+        lin->request (p, g, nb, instant); }
+    std::unique_ptr<LinPhase> lin; bool linSync = true; Delay2 dlyDry, dlyRaw, dlySc; std::vector<double> rL, rR; int phaseMode = 0, phaseRes = 1; bool linDirty = true, linOnce = false;
     BandState st[kMaxBands], old[kMaxBands]; SoloState soloSt; double outG = 1, outG1 = 1, inG = 1, inG1 = 1, byp = 0, panA = 1, panB = 1, panA1 = 1, panB1 = 1, pol = 0, soloW = 0;
     Oversampled8x osm[3][2]; double dcm[3][4] = {}, aParam = 0.0645; int lastChm = 0, chPrev = 0, chPos = 1440, fadeLen = 720, settleLen = 2400; bool primed = false; unsigned long long absPos = 0;
 };

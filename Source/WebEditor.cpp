@@ -7,9 +7,9 @@ struct GestureCounter : AudioProcessorParameter::Listener { int b = 0, e = 0, v 
 
 static const char* kBandKeys[] = { "used", "byp", "type", "freq", "gain", "q", "slope", "place", "dyn", "thr", "range", "att", "rel", "knee", "det", "sc" };
 // chiave del modello P dell'interfaccia -> chiave del parametro
-static const char* kGlobUi[] = { "inp", "out", "scale", "auto", "char", "bypass", "pan", "panMS", "inv", "gq" };
-static const char* kGlobId[] = { "in", "out", "scale", "auto", "char", "bypass", "pan", "panmode", "invert", "gq" };
-constexpr int kNumGlob = 10;
+static const char* kGlobUi[] = { "inp", "out", "scale", "auto", "char", "bypass", "pan", "panMS", "inv", "gq", "phase", "lpres" };
+static const char* kGlobId[] = { "in", "out", "scale", "auto", "char", "bypass", "pan", "panmode", "invert", "gq", "phase", "lpres" };
+constexpr int kNumGlob = 12;
 
 static std::optional<WebBrowserComponent::Resource> resource (const String& url) {
     const auto path = url.fromFirstOccurrenceOf (WebBrowserComponent::getResourceProviderRoot(), false, false);

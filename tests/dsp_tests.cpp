@@ -1,4 +1,5 @@
 // TSR Q · test del core DSP (stessa batteria del prototipo, + All Pass e 32 bande)
+#include <thread>
 #include "../Source/TsrqDsp.h"
 #include <cstdio>
 #include <random>
@@ -439,6 +440,48 @@ int main() {
       for (const auto& c : kPq) { BandParams b = band (c.t, 1000, c.g, c.q, c.sl); BandCoefs bc; designBand (b, hasGain (c.t) ? c.g : 0, g, bc);
         for (int i = 0; i < 19; ++i) if (c.db[i] > -40) w = std::max (w, std::abs (db (bandMag2 (bc, kPqF[i], 192000)) - c.db[i])); }
       ok (w < 0.2, "10 forme, 19 frequenze sopra -40 dB: scarto max da Pro-Q 4 %.3f dB (0.5.0: fino a 19,7 dB)", w); }
+
+    std::printf ("== 29. LINEAR PHASE: latenza riportata = picco, risposta simmetrica, modulo = analogico, invarianza al blocco, automazione ==\n");
+    { const double fs = 48000; const BandParams bs[6] = { band (Bell, 1000, 6, 1), band (HighShelf, 10000, -4, 1), band (LowCut, 30, 0, 1, 24), band (Notch, 3000, 0, 4), band (Bell, 120, -8, 3, 12, Mid), band (Bell, 6000, 5, 2, 12, Left) };
+      const double lim[5] = { 1.5, 0.4, 0.1, 0.03, 0.01 }; SecSet ss[6]; for (int i = 0; i < 6; ++i) sectionsFor (bs[i], bs[i].gain, ss[i]);
+      for (int res = 0; res < 5; ++res) { Engine e; e.prepare (fs, 512); e.configurePhase (1, res); Engine::Global gl; e.setGlobal (gl); for (int i = 0; i < 6; ++i) e.setBand (i, bs[i]);
+        const int lat = e.latencySamples(), n = 2 * lat + 32768; std::vector<float> L ((size_t) n, 0.f), R ((size_t) n, 0.f); L[0] = R[0] = 1;
+        for (int i = 0; i < n; i += 512) e.process (L.data() + i, R.data() + i, nullptr, nullptr, std::min (512, n - i));
+        int pk = 0; for (int i = 0; i < n; ++i) if (std::abs (R[(size_t) i]) > std::abs (R[(size_t) pk])) pk = i;
+        double asym = 0; for (int k = 1; k < lat - 600; ++k) asym = std::max (asym, (double) std::abs (R[(size_t) (lat + k)] - R[(size_t) (lat - k)]));
+        double we = 0; for (double f = 40; f < 18000; f *= 1.05) { std::complex<double> aL = 0, aR = 0;
+            for (int i = 0; i < n; ++i) { const auto w = std::polar (1.0, -2 * kPi * f * (i - lat) / fs); aL += (double) L[(size_t) i] * w; aR += (double) R[(size_t) i] * w; }
+            double a = 1, b = 0, c = 0, d = 1; for (int i = 0; i < 6; ++i) { const double m = std::sqrt (anaMag2 (ss[i], f)); double e0, e1, e2, e3; const int pl = bs[i].place;
+                if (pl == Left) { e0 = m; e1 = e2 = 0; e3 = 1; } else if (pl == Mid) { e0 = e3 = .5 * (m + 1); e1 = e2 = .5 * (m - 1); } else { e0 = e3 = m; e1 = e2 = 0; }
+                const double na = e0 * a + e1 * c, nb = e0 * b + e1 * d, nc = e2 * a + e3 * c, nd = e2 * b + e3 * d; a = na; b = nb; c = nc; d = nd; }
+            const double got[2] = { std::abs (aL), std::abs (aR) }, ex[2] = { std::abs (a + b), std::abs (c + d) };
+            for (int k = 0; k < 2; ++k) if (20 * std::log10 (ex[k]) > -40) we = std::max (we, std::abs (20 * std::log10 (got[k] / ex[k]))); }
+        std::printf ("   risoluzione %d: latenza %d, picco a %d, asimmetria %.1e\n", res, lat, pk, asym);
+        ok (pk == lat && asym < 1e-9 && we < lim[res], "risoluzione: latenza = picco, simmetrica; scarto dal modulo analogico %.3f dB (< %.2f)", we, lim[res]); }
+      // invarianza al blocco e automazione (Linear Phase Medium): rumore, Bell in movimento a ogni blocco da 512, banda Mid e Low Cut
+      auto runB = [&] (int bl, std::vector<float>& L, std::vector<float>& R, bool mov) { Engine e; e.prepare (fs, 4096); e.configurePhase (1, 1); Engine::Global gl; e.setGlobal (gl); std::mt19937 rg (7); std::uniform_real_distribution<float> u (-.25f, .25f);
+          const int n = (int) fs * 3; L.assign ((size_t) n, 0); R.assign ((size_t) n, 0); for (int i = 0; i < n; ++i) { L[(size_t) i] = u (rg); R[(size_t) i] = u (rg); }
+          int i0 = 0; std::mt19937 rb (3); while (i0 < n) { const int m = std::min (n - i0, bl > 0 ? bl : 1 + (int) (rb() % 3000));
+              BandParams b = band (Bell, bl == 512 && mov ? 200 * std::pow (2.0, 4.0 * i0 / n) : 800, 9, 2); e.setBand (0, b); e.setBand (1, band (LowCut, 40, 0, 1, 48)); e.setBand (2, band (HighShelf, 7000, 4, 1, 12, Mid));
+              e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, m); i0 += m; } };
+      std::vector<float> rL, rR, mL, mR; runB (512, rL, rR, false); runB (512, mL, mR, true); double dmax = 0, pkv = 0; bool fin = true;
+      for (float v : mL) { fin = fin && std::isfinite (v); pkv = std::max (pkv, (double) std::abs (v)); }
+      for (int bl : { 1, 7, 64, 333, 4096, 0 }) { std::vector<float> a, b; runB (bl, a, b, false); for (size_t i = 0; i < a.size(); ++i) dmax = std::max ({ dmax, (double) std::abs (a[i] - rL[i]), (double) std::abs (b[i] - rR[i]) }); }
+      ok (dmax == 0 && fin && pkv < 2.0, "blocchi 1/7/64/333/4096/casuali = blocchi da 512, al bit (scarto %.1e); Bell spostato a ogni blocco da 512: uscita finita, picco %.2f", dmax, pkv); }
+
+    std::printf ("== 30. LINEAR PHASE IN TEMPO REALE: progetti nel thread dedicato (come nel plugin) = progetti nel thread audio, dopo la consegna ==\n");
+    { const double fs = 48000; auto runA = [&] (bool syncM, std::vector<float>& L, std::vector<float>& R, double& maxGap) { Engine e; e.prepare (fs, 512); e.setLinSync (syncM); e.configurePhase (1, 2); Engine::Global gl; e.setGlobal (gl);
+          std::mt19937 rg (11); std::uniform_real_distribution<float> u (-.25f, .25f); const int n = 512 * 300; L.assign ((size_t) n, 0); R.assign ((size_t) n, 0); for (int i = 0; i < n; ++i) { L[(size_t) i] = u (rg); R[(size_t) i] = u (rg); }
+          maxGap = 0;
+          for (int i0 = 0; i0 < n; i0 += 512) { const double g = i0 < 512 * 100 ? 6 : -6; e.setBand (0, band (Bell, 900, g, 1.5)); e.setBand (1, band (HighShelf, 6000, 3, 1, 12, Side)); e.setBand (2, band (LowCut, 35, 0, 1, 36));
+              const auto t0 = std::chrono::steady_clock::now(); e.process (L.data() + i0, R.data() + i0, nullptr, nullptr, 512);
+              maxGap = std::max (maxGap, std::chrono::duration<double, std::milli> (std::chrono::steady_clock::now() - t0).count());
+              if (! syncM) std::this_thread::sleep_for (std::chrono::microseconds (2000)); } };
+      std::vector<float> aL, aR, bL, bR; double gs = 0, ga = 0; runA (true, aL, aR, gs); runA (false, bL, bR, ga);
+      double d = 0; for (size_t i = 512 * 200; i < aL.size(); ++i) d = std::max ({ d, (double) std::abs (aL[i] - bL[i]), (double) std::abs (aR[i] - bR[i]) });
+      bool fin = true; for (float v : bL) fin = fin && std::isfinite (v);
+      std::printf ("   blocco piu lento nel thread audio: progetti nel thread audio %.2f ms, thread dedicato %.2f ms\n", gs, ga);
+      ok (d < 1e-6 && fin, "ultimi 100 blocchi: thread dedicato = thread audio, scarto %.1e (< 1e-6); uscita finita", d); }
 
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;
