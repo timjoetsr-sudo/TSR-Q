@@ -972,7 +972,9 @@ if (typeof module !== 'undefined') module.exports = TSRQ;
 </script>
 <script>'use strict';
 /* ====== TSR Q \u00b7 editor (riproduzione 1:1 dell'editor JUCE v0.1.0) ====== */
-const EW = 1180, EH = 542;   /* niente cornice in alto (c'e il bordo della finestra del Mac), sotto sottile come a sinistra (10 px) */
+const EW = 1180, EH = 542;
+/* 0.6.0: display senza bordi laterali (come Pro-Q 4): il grafico va da bordo a bordo, sotto una barra con OUTPUT; meter OUT dentro il display, a destra */
+const LAY = { gx: 0, gy: 34, gw: EW, gh: 512, side: 26 };   /* gy 34: tutto il contenuto sale di 34 px (CSS margin-top) */   /* niente cornice in alto (c'e il bordo della finestra del Mac), sotto sottile come a sinistra (10 px) */
 const T0 = { panelTop: '#2c3035', panelBot: '#1b1e22', edge: '#3d434a', silver: '#c9ced6', ink: '#eef2f6', dim: '#8b939d', screen: '#0d1014', accent: '#ffd23f', dyn: '#5ac8fa', spec: '#9aa1aa', pInk: '#c9ced6', pDim: '#8b939d', logo: '#c9ced6', title: '#eef2f6', disInk: 'rgba(139,147,157,.4)',
   kArcBg: 'rgba(255,255,255,.15)', kArc: '#c9ced6', kBody0: '#6c737c', kBody1: '#23272c', kFace0: '#3a4048', kFace1: '#1a1d21', kRim: 'rgba(255,255,255,.19)', kInd: '#ffffff', kShadow: 'rgba(0,0,0,.55)', sep: 'rgba(255,255,255,.08)', name: 'PRECISION DYNAMIC EQ' };
 const C = Object.assign({}, T0, window.THEME || {});
@@ -1042,9 +1044,9 @@ const bPlay = put('PLAY', 54, 24), bAudio = put('AUDIO', 62);
 bPlay.title = 'Solo nel browser: avvia il segnale di prova o il file caricato'; bAudio.title = 'Solo nel browser: carica un file audio da far passare nel plugin';
 
 // grafico
-const gwrap = el('div', 'graph', ed, px(10, 34, 1160, 532));
+const gwrap = el('div', 'graph', ed, px(LAY.gx, LAY.gy, LAY.gw, LAY.gh));
 const cv = el('canvas', null, gwrap, { position: 'absolute', inset: '0', width: '100%', height: '100%' });
-const GW = 1160, GH = 532, DPR = Math.min(2, (window.devicePixelRatio || 1) * 1.3); cv.width = GW * DPR; cv.height = GH * DPR; const g = cv.getContext('2d');
+const GW = LAY.gw, GH = LAY.gh, DPR = Math.min(2, (window.devicePixelRatio || 1) * 1.3); cv.width = GW * DPR; cv.height = GH * DPR; const g = cv.getContext('2d');
 cv.tabIndex = 0;
 
 // pannello banda
@@ -1201,7 +1203,7 @@ function flush() { if (!dirty) return; dirty = false; autoGainDb = computeAuto()
 /* ====== grafico EQ + analizzatore (porting di EqGraph) ====== */
 const graph = (() => {
   const G = { primary: -1, sel: new Set(), fftOrder: 13, decay: 40, avg: 0.3, peakHold: false, freeze: false, showPre: true, showPost: true, showSC: false, rangeDb: 12, optDyn: true, anaRange: 90, tilt: 4.5, fLo: 10, fHi: 30000 };
-  const SIDE = 86; const PL = { x: 8, y: 10, w: GW - 8 - SIDE - 6, h: GH - 10 - 22 };   // niente fascia a sinistra: la griglia parte dal bordo   // griglia fino in alto: logo, nome e tasti stanno dentro la griglia   // y 46: sopra c'\u00e8 la fascia con tasti e logo   // fasce laterali senza griglia: meter
+  const SIDE = LAY.side; const PL = { x: 0, y: 10, w: GW - SIDE, h: GH - 10 - 22 };   // niente fascia a sinistra: la griglia parte dal bordo   // griglia fino in alto: logo, nome e tasti stanno dentro la griglia   // y 46: sopra c'\u00e8 la fascia con tasti e logo   // fasce laterali senza griglia: meter
   const fMax = () => Math.min(30000, fsNow() / 2);
   const vLo = () => Math.max(10, G.fLo), vHi = () => Math.min(G.fHi, fMax());   /* vista: zoom/pan dell'asse delle frequenze */
   const X = f => PL.x + Math.log(f / vLo()) / Math.log(vHi() / vLo()) * PL.w, Fx = x => vLo() * Math.pow(vHi() / vLo(), (x - PL.x) / PL.w);
@@ -1280,7 +1282,7 @@ const graph = (() => {
   const hit = p => { for (let i = NB - 1; i >= 0; i--) if (P.bands[i].used) { const n = nodePos(i); if (Math.hypot(n.x - p.x, n.y - p.y) < 10) return i; } return -1; };
 
   function paint() { const r = PL, fs = fsNow(); g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, GW, GH);
-    g.fillStyle = C.screen; rr(g, 0, 0, GW, GH, 6); g.fill();
+    g.fillStyle = C.screen; g.fillRect(0, 0, GW, GH);
     g.lineWidth = 1;
     const AQ = '79,209,255', vgr = a => { const q = g.createLinearGradient(0, r.y, 0, r.y + r.h); q.addColorStop(0, `rgba(${AQ},${a * .25})`); q.addColorStop(.4, `rgba(${AQ},${a})`); q.addColorStop(.75, `rgba(${AQ},${a * .7})`); q.addColorStop(1, `rgba(${AQ},${a * .15})`); return q; },
       hgr = (a, k) => { const q = g.createLinearGradient(r.x, 0, r.x + r.w, 0); q.addColorStop(0, `rgba(${AQ},${a * .2})`); q.addColorStop(.25 + .1 * Math.sin(k), `rgba(${AQ},${a})`); q.addColorStop(.6, `rgba(${AQ},${a * .55})`); q.addColorStop(.85 + .05 * Math.cos(k), `rgba(${AQ},${a * .9})`); q.addColorStop(1, `rgba(${AQ},${a * .2})`); return q; };   // griglia blu acqua sfumata, non uniforme
@@ -1336,18 +1338,18 @@ const graph = (() => {
         for (const [x, s] of [[xa, -1], [xb, 1]]) { if (x <= r.x + 1 || x >= r.x + r.w - 1) continue; const d = out ? s : -s, x0 = x + s * 6; g.beginPath(); g.moveTo(x0 + d * 10, yy); g.lineTo(x0, yy - 7); g.lineTo(x0, yy + 7); g.closePath(); g.fill(); }
         g.font = `700 10px ${FONT}`; g.textAlign = 'center'; g.fillText(out ? '\u25c0  ALLARGA  \u25b6' : '\u25b6  RESTRINGE  \u25c0', (xa + xb) / 2, r.y + 42); }
       g.font = `700 10px ${FONT}`; g.textAlign = 'center'; g.fillStyle = '#FFD60A'; g.fillText(fmtF(Math.max(10, f1)) + '  \u2013  ' + fmtF(Math.min(fMax(), f2)), (xa + xb) / 2, r.y + 26); }
-    { const mt = 10, mb = GH - 142, mh = mb - mt, dbY = d => mb - clamp((d + 60) / 66, 0, 1) * mh;   // meter \u221260\u2026+6 dBFS
+    { const mt = PL.y, mb = PL.y + PL.h, mh = mb - mt, dbY = d => mb - clamp((d + 60) / 66, 0, 1) * mh;   // meter \u221260\u2026+6 dBFS
       const now = performance.now(), dt = Math.min(.1, (now - (G.mT || now)) / 1000); G.mT = now; G.mLv = G.mLv || [-120, -120, -120, -120]; G.mPk = G.mPk || [-120, -120, -120, -120]; G.mPt = G.mPt || [0, 0, 0, 0];
       const src = [meter.pin ? meter.pin[0] : 0, meter.pin ? meter.pin[1] : 0, meter.peak ? meter.peak[0] : 0, meter.peak ? meter.peak[1] : 0];
       for (let k = 0; k < 4; k++) { const v = playing ? 20 * Math.log10(Math.max(src[k], 1e-9)) : -120; G.mLv[k] = v > G.mLv[k] ? v : G.mLv[k] - 26 * dt; if (G.mLv[k] >= G.mPk[k]) { G.mPk[k] = G.mLv[k]; G.mPt[k] = now; } else if (now - G.mPt[k] > 1500) G.mPk[k] -= 20 * dt; }
-      for (const [x0, k0, lab] of [[(1160 - 86 / 2 - 0) - 11.5, 2, 'OUT']]   /* meter OUT centrato sull'asse del knob OUTPUT (x 1117 nel grafico) */) {
-        g.font = `700 9px ${FONT}`; g.textAlign = 'center'; g.fillStyle = C.dim; g.fillText(lab, x0 + 11.5, mt + 4);
-        for (let c = 0; c < 2; c++) { const x = x0 + c * 13, k = k0 + c; g.fillStyle = 'rgba(255,255,255,.06)'; g.fillRect(x, mt + 12, 10, mh - 12);
+      for (const [x0, k0, lab] of [[GW - SIDE / 2 - 5.5, 2, 'OUT']]   /* 0.6.0: meter OUT nella striscia a destra dentro il display */) {
+        g.font = `700 8px ${FONT}`; g.textAlign = 'center'; g.fillStyle = C.dim; g.fillText(lab, x0 + 5.5, mt + 4);
+        for (let c = 0; c < 2; c++) { const x = x0 + c * 6, k = k0 + c; g.fillStyle = 'rgba(255,255,255,.06)'; g.fillRect(x, mt + 12, 5, mh - 12);
           const y = Math.max(mt + 12, dbY(G.mLv[k])); const gr = g.createLinearGradient(0, mb, 0, mt + 12); gr.addColorStop(0, '#9aa1aa'); gr.addColorStop(.82, '#eef2f6'); gr.addColorStop(.9, '#ffd23f'); gr.addColorStop(1, '#e5484d');
-          g.fillStyle = gr; g.fillRect(x, y, 10, mb - y); if (G.mPk[k] > -60) { g.fillStyle = G.mPk[k] > -0.1 ? '#e5484d' : '#eef2f6'; g.fillRect(x, Math.max(mt + 12, dbY(G.mPk[k])) - 1, 10, 2); } }
+          g.fillStyle = gr; g.fillRect(x, y, 5, mb - y); if (G.mPk[k] > -60) { g.fillStyle = G.mPk[k] > -0.1 ? '#e5484d' : '#eef2f6'; g.fillRect(x, Math.max(mt + 12, dbY(G.mPk[k])) - 1, 5, 2); } }
         g.textAlign = 'left'; g.fillStyle = 'rgba(139,147,157,.8)'; g.font = `600 8px ${FONT}`;
-        const lx = lab === 'IN' ? SIDE - 4 : x0 + 29; g.textAlign = lab === 'IN' ? 'right' : 'left'; for (const d of [0, -6, -12, -24, -36, -48]) { const y = dbY(d); if (y > mt + 14) g.fillText(String(d), lx, y); }
-        const pk = Math.max(G.mPk[k0], G.mPk[k0 + 1]); g.textAlign = 'center'; g.font = `700 9.5px ${FONT}`; g.fillStyle = pk > -0.1 ? '#e5484d' : C.ink; g.fillText(pk > -60 ? pk.toFixed(1) : '\u2212\u221e', x0 + 11.5, mb + 12); } }
+        /* scala del meter tolta: la striscia e larga 26 px (la scala dB del grafico e accanto) */
+        const pk = Math.max(G.mPk[k0], G.mPk[k0 + 1]); g.textAlign = 'center'; g.font = `700 9.5px ${FONT}`; g.fillStyle = pk > -0.1 ? '#e5484d' : C.ink; g.font = `700 8px ${FONT}`; g.fillText(pk > -60 ? pk.toFixed(1) : '\u2212\u221e', x0 + 5.5, mb + 14); } }
     g.globalAlpha = G.dimBands ? .3 : 1;
     for (let i = 0; i < NB; i++) { const b = P.bands[i]; if (!b.used) continue; const p = nodePos(i), col = bandRGB(i), s = G.sel.has(i);
       if (b.dyn && canDyn(b.type) && !b.byp) { const d = deltas[i]; g.strokeStyle = C.dyn; g.lineWidth = 2; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x, Y(clamp(b.gain * P.scale / 100 + d, -G.rangeDb, G.rangeDb))); g.stroke();
@@ -1705,7 +1707,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 'use strict';
 /* ====== Pannello banda (isola in ceramica) con FREQ / GAIN / Q a manopola + fumetto sul nodo ====== */
 (() => {
-  const GX = 10, GY = 34, X0 = 10 + 8 + 14, X1 = 1084 - 14, SB = 34 + 532 - 22 - 14, W = 580, H = 150, HD = 34, S = 0.7;   // S = scala dell'isola (pi\u00f9 piccola)
+  const GX = LAY.gx, GY = LAY.gy, X0 = LAY.gx + 14, X1 = LAY.gx + LAY.gw - LAY.side - 14, SB = LAY.gy + LAY.gh - 22 - 14, W = 580, H = 150, HD = 34, S = 0.7;   // S = scala dell'isola (pi\u00f9 piccola)
   const bi = el('div', 'bisl bp', ed, px(0, 0, W, H));
   bi.innerHTML =
     '<button class="bq pw" data-k="byp" title="Banda accesa/spenta">\u23fb</button>' +
@@ -1799,7 +1801,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 'use strict';
 /* ====== elenco tipi: clic sul nome del tipo nell'island \u2192 si apre in altezza con i segni ====== */
 (() => { const bi = document.querySelector('.bisl'), tn = bi.querySelector('.tn'); if (!bi || !tn) throw new Error('TSRQ: island banda non trovata');
-  const pill = document.querySelector('.dpill'); if (pill) pill.style.top = (34 + 532 - 22 - 14 - parseFloat(pill.style.height)) + 'px';
+  const pill = document.querySelector('.dpill'); if (pill) pill.style.top = (LAY.gy + LAY.gh - 22 - 14 - parseFloat(pill.style.height)) + 'px';
   const ICON = ['bell', 'lshelf', 'hshelf', 'lcut', 'hcut', 'notch', 'bpass', 'tilt', 'flat', 'allpass'];
   const menu = el('div', 'tmenu', ed, px(0, 0, 170, 10)); menu.style.height = 'auto'; menu.hidden = true;
   TYPE_NAMES.forEach((nm, i) => { const it = el('button', 'tm-i', menu); it.type = 'button'; it.dataset.t = i;
@@ -1813,7 +1815,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
   const open = () => { const b = graph.primary >= 0 ? P.bands[graph.primary] : null; if (!b) return;
     menu.querySelectorAll('.tm-i').forEach(x => x.classList.toggle('on', +x.dataset.t === b.type));
     menu.hidden = false; tn.classList.add('open'); const r = bi.getBoundingClientRect(), t = tn.getBoundingClientRect(), E = ed.getBoundingClientRect(), k = E.width / EW;
-    const h = menu.offsetHeight; menu.style.left = clamp((t.left + t.width / 2 - E.left) / k - 85, 96, 1084 - 170) + 'px'; menu.style.top = ((r.top - E.top) / k - 6 - h) + 'px'; };
+    const h = menu.offsetHeight; menu.style.left = clamp((t.left + t.width / 2 - E.left) / k - 85, 14, LAY.gx + LAY.gw - LAY.side - 14 - 170) + 'px'; menu.style.top = ((r.top - E.top) / k - 6 - h) + 'px'; };
   tn.addEventListener('click', e => { e.stopPropagation(); menu.hidden ? open() : close(); });
   addEventListener('pointerdown', e => { if (!menu.hidden && !menu.contains(e.target) && e.target !== tn) close(); }, true);
   addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
@@ -1868,7 +1870,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
   const tot = top.reduce((a, b, k) => a + parseFloat(b.style.width) + (k < top.length - 1 ? gapOf(b) : 0), 0);
   let x = 10 + 92 + 976 - tot;   // tasti a destra, allineati alla fine della griglia
   for (const b of top) { const w = parseFloat(b.style.width); b.style.left = x + 'px'; b.style.top = '50px'; b.style.height = '24px'; b.classList.add('dsp'); x += w + gapOf(b); }
-  const W = 440, H = 52, cv = el('canvas', 'dlogo', ed, px(10 + 8 + 14, 47, W, H)); cv.width = W * 2; cv.height = H * 2; cv.style.pointerEvents = 'none';   // logo a sinistra, stile linea TSR Audio
+  const W = 440, H = 52, cv = el('canvas', 'dlogo', ed, px(LAY.gx + 14, 47, W, H)); cv.width = W * 2; cv.height = H * 2; cv.style.pointerEvents = 'none';   // logo a sinistra, stile linea TSR Audio
   const g = cv.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.textBaseline = 'middle';
   const BL = '#4aa3f0', GR = '#8f969e';
   // solo nome TSR Q + targhetta (niente logo TSR AUDIO, niente vetro sotto)
@@ -1909,7 +1911,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 'use strict';
 /* ====== rifiniture: selettore scala, intervalli sotto le manopole dell'isola ====== */
 (() => { // selettore scala \u00b16/12/18/30 dB in alto a destra della griglia (clic = scala successiva)
-  const SC = [3, 6, 12, 18, 30], gx = 10 + 92 + 976, gy = parseFloat(document.querySelector('.graph').style.top) + 46;
+  const SC = [3, 6, 12, 18, 30], gx = LAY.gx + LAY.gw - LAY.side, gy = parseFloat(document.querySelector('.graph').style.top) + 46;
   const rb = el('button', 'tb dsp rng', ed, px(gx - 58, gy + 4, 52, 20)); rb.type = 'button'; rb.title = 'Scala del grafico';
   const upd = () => { rb.textContent = graph.rangeDb + ' dB'; };
   rb.onclick = () => { const i = SC.indexOf(graph.rangeDb); graph.rangeDb = SC[(i + 1) % SC.length]; dirty = true; upd(); };
@@ -1925,6 +1927,21 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 /* ====== knob INPUT tolto dall'interfaccia (il parametro resta, a 0 dB se non automatizzato) ====== */
 (() => { const KIN = knobs.find(k => k.name === 'INPUT'); if (!KIN) throw new Error('TSRQ: knob INPUT non trovato'); for (const e of [KIN.cv, KIN.lab, KIN.inp]) e.style.display = 'none'; })();
 
+/* ====== 0.6.0: OUTPUT nella barra in basso (display senza bordi laterali, come Pro-Q 4) ====== */
+(() => { const KO2 = knobs.find(k => k.name === 'OUTPUT'); if (!KO2) throw new Error('TSRQ: knob OUTPUT non trovato');
+  const BH = EH - LAY.gh, top = LAY.gy + LAY.gh, CWo = 92, CHo = BH, LWo = 62, x = EW - 12 - LWo - CWo;   // barra: da GH al fondo della finestra
+  KO2.x = x; KO2.y = top; KO2.cv.width = CWo * 2; KO2.cv.height = CHo * 2;
+  Object.assign(KO2.cv.style, { left: x + 'px', top: top + 'px', width: CWo + 'px', height: CHo + 'px' });
+  for (const e of [KO2.lab, KO2.inp]) Object.assign(e.style, { left: (x + CWo + 2) + 'px', top: (top + (CHo - 18) / 2) + 'px', width: LWo + 'px', height: '18px', textAlign: 'left' });
+  const compact = k => { const g = k.cv.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, CWo, CHo);
+    const cx = CWo - 14, cy = CHo / 2, R = 9, a0 = Math.PI * .75, a1 = Math.PI * 2.25, ang = a0 + k.toN(k.v) * (a1 - a0), az = a0 + k.toN(0) * (a1 - a0);
+    g.font = `700 10px ${FONT}`; g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillStyle = C.dim; g.fillText(k.name, cx - R - 8, cy + 1);
+    g.lineCap = 'round'; g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.10)'; g.beginPath(); g.arc(cx, cy, R, a0, a1); g.stroke();
+    g.strokeStyle = Math.abs(k.v) < 0.05 ? 'rgba(238,242,246,.35)' : C.ink; g.beginPath(); g.arc(cx, cy, R, Math.min(az, ang), Math.max(az, ang)); g.stroke();
+    g.fillStyle = C.ink; g.beginPath(); g.arc(cx + Math.cos(ang) * (R - 4), cy + Math.sin(ang) * (R - 4), 1.6, 0, 7); g.fill(); };
+  const prev = drawKnob; drawKnob = k => k === KO2 ? compact(k) : prev(k);
+  compact(KO2); panelSync(); })();
+
 'use strict';
 /* ====== manopole dell'isola scure come la cornice ====== */
 (() => { Object.assign(C, { kArcBg: 'rgba(255,255,255,.12)', kArc: '#e9e7e2', kBody0: '#3a3838', kBody1: '#0b0a0a', kFace0: '#252323', kFace1: '#121111', kRim: 'rgba(255,255,255,.10)', kInd: '#e9e7e2', kShadow: 'rgba(0,0,0,.6)', disInk: 'rgba(233,231,226,.25)' });
@@ -1937,7 +1954,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 'use strict';
 /* ====== barra minimale: undo/redo, \u2039 preset \u203a, schermo intero (al posto di UNDO REDO PRESET SETTINGS BYPASS) ====== */
 (() => { for (const b of [bUndo, bRedo, bPreset, bSettings, bBypass]) b.style.display = 'none';
-  const W = 420, bar = el('div', 'tbar', ed, px(10 + 92 + 976 - W, 49, W, 26));
+  const W = 420, bar = el('div', 'tbar', ed, px(LAY.gx + LAY.gw - LAY.side - 8 - W, 49, W, 26));
   const ic = d => `<svg viewBox="0 0 20 20"><path d="${d}"/></svg>`;
   bar.innerHTML = `<button data-t="undo" title="Annulla">${ic('M7 5 3 9l4 4M3.5 9H12a4 4 0 0 1 0 8h-2')}</button>` +
     `<button data-t="redo" title="Ripristina">${ic('M13 5l4 4-4 4M16.5 9H8a4 4 0 0 0 0 8h2')}</button><span class="gap"></span>` +
@@ -1959,7 +1976,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 'use strict';
 /* ====== matita (disegni la curva, crea le bande) e tastiera di pianoforte sull'asse delle frequenze ====== */
 (() => { const gw = document.querySelector('.graph'); if (!gw) throw new Error('TSRQ: griglia non trovata');
-  const GWc = 1160, GHc = 532, PLx = 8, PLy = 10, PLw = 1160 - 8 - 86 - 6, PLh = 532 - 10 - 22, KH = 22;   // stessa geometria di PL nel grafico
+  const GWc = GW, GHc = GH, PLx = graph.PL.x, PLy = graph.PL.y, PLw = graph.PL.w, PLh = graph.PL.h, KH = 22;   // stessa geometria di PL nel grafico
   const ov = document.createElement('canvas'); ov.className = 'ovl'; ov.width = GWc * 2; ov.height = GHc * 2; gw.appendChild(ov);
   const g = ov.getContext('2d');
   const gTop = parseFloat(gw.style.top), gLeft = parseFloat(gw.style.left);
@@ -2068,7 +2085,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 'use strict';
 /* ====== passando sulla linea EQ: proposta di banda (Low Cut vicino al bordo sinistro, High Cut vicino al destro, Bell altrove); clic = crea ====== */
 (() => { const gw = document.querySelector('.graph'), ov = document.querySelector('.graph .ovl'); if (!gw || !ov) throw new Error('TSRQ: griglia o overlay non trovati');
-  const GWc = 1160, GHc = 532, PLx = 8, PLy = 10, PLw = 1160 - 8 - 86 - 6, PLh = 532 - 10 - 22, F_LC = 50, F_HC = 10000, NEAR = 9;
+  const GWc = GW, GHc = GH, PLx = graph.PL.x, PLy = graph.PL.y, PLw = graph.PL.w, PLh = graph.PL.h, F_LC = 50, F_HC = 10000, NEAR = 9;
   const g = ov.getContext('2d'); let sug = null, ghost = null;
   const loc = e => { const r = ov.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * GWc, y: (e.clientY - r.top) / r.height * GHc }; };
   let dMemo = { k: null, cs: null };
@@ -2109,7 +2126,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 'use strict';
 /* ====== Bell: tieni premuto sul nodo (0,35 s) e striscia avanti/indietro = allarga/restringe (Q) ====== */
 (() => { const gw = document.querySelector('.graph'), ov = document.querySelector('.graph .ovl'); if (!gw || !ov) throw new Error('TSRQ: griglia non trovata');
-  const GWc = 1160, GHc = 532, HOLD = 350; const g = ov.getContext('2d');
+  const GWc = GW, GHc = GH, HOLD = 350; const g = ov.getContext('2d');
   const loc = e => { const r = ov.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * GWc, y: (e.clientY - r.top) / r.height * GHc }; };
   let st = null;   // { i, x0, y0, q0, t, on }
   gw.addEventListener('pointerdown', e => { st = null; if (e.button !== 0 || ov.classList.contains('draw')) return; const p = loc(e);
@@ -2251,7 +2268,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 
 'use strict';
 /* ====== zoom e pan dell'asse delle frequenze: trascina sulla scala (su/giu = zoom attorno alla frequenza sotto il puntatore, destra/sinistra = pan), rotella sulla scala = zoom, doppio clic = reset. Solo vista: l'audio non cambia ====== */
-(() => { const gw = document.querySelector('.graph'), ov = document.querySelector('.graph .ovl'); const PL = graph.PL, GWc = 1160, GHc = 532;
+(() => { const gw = document.querySelector('.graph'), ov = document.querySelector('.graph .ovl'); const PL = graph.PL, GWc = GW, GHc = GH;
   const loc = e => { const r = ov.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * GWc, y: (e.clientY - r.top) / r.height * GHc }; };
   const onScale = p => p.y > PL.y + PL.h && p.y <= GHc && p.x >= PL.x && p.x <= PL.x + PL.w;
   let z = null;
@@ -2340,7 +2357,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
   cv.addEventListener('pointerleave', () => { S.mouse = null; });
   cv.addEventListener('click', e => { if (S.view !== 'wave') return; const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * W / r.width, gp = gps(), tEnd = S.frz ? S.frzHead : S.head, k = tEnd - (1 - x / W) * S.T * gp; if (e.shiftKey) S.curB = k; else { S.curA = k; S.curB = null; } });
   pan.addEventListener('pointerdown', e => e.stopPropagation()); pan.addEventListener('wheel', e => { e.stopPropagation(); }, { passive: true });
-  const btn = el('button', 'tool', ed, px(gL + PL.x + 4, gT + 392, 26, 26)); btn.type = 'button'; btn.title = 'Waveform / spettrogramma (pannello inferiore)';
+  const btn = el('button', 'tool', ed, px(gL + PL.x + 4, gT + PL.y + PL.h - 22 - 6 - 26 - 64, 26, 26)); btn.type = 'button'; btn.title = 'Waveform / spettrogramma (pannello inferiore)';
   btn.innerHTML = '<svg viewBox="0 0 20 20"><path d="M2 10h2l1.5-5 2 10 2-12 2 14 2-9 1.5 4H18"/></svg>';
   function toggle(v) { pan.classList.toggle('on', v); btn.classList.toggle('on', v); }
   btn.onclick = () => toggle(!pan.classList.contains('on'));
