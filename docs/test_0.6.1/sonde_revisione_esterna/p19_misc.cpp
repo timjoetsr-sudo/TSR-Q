@@ -1,0 +1,9 @@
+// (a) bypass in Linear Phase = ingresso ritardato di latencySamples (al bit); (b) All Pass statico in Linear Phase; (c) solo allineato
+#include "common.h"
+int main(){ const double fs=48000; std::mt19937 rg(2); std::uniform_real_distribution<float> u(-.3f,.3f);
+ { Engine e; e.prepare(fs,512); e.configurePhase(1,1); Engine::Global g; g.bypass=true; e.setGlobal(g); e.setBand(0,band(Bell,1000,6,1)); int lat=e.latencySamples(); int n=512*100; std::vector<float> l(n),r(n),x(n); for(int i=0;i<n;++i){x[i]=l[i]=u(rg); r[i]=-l[i];} for(int i=0;i<n;i+=512) e.process(l.data()+i,r.data()+i,nullptr,nullptr,512);
+   double d=0; for(int i=lat;i<n;++i) d=std::max(d,(double)std::abs(l[i]-x[i-lat])); std::printf("(a) bypass LP: max |uscita - ingresso ritardato di %d| = %g\n",lat,d); }
+ for(int mode=0;mode<2;++mode){ Engine e; e.prepare(fs,512); e.configurePhase(mode,1); Engine::Global g; e.setGlobal(g); e.setBand(0,band(AllPass,1000,0,1)); int lat=e.latencySamples(); int n=512*40; std::vector<float> l(n,0),r(n,0); l[100]=r[100]=1; for(int i=0;i<n;i+=512) e.process(l.data()+i,r.data()+i,nullptr,nullptr,512);
+   std::vector<double> h(l.begin()+100+lat,l.end()); std::complex<double> H=dft(h,1000,fs); double resid=0; for(size_t i=1;i<h.size();++i) resid=std::max(resid,std::abs(h[i])); std::printf("(b) All Pass 1 kHz Q1 %s: fase a 1 kHz %.1f gradi, h[0] %.4f, max |h[n>0]| %.4f\n",mode?"Linear Phase":"Zero Latency",std::arg(H)*180/kPi,h[0],resid); }
+ for(int mode=0;mode<2;++mode){ Engine e; e.prepare(fs,512); e.configurePhase(mode,1); Engine::Global g; g.solo=0; e.setGlobal(g); e.setBand(0,band(Bell,1000,6,1)); int lat=e.latencySamples(); int n=512*40; std::vector<float> l(n,0),r(n,0); l[3000]=r[3000]=1; for(int i=0;i<n;i+=512) e.process(l.data()+i,r.data()+i,nullptr,nullptr,512);
+   int pk=0; for(int i=0;i<n;++i) if(std::abs(l[i])>std::abs(l[pk])) pk=i; std::printf("(c) solo %s: picco a %d campioni dall'impulso (latenza %d)\n",mode?"LP":"ZL",pk-3000,lat); } }

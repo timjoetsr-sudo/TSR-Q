@@ -1,0 +1,4 @@
+// risoluzione in Hz a 352,8/384 kHz contro 48 kHz (Medium): stessa banda, errore dal modulo analogico
+#include "common.h"
+int main(){ for(double fs:{48000.0,192000.0,384000.0}){ BandParams b=band(Bell,40,12,4); Engine e; e.prepare(fs,512); e.configurePhase(1,1); Engine::Global g; e.setGlobal(g); e.setBand(0,b); int lat=e.latencySamples(); int n=(lat*2+4096)/512*512+512; std::vector<float> l(n,0),r(n,0); l[0]=r[0]=1; for(int i=0;i<n;i+=512) e.process(l.data()+i,r.data()+i,nullptr,nullptr,512); std::vector<double> h(l.begin(),l.end());
+ double emax=0; for(int k=0;k<200;++k){ double f=20*std::pow(10.0,k/199.0); emax=std::max(emax,std::abs(20*std::log10(std::abs(dft(h,f,fs)))-anaDb(b,f))); } std::printf("fs %6.0f Medium: L %d, latenza %d campioni = %.1f ms, errore Bell 40 Hz +12 Q4 (20-200 Hz) %.3f dB\n",fs,LinPhase::firLen(1,fs),lat,lat*1000/fs,emax); } }

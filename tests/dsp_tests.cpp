@@ -443,7 +443,7 @@ int main() {
 
     std::printf ("== 29. LINEAR PHASE: latenza riportata = picco, risposta simmetrica, modulo = analogico, invarianza al blocco, automazione ==\n");
     { const double fs = 48000; const BandParams bs[6] = { band (Bell, 1000, 6, 1), band (HighShelf, 10000, -4, 1), band (LowCut, 30, 0, 1, 24), band (Notch, 3000, 0, 4), band (Bell, 120, -8, 3, 12, Mid), band (Bell, 6000, 5, 2, 12, Left) };
-      const double lim[5] = { 1.5, 0.4, 0.1, 0.03, 0.01 }; SecSet ss[6]; for (int i = 0; i < 6; ++i) sectionsFor (bs[i], bs[i].gain, ss[i]);
+      const double lim[5] = { 0.4, 0.12, 0.03, 0.01, 0.005 }; SecSet ss[6]; for (int i = 0; i < 6; ++i) sectionsFor (bs[i], bs[i].gain, ss[i]);   // 0.6.0 con finestra beta 3 (prima beta 9: 1,135 / 0,308 / 0,083 / 0,021 / 0,005)
       for (int res = 0; res < 5; ++res) { Engine e; e.prepare (fs, 512); e.configurePhase (1, res); Engine::Global gl; e.setGlobal (gl); for (int i = 0; i < 6; ++i) e.setBand (i, bs[i]);
         const int lat = e.latencySamples(), n = 2 * lat + 32768; std::vector<float> L ((size_t) n, 0.f), R ((size_t) n, 0.f); L[0] = R[0] = 1;
         for (int i = 0; i < n; i += 512) e.process (L.data() + i, R.data() + i, nullptr, nullptr, std::min (512, n - i));
@@ -482,6 +482,60 @@ int main() {
       bool fin = true; for (float v : bL) fin = fin && std::isfinite (v);
       std::printf ("   blocco piu lento nel thread audio: progetti nel thread audio %.2f ms, thread dedicato %.2f ms\n", gs, ga);
       ok (d < 1e-6 && fin, "ultimi 100 blocchi: thread dedicato = thread audio, scarto %.1e (< 1e-6); uscita finita", d); }
+
+    std::printf ("== 31. LINEAR PHASE, DIFETTI DELLA REVISIONE ESTERNA: statica<->dinamica, banda tolta, richiesta vecchia, detector, All Pass, eventi, automazione ==\n");
+    { const double fs = 48000;
+      // seno continuo (fase continua tra i blocchi); guadagno a regime = RMS degli ultimi 4800 campioni
+      struct Run { Engine e; double ph = 0; std::vector<float> l = std::vector<float> (512), r = std::vector<float> (512); std::vector<float> out;
+          Run (int res, bool syncM) { e.prepare (48000, 512); e.setLinSync (syncM); e.configurePhase (1, res); Engine::Global g; e.setGlobal (g); }
+          void blk (double f, double a = 0.1) { for (int i = 0; i < 512; ++i) { l[(size_t) i] = r[(size_t) i] = (float) (a * std::sin (ph)); ph += 2 * kPi * f / 48000; } e.process (l.data(), r.data(), nullptr, nullptr, 512); out.insert (out.end(), l.begin(), l.end()); } };
+      auto rmsDb = [] (const std::vector<float>& x, size_t a, size_t b) { double s2 = 0; for (size_t i = a; i < b; ++i) s2 += (double) x[i] * x[i]; return 10 * std::log10 (s2 / (double) (b - a) / 0.005); };
+      // a) statica -> dinamica e ritorno, soglia 0 dBFS (la dinamica non agisce): il guadagno non deve muoversi (0.6.0: +-12 dB)
+      double dev = 0; for (double gn : { 12.0, -12.0 }) for (int dir = 0; dir < 2; ++dir) { Run R (1, true); BandParams b = band (Bell, 1000, gn, 1); b.thr = 0; b.range = -6; b.dyn = dir == 1;
+          for (int k = 0; k < 100; ++k) { R.e.setBand (0, b); R.blk (1000); } b.dyn = dir == 0; const size_t s0 = R.out.size();
+          for (int k = 0; k < 60; ++k) { R.e.setBand (0, b); R.blk (1000); }
+          for (size_t i = s0; i + 480 <= R.out.size(); i += 480) dev = std::max (dev, std::abs (rmsDb (R.out, i, i + 480) - gn)); }
+      ok (dev < 0.6, "statica <-> dinamica in Linear Phase: scarto massimo dal guadagno %.2f dB (0.6.0 di prima: 12 dB)", dev);
+      // b) banda +12 tolta, poi rimessa come dinamica a 0 dB; ritorno a Zero Latency: nessuna copia vecchia che riappare
+      { Run R (1, true); BandParams b = band (Bell, 1000, 12, 1); for (int k = 0; k < 100; ++k) { R.e.setBand (0, b); R.blk (1000); }
+        b.used = false; for (int k = 0; k < 200; ++k) { R.e.setBand (0, b); R.blk (1000); } b.used = true; b.gain = 0; b.dyn = true; b.thr = 0; const size_t s0 = R.out.size();
+        for (int k = 0; k < 60; ++k) { R.e.setBand (0, b); R.blk (1000); } double d = 0; for (size_t i = s0; i + 480 <= R.out.size(); i += 480) d = std::max (d, std::abs (rmsDb (R.out, i, i + 480)));
+        R.e.configurePhase (0, 1); const size_t s1 = R.out.size(); for (int k = 0; k < 100; ++k) { R.e.setBand (0, b); R.blk (1000); } double d2 = std::abs (rmsDb (R.out, s1 + 4800 * 5, s1 + 4800 * 9));
+        ok (d < 0.1 && d2 < 0.1, "banda tolta e rimessa: scarto %.3f dB; dopo il ritorno a Zero Latency %.3f dB (0.6.0 di prima: +11,6 e +10,4 dB)", d, d2); }
+      // c) richiesta rimasta nel thread di progetto: tempo reale -> offline -> tempo reale, l'ultima impostazione deve restare
+      { Run R (4, false); BandParams b = band (Bell, 1000, 12, 1); for (int k = 0; k < 150; ++k) { R.e.setBand (0, b); R.blk (1000); std::this_thread::sleep_for (std::chrono::milliseconds (1)); }
+        b.gain = 6; R.e.setBand (0, b); R.blk (1000); b.gain = 0; R.e.setBand (0, b); R.blk (1000); R.e.setLinSync (true); b.gain = -12; for (int k = 0; k < 150; ++k) { R.e.setBand (0, b); R.blk (1000); }
+        R.e.setLinSync (false); for (int k = 0; k < 200; ++k) { R.e.setBand (0, b); R.blk (1000); std::this_thread::sleep_for (std::chrono::milliseconds (1)); }
+        const double gfin = rmsDb (R.out, R.out.size() - 4800, R.out.size()); ok (std::abs (gfin + 12) < 0.05, "tempo reale -> offline -> tempo reale: guadagno finale %.2f dB (atteso -12; 0.6.0 di prima: 0)", gfin); }
+      // d) detector: banda 0 dinamica (soglia -30, range -12), banda 1 statica +12 nello stesso punto: stesso guadagno in Zero Latency e Linear Phase
+      { double gz = 0, gl = 0; for (int mode = 0; mode < 2; ++mode) { Engine e; e.prepare (fs, 512); e.configurePhase (mode, 1); Engine::Global g; e.setGlobal (g); BandParams d = band (Bell, 1000, 0, 1); d.dyn = true; d.thr = -30; d.range = -12;
+            std::vector<float> l (512), r (512), all; double ph = 0; for (int k = 0; k < 300; ++k) { e.setBand (0, d); e.setBand (1, band (Bell, 1000, 12, 1)); for (int i = 0; i < 512; ++i) { l[(size_t) i] = r[(size_t) i] = (float) (0.1 * std::sin (ph)); ph += 2 * kPi * 1000 / fs; } e.process (l.data(), r.data(), nullptr, nullptr, 512); all.insert (all.end(), l.begin(), l.end()); }
+            (mode ? gl : gz) = rmsDb (all, all.size() - 9600, all.size()); }
+        ok (std::abs (gz - gl) < 0.1, "detector con una banda statica dopo: Zero Latency %+.2f dB, Linear Phase %+.2f dB (0.6.0 di prima: +6,74 contro 0,00)", gz, gl); }
+      // e) All Pass in Linear Phase = All Pass in Zero Latency (resta biquad)
+      { double ph[2]; for (int mode = 0; mode < 2; ++mode) { Engine e; e.prepare (fs, 512); e.configurePhase (mode, 1); Engine::Global g; e.setGlobal (g); e.setBand (0, band (AllPass, 1000, 0, 1)); const int lat = e.latencySamples(), n = lat + 65536;
+            std::vector<float> L ((size_t) n, 0.f), R ((size_t) n, 0.f); L[0] = R[0] = 1; for (int i = 0; i < n; i += 512) e.process (L.data() + i, R.data() + i, nullptr, nullptr, std::min (512, n - i));
+            std::complex<double> a = 0; for (int i = lat; i < n; ++i) a += (double) L[(size_t) i] * std::polar (1.0, -2 * kPi * 1000 * (i - lat) / fs); ph[mode] = std::arg (a) * 180 / kPi; }
+        ok (std::abs (std::abs (ph[0]) - std::abs (ph[1])) < 0.5, "All Pass 1 kHz: fase Zero Latency %.1f gradi, Linear Phase %.1f gradi (0.6.0 di prima: 0)", ph[0], ph[1]); }
+    }
+
+    std::printf ("== 32. LINEAR PHASE: eventi senza click e automazione senza bande laterali (sonde della revisione esterna) ==\n");
+    { const double fs = 48000;
+      auto hf = [&] (const std::vector<float>& x, int s0, int s1) { Grid g; g.init (fs); BandCoefs c; designBand (band (LowCut, 4000, 0, 1, 96), 0, g, c); double z[2 * kMaxSecs] = {}, pk = 0;
+          for (int i = 0; i < s1; ++i) { double v = x[(size_t) i]; for (int k = 0; k < c.n; ++k) { const Coef& q = c.c[k]; const double y = q.b0 * v + z[2 * k]; z[2 * k] = q.b1 * v - q.a1 * y + z[2 * k + 1]; z[2 * k + 1] = q.b2 * v - q.a2 * y; v = y; } if (i >= s0) pk = std::max (pk, std::abs (v)); }
+          return 20 * std::log10 (pk + 1e-15); };
+      double worst = -300; for (int k = 0; k < 4; ++k) { Engine e; e.prepare (fs, 512); e.configurePhase (1, 1); Engine::Global g; e.setGlobal (g); const int lat = e.latencySamples();
+          BandParams b = band (Bell, 300, 9, 2); b.used = k != 0; const int sw = 512 * 200, n = (sw + lat + 48000) / 512 * 512; std::vector<float> l ((size_t) n), r ((size_t) n);
+          for (int i = 0; i < n; ++i) { l[(size_t) i] = 0.25f * (float) std::sin (2 * kPi * 200 * i / fs); r[(size_t) i] = 0.5f * l[(size_t) i]; }
+          for (int i = 0; i < n; i += 512) { if (i == sw) { if (k == 0) b.used = true; if (k == 1) b.used = false; if (k == 2) b.type = LowShelf; if (k == 3) b.f = 3000; } e.setBand (0, b); e.setBand (1, band (HighShelf, 6000, -3, 1)); e.process (l.data() + i, r.data() + i, nullptr, nullptr, 512); }
+          worst = std::max (worst, hf (l, sw - 4000, n)); }
+      ok (worst < -105, "banda on/off, cambio di tipo, salto di frequenza: energia sopra 4 kHz al massimo %.1f dBFS (dissolvenza lineare: -77,6)", worst);
+      Engine e; e.prepare (fs, 512); e.setLinSync (true); e.configurePhase (1, 1); Engine::Global g; e.setGlobal (g); const int lat = e.latencySamples(), N = 65536, n = lat + N + 48000; std::vector<float> l ((size_t) n), r ((size_t) n);
+      for (int i = 0; i < n; ++i) l[(size_t) i] = r[(size_t) i] = 0.1f * (float) std::sin (2 * kPi * 1000 * i / fs);
+      for (int i = 0; i < n; i += 512) { const double t = std::clamp ((double) (i - lat - 8000) / N, 0.0, 1.0); e.setBand (0, band (Bell, 1000, 12 * t, 1)); e.process (l.data() + i, r.data() + i, nullptr, nullptr, std::min (512, n - i)); }
+      Fft f; f.init (N); std::vector<Cpx> a ((size_t) N); for (int i = 0; i < N; ++i) a[(size_t) i] = (double) l[(size_t) (lat + 8000 + i)] * (0.5 - 0.5 * std::cos (2 * kPi * i / N)); f.run (a.data(), false);
+      double ef = 0, es = 0; for (int k = 1; k < N / 2; ++k) { const double fr = k * fs / N, pw = std::norm (a[(size_t) k]); if (std::abs (fr - 1000) < 60) ef += pw; else if (fr > 20 && fr < 20000) es += pw; }
+      ok (10 * std::log10 (es / ef) < -100, "Bell 0 -> +12 dB in 1,4 s su un seno 1 kHz: energia spuria %.1f dB (coseno rialzato: -61,8)", 10 * std::log10 (es / ef)); }
 
     std::printf (fails ? "\nRISULTATO: %d FAIL\n" : "\nRISULTATO: tutti i test PASS\n", fails);
     return fails ? 1 : 0;

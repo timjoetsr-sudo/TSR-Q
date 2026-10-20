@@ -528,7 +528,7 @@ struct Oversampled8x {   // x -> 8 campioni -> saturazione -> 1 campione (ogni s
 // ---------- motore ----------
 // dissolvenza (crossfade) di 15 ms per tutto cio che non si puo interpolare: banda attivata/disattivata, cambio di tipo/pendenza/collocazione,
 // solo acceso/spento, cambio di Character. Curva a coseno rialzato (inizio e fine morbidi). Prima della prima elaborazione: nessuna dissolvenza.
-inline double fadeW (double u) { return u >= 1 ? 1.0 : 0.5 - 0.5 * std::cos (kPi * u); }
+inline double fadeW (double u) { return u >= 1 ? 1.0 : u <= 0 ? 0.0 : 0.5 - 0.5 * std::cos (kPi * u); }   // 0 e 1 senza coseno (prima: due coseni per campione anche a riposo, ~15 % della CPU: callgrind)
 // ---------- 0.6.0: Linear Phase (bande statiche come un unico FIR a fase lineare) ----------
 // Bersaglio = modulo ANALOGICO di ogni banda (nessun cramping), bande nell'ordine dell'indice; Stereo/Left/Right/Mid/Side come matrice 2x2 reale per frequenza.
 // FIR di L campioni (finestra di Kaiser beta 9), simmetrico attorno a L/2; convoluzione partizionata uniforme (overlap-save, partizione B).
@@ -553,58 +553,75 @@ inline double besselI0 (double x) { double s = 1, t = 1; for (int k = 1; k < 60;
 class LinPhase {
 public:
     static constexpr int kRes = 5, kSlots = 3;
-    static int firLen (int res, double fs) {   // Low 4096 ... Maximum 65536 a 44,1/48 kHz; x2 a 88,2/96, x4 a 176,4/192 (stessa risoluzione in Hz)
-        int L = 4096 << std::clamp (res, 0, kRes - 1); if (fs > 60000) L *= 2; if (fs > 120000) L *= 2; return L; }
-    static int partLen (int L) { return std::max (256, L / 64); }
+    static int firLen (int res, double fs) {   // Low 4096 ... Maximum 65536 a 44,1/48 kHz; x2 a 88,2/96, x4 a 176,4/192, x8 a 352,8/384 (stessa risoluzione in Hz)
+        int L = 4096 << std::clamp (res, 0, kRes - 1); if (fs > 60000) L *= 2; if (fs > 120000) L *= 2; if (fs > 240000) L *= 2; return L; }
+    static int partLen (int L) { return std::clamp (L / 64, 256, 2048); }   // al massimo 2048: picco di calcolo per blocco limitato (revisione esterna: 4096 a 192 kHz Maximum = 1,2 x la scadenza di un blocco da 64)
+    static constexpr double kBeta = 3.0;   // finestra di Kaiser: beta 3 (0.6.0 prima: 9). Bell 40 Hz Q4 a L 8192: 1,50 dB contro 2,92; nessuna perdita sotto -80 dB nei casi misurati
     LinPhase() = default; LinPhase (const LinPhase&) = delete; LinPhase& operator= (const LinPhase&) = delete;
     ~LinPhase() { stopWorker(); }
     bool ready() const { return L > 0; }
+    int firLength() const { return L; }
     int latency() const { return L > 0 ? L / 2 + B : 0; }
-    // alloca e avvia il thread di progetto: fuori dal thread audio. sync = progetti nel thread audio (test, rendering offline)
+    unsigned maskNow() const { return mask[fcur]; }   // bande contenute nel FIR del blocco in uscita (thread audio)
+    // alloca e avvia il thread di progetto: fuori dal thread audio
     void configure (int firL, double sampleRate) {
         stopWorker();
-        L = firL; B = partLen (L); K = L / B; NF = 2 * B; fs = sampleRate;
+        L = firL; B = partLen (L); K = L / B; NF = 2 * B; fs = sampleRate; flen = std::max (2 * B, 512);
         fL.init (L); fB.init (NF);
-        win.resize ((size_t) L); const double be = 9.0, i0 = besselI0 (be); for (int i = 0; i < L; ++i) { const double t = 2.0 * i / L - 1; win[(size_t) i] = besselI0 (be * std::sqrt (std::max (0.0, 1 - t * t))) / i0; }
-        tmp.assign ((size_t) L, Cpx()); mat.assign ((size_t) (L / 2 + 1) * 4, 0.0);
-        for (int s = 0; s < kSlots; ++s) { Hp[s].assign ((size_t) K * NF, Cpx()); Hq[s].assign ((size_t) K * NF, Cpx()); mode[s] = 1; }
-        hb.assign ((size_t) NF, Cpx()); fdl.assign ((size_t) K * NF, Cpx()); fdr.assign ((size_t) K * NF, Cpx()); acc.assign ((size_t) NF, Cpx()); acc2.assign ((size_t) NF, Cpx());
-        inL.assign ((size_t) NF, 0.0); inR.assign ((size_t) NF, 0.0); outL.assign ((size_t) B, 0.0); outR.assign ((size_t) B, 0.0);
-        head = 0; pos = 0; fade = 0; fadeFrom.store (-1); cur.store (0); readySlot.store (-1); readyInstant.store (false); tbMid.store (1); tbBack = 0; tbFront = 2;
+        win.resize ((size_t) L); const double i0 = besselI0 (kBeta); for (int i = 0; i < L; ++i) { const double t = 2.0 * i / L - 1; win[(size_t) i] = besselI0 (kBeta * std::sqrt (std::max (0.0, 1 - t * t))) / i0; }
+        win[0] = 0;   // tap 0 senza simmetrico (n = L non esiste): a zero, cosi il FIR e esattamente simmetrico attorno a L/2 (con beta 3 valeva 0,2)
+        tmp.assign ((size_t) L, Cpx()); mat.assign ((size_t) (L / 2 + 1) * 4, 0.0); hb.assign ((size_t) NF, Cpx());
+        for (int b = 0; b < kMaxBands; ++b) { cache[b].assign ((size_t) (L / 2 + 1), 0.0f); cacheOk[b] = false; }
+        for (int s = 0; s < kSlots; ++s) { Hp[s].assign ((size_t) K * NF, Cpx()); Hq[s].assign ((size_t) K * NF, Cpx()); mode[s] = 1; mask[s] = 0; }
+        fdl.assign ((size_t) K * NF, Cpx()); fdr.assign ((size_t) K * NF, Cpx()); accA.assign ((size_t) NF, Cpx()); accB.assign ((size_t) NF, Cpx()); xcur.assign ((size_t) NF, Cpx());
+        inL.assign ((size_t) NF, 0.0); inR.assign ((size_t) NF, 0.0); outL.assign ((size_t) B, 0.0); outR.assign ((size_t) B, 0.0); outW.assign ((size_t) B, 1.0); outFL.assign ((size_t) B, 0.0); outFR.assign ((size_t) B, 0.0);
+        head = 0; pos = 0; done = 0; fcur = 0; ffrom = -1; ffpos = 0; outMc = outMf = 0; cur.store (0); fadeFrom.store (-1); readySlot.store (-1); readyInstant.store (false); readyGen.store (0);
+        reqGen = 0; appliedGen = 0; tbMid.store (1); tbBack = 0; tbFront = 2;
         Req id; id.nb = 0; compute (0, id);   // identita (nessuna banda): impulso unitario al centro = solo ritardo
         quit.store (false); worker = std::thread ([this] { run(); });
     }
-    void setSync (bool s) {   // passaggio a sync: si aspetta che il thread di progetto finisca il progetto in corso (stesse aree di lavoro)
-        if (s == sync.load()) return; sync.store (s); if (s) while (busy.load()) std::this_thread::yield(); }
-    // richiesta di progetto (thread audio): bande attive statiche nell'ordine dell'indice
-    void request (const BandParams* p, const double* g, int nb, bool instant) {
-        Req& r = tb[tbBack]; r.nb = nb; r.instant = instant; for (int i = 0; i < nb; ++i) { r.p[i] = p[i]; r.g[i] = g[i]; }
-        if (sync.load()) { const int sl = freeSlot(); compute (sl, r); readyInstant.store (instant); readySlot.store (sl, std::memory_order_release); return; }   // nel thread audio
-        tbBack = tbMid.exchange (tbBack | 4, std::memory_order_acq_rel) & 3; cv.notify_one();   // triplo buffer: consegna senza attese
+    void setSync (bool s) { if (s == sync.load()) return; sync.store (s); if (s) while (busy.load()) std::this_thread::yield(); }
+    // richiesta (thread audio): bande del FIR nell'ordine dell'indice; idx = indice della banda (maschera e cache)
+    void request (const int* idx, const BandParams* p, const double* g, int nb, bool instant) {
+        Req& r = tb[tbBack]; r.nb = nb; r.instant = instant; r.gen = ++reqGen; for (int i = 0; i < nb; ++i) { r.idx[i] = idx[i]; r.p[i] = p[i]; r.g[i] = g[i]; }
+        if (sync.load()) { const int sl = freeSlot(); compute (sl, r); readyInstant.store (instant); readyGen.store (r.gen); readySlot.store (sl, std::memory_order_release); return; }
+        tbBack = tbMid.exchange (tbBack | 4, std::memory_order_acq_rel) & 3; cv.notify_one();
     }
-    // in place, x0/x1 = L/R; ritardo L/2 + B
-    void process (double* x0, double* x1, int n) {
-        for (int i = 0; i < n; ++i) { inL[(size_t) (B + pos)] = x0[i]; inR[(size_t) (B + pos)] = x1[i]; x0[i] = outL[(size_t) pos]; x1[i] = outR[(size_t) pos]; if (++pos == B) { block(); pos = 0; } }
+    // in place, x0/x1 = L/R; ritardo L/2 + B. Per ogni campione in uscita: w = peso del FIR nuovo, mc/mf = bande nel FIR nuovo / vecchio
+    void process (double* x0, double* x1, int n, double* w, unsigned* mc, unsigned* mf, double* f0, double* f1) {   // f0/f1: parte del FIR vecchio ((1 - w) * vecchio) contenuta in x0/x1
+        for (int i = 0; i < n; ++i) {
+            if (pos == 0 && done == 0 && ffrom < 0) { const int rs = readySlot.load (std::memory_order_acquire);   // progetto immediato (il primo) pronto prima del blocco: vale gia per questo blocco
+                if (rs >= 0 && readyInstant.load() && readyGen.load() > appliedGen) { fcur = rs; appliedGen = readyGen.load(); readySlot.store (-1, std::memory_order_release); cur.store (fcur); cv.notify_one(); } }
+            inL[(size_t) (B + pos)] = x0[i]; inR[(size_t) (B + pos)] = x1[i];
+            x0[i] = outL[(size_t) pos]; x1[i] = outR[(size_t) pos]; w[i] = outW[(size_t) pos]; mc[i] = outMc; mf[i] = outMf; f0[i] = outFL[(size_t) pos]; f1[i] = outFR[(size_t) pos];
+            ++pos; const int target = (int) ((long long) (K - 1) * pos / B);   // partizioni 1..K-1 del prossimo blocco distribuite sui campioni (nessun picco di calcolo)
+            while (done < target) partial (++done);
+            if (pos == B) { finish(); pos = 0; done = 0; }
+        }
     }
 private:
-    struct Req { int nb = 0; bool instant = false; BandParams p[kMaxBands]; double g[kMaxBands] = {}; };
-    int freeSlot() const { const int c = cur.load (std::memory_order_relaxed), f = fadeFrom.load (std::memory_order_relaxed); for (int s = 0; s < kSlots; ++s) if (s != c && s != f) return s; return 0; }
-    // Y = P Z + Q Zr, Z = X_L + j X_R, Zr[i] = conj (Z[-i]): matrice 2x2 qualsiasi con due prodotti per frequenza (P, Q da a, b, c, d)
+    struct Req { int nb = 0; bool instant = false; unsigned gen = 0; int idx[kMaxBands] = {}; BandParams p[kMaxBands]; double g[kMaxBands] = {}; };
+    int freeSlot() const { const int c = cur.load (std::memory_order_relaxed), f = fadeFrom.load (std::memory_order_relaxed), r = readySlot.load (std::memory_order_relaxed);
+        for (int s = 0; s < kSlots; ++s) if (s != c && s != f && s != r) return s; for (int s = 0; s < kSlots; ++s) if (s != c && s != f) return s; return 0; }
+    static bool sameMag (const BandParams& a, double ga, const BandParams& b, double gb) { return a.type == b.type && a.f == b.f && a.q == b.q && a.slope == b.slope && a.gq == b.gq && ga == gb; }
+    // Y = P Z + Q Zr, Z = X_L + j X_R, Zr[i] = conj (Z[-i]): matrice 2x2 qualsiasi con due prodotti per frequenza
     void compute (int sl, const Req& r) {
-        const int nb2 = L / 2 + 1; SecSet* sets = setsBuf; int pl[kMaxBands];
-        for (int b = 0; b < r.nb; ++b) { sectionsFor (r.p[b], r.g[b], sets[b]); pl[b] = r.p[b].place; }
+        const int nb2 = L / 2 + 1; int pl[kMaxBands]; unsigned m = 0;
+        for (int b = 0; b < r.nb; ++b) { const int ix = r.idx[b]; pl[b] = r.p[b].place; m |= 1u << ix;
+            if (! cacheOk[ix] || ! sameMag (cacheP[ix], cacheG[ix], r.p[b], r.g[b])) {   // modulo della banda: ricalcolato solo se la banda e cambiata
+                SecSet s; sectionsFor (r.p[b], r.g[b], s); float* c = cache[ix].data(); for (int k = 0; k < nb2; ++k) c[k] = (float) std::sqrt (anaMag2 (s, (double) k * fs / L));
+                cacheP[ix] = r.p[b]; cacheG[ix] = r.g[b]; cacheOk[ix] = true; } }
         bool diag = true, equal = true;
         for (int k = 0; k < nb2; ++k) {
-            const double f = (double) k * fs / L; double a = 1, bq = 0, c = 0, d = 1;   // matrice [a b; c d] su (L, R)
-            for (int b = 0; b < r.nb; ++b) { const double m = std::sqrt (anaMag2 (sets[b], f)); double e0, e1, e2, e3;
-                switch (pl[b]) { case Left: e0 = m; e1 = 0; e2 = 0; e3 = 1; break; case Right: e0 = 1; e1 = 0; e2 = 0; e3 = m; break;
-                    case Mid: e0 = e3 = 0.5 * (m + 1); e1 = e2 = 0.5 * (m - 1); break; case Side: e0 = e3 = 0.5 * (1 + m); e1 = e2 = 0.5 * (1 - m); break;
-                    default: e0 = e3 = m; e1 = e2 = 0; }
+            double a = 1, bq = 0, c = 0, d = 1;   // matrice [a b; c d] su (L, R)
+            for (int b = 0; b < r.nb; ++b) { const double mg = cache[r.idx[b]][(size_t) k]; double e0, e1, e2, e3;
+                switch (pl[b]) { case Left: e0 = mg; e1 = 0; e2 = 0; e3 = 1; break; case Right: e0 = 1; e1 = 0; e2 = 0; e3 = mg; break;
+                    case Mid: e0 = e3 = 0.5 * (mg + 1); e1 = e2 = 0.5 * (mg - 1); break; case Side: e0 = e3 = 0.5 * (1 + mg); e1 = e2 = 0.5 * (1 - mg); break;
+                    default: e0 = e3 = mg; e1 = e2 = 0; }
                 const double na = e0 * a + e1 * c, nbq = e0 * bq + e1 * d, nc = e2 * a + e3 * c, nd = e2 * bq + e3 * d; a = na; bq = nbq; c = nc; d = nd; }
             double* M = &mat[(size_t) k * 4]; M[0] = a; M[1] = bq; M[2] = c; M[3] = d;
             if (bq != 0 || c != 0) diag = false; if (a != d) equal = false; }
-        mode[sl] = diag && equal ? 1 : 2;
-        // P = (a + d)/2 + j (c - b)/2, Q = (a - d)/2 + j (c + b)/2 (a, b, c, d: spettri dei quattro FIR reali)
+        mode[sl] = diag && equal ? 1 : 2; mask[sl] = m;
         std::fill (Hp[sl].begin(), Hp[sl].end(), Cpx()); if (mode[sl] == 2) std::fill (Hq[sl].begin(), Hq[sl].end(), Cpx());
         for (int e = 0; e < (mode[sl] == 1 ? 1 : 4); ++e) {
             for (int k = 0; k < nb2; ++k) { const double v = mat[(size_t) k * 4 + e]; tmp[(size_t) k] = v; if (k > 0 && k < L / 2) tmp[(size_t) (L - k)] = v; }
@@ -617,26 +634,34 @@ private:
                 if (mode[sl] == 1) for (int i = 0; i < NF; ++i) P[i] = h[i];
                 else for (int i = 0; i < NF; ++i) { P[i] += wp * h[i]; Q[i] += wq * h[i]; } } }
     }
-    void accum (int s, Cpx* y) const {
-        std::fill (y, y + NF, Cpx());
-        for (int p2 = 0; p2 < K; ++p2) { const size_t o = (size_t) (((head - p2 + K) % K) * NF); const Cpx* Z = &fdl[o]; const Cpx* P = &Hp[s][(size_t) p2 * NF];
-            if (mode[s] == 1) for (int i = 0; i < NF; ++i) y[i] += P[i] * Z[i];
-            else { const Cpx* Zr = &fdr[o]; const Cpx* Q = &Hq[s][(size_t) p2 * NF]; for (int i = 0; i < NF; ++i) y[i] += P[i] * Z[i] + Q[i] * Zr[i]; } }
-        fB.run (y, true); const double sc = 1.0 / NF; for (int i = 0; i < NF; ++i) y[i] *= sc;
-    }
-    void block() {
-        if (fade == 0) { const int rs = readySlot.load (std::memory_order_acquire);   // nuovo progetto pronto: dissolvenza dal filtro attuale (o subito, il primo)
-            if (rs >= 0) { if (readyInstant.load()) { cur.store (rs); fadeFrom.store (-1); } else { fadeFrom.store (cur.load()); cur.store (rs); fade = 2 * B; fpos = 0; } readySlot.store (-1, std::memory_order_release); cv.notify_one(); } }
+    void mac (int s, int p2, const Cpx* Z, const Cpx* Zr, Cpx* y) const {
+        const Cpx* P = &Hp[s][(size_t) p2 * NF];
+        if (mode[s] == 1) for (int i = 0; i < NF; ++i) y[i] += P[i] * Z[i];
+        else { const Cpx* Q = &Hq[s][(size_t) p2 * NF]; for (int i = 0; i < NF; ++i) y[i] += P[i] * Z[i] + Q[i] * Zr[i]; } }
+    void partial (int p2) {   // partizione p2 >= 1 del blocco in arrivo: ingresso passato, gia disponibile
+        const size_t o = (size_t) (((head + 1 - p2 + 2 * K) % K) * NF);
+        mac (fcur, p2, &fdl[o], &fdr[o], accA.data()); if (ffrom >= 0) mac (ffrom, p2, &fdl[o], &fdr[o], accB.data()); }
+    void finish() {
+        while (done < K - 1) partial (++done);
         head = (head + 1) % K; Cpx* X = &fdl[(size_t) head * NF]; Cpx* Xr = &fdr[(size_t) head * NF];
         for (int i = 0; i < NF; ++i) X[i] = Cpx (inL[(size_t) i], inR[(size_t) i]); fB.run (X, false);
         for (int i = 0; i < NF; ++i) Xr[i] = std::conj (X[(NF - i) % NF]);
         for (int i = 0; i < B; ++i) { inL[(size_t) i] = inL[(size_t) (B + i)]; inR[(size_t) i] = inR[(size_t) (B + i)]; }
-        accum (cur.load (std::memory_order_relaxed), acc.data());
-        if (fade > 0) { accum (fadeFrom.load (std::memory_order_relaxed), acc2.data());
-            for (int i = 0; i < B; ++i) { const double w = 0.5 - 0.5 * std::cos (kPi * std::min (1.0, (double) (fpos + i + 1) / (2 * B))); const Cpx o = acc2[(size_t) (B + i)], nw = acc[(size_t) (B + i)];
-                outL[(size_t) i] = o.real() + w * (nw.real() - o.real()); outR[(size_t) i] = o.imag() + w * (nw.imag() - o.imag()); }
-            fpos += B; fade -= B; if (fade <= 0) { fade = 0; fadeFrom.store (-1); } }
-        else for (int i = 0; i < B; ++i) { outL[(size_t) i] = acc[(size_t) (B + i)].real(); outR[(size_t) i] = acc[(size_t) (B + i)].imag(); }
+        mac (fcur, 0, X, Xr, accA.data()); fB.run (accA.data(), true); const double sc = 1.0 / NF;
+        if (ffrom >= 0) { mac (ffrom, 0, X, Xr, accB.data()); fB.run (accB.data(), true);
+            for (int i = 0; i < B; ++i) { const double u = std::min (1.0, (double) (ffpos + i + 1) / flen), w = chained ? u : 0.5 - 0.5 * std::cos (kPi * u); const Cpx o = accB[(size_t) (B + i)] * sc, nw = accA[(size_t) (B + i)] * sc;   // forma: lineare se la dissolvenza segue da vicino la precedente (automazione continua: percorso dei coefficienti continuo, bande laterali -105 dB invece di -62),
+                // coseno rialzato se isolata (evento singolo: pendenza nulla agli estremi, energia sopra 4 kHz -115...-124 dBFS invece di -78...-87; misurato)
+                outL[(size_t) i] = o.real() + w * (nw.real() - o.real()); outR[(size_t) i] = o.imag() + w * (nw.imag() - o.imag()); outW[(size_t) i] = w; outFL[(size_t) i] = (1 - w) * o.real(); outFR[(size_t) i] = (1 - w) * o.imag(); }
+            outMc = mask[fcur]; outMf = mask[ffrom]; }
+        else { for (int i = 0; i < B; ++i) { const Cpx v = accA[(size_t) (B + i)] * sc; outL[(size_t) i] = v.real(); outR[(size_t) i] = v.imag(); outW[(size_t) i] = 1.0; outFL[(size_t) i] = outFR[(size_t) i] = 0.0; } outMc = outMf = mask[fcur]; }
+        std::fill (accA.begin(), accA.end(), Cpx()); std::fill (accB.begin(), accB.end(), Cpx());
+        // piano del prossimo blocco: dissolvenza in corso o progetto nuovo pronto (i risultati piu vecchi dell'ultimo applicato si scartano)
+        if (ffrom >= 0) { ffpos += B; if (ffpos >= flen) { ffrom = -1; sinceEnd = 0; } } else if (sinceEnd < 1000000) sinceEnd += B;
+        if (ffrom < 0) { const int rs = readySlot.load (std::memory_order_acquire);
+            if (rs >= 0) { const unsigned gn = readyGen.load();
+                if (gn > appliedGen) { if (readyInstant.load()) fcur = rs; else { ffrom = fcur; fcur = rs; ffpos = 0; chained = sinceEnd <= std::max (2048, 4 * B); } appliedGen = gn; }
+                readySlot.store (-1, std::memory_order_release); cv.notify_one(); } }
+        cur.store (fcur); fadeFrom.store (ffrom);
     }
     void run() {   // thread di progetto: prende l'ultima richiesta, progetta nello slot libero, la consegna al thread audio
         std::unique_lock<std::mutex> lk (mx);
@@ -644,16 +669,18 @@ private:
             cv.wait_for (lk, std::chrono::milliseconds (20));
             if (quit.load()) break;
             if (! (tbMid.load (std::memory_order_acquire) & 4) || readySlot.load (std::memory_order_acquire) >= 0) continue;
-            busy.store (true); if (sync.load()) { busy.store (false); continue; }   // il thread audio progetta da se (rendering offline)
+            busy.store (true); if (sync.load()) { busy.store (false); continue; }
             tbFront = tbMid.exchange (tbFront, std::memory_order_acq_rel) & 3; const Req& r = tb[tbFront];
-            const int sl = freeSlot(); compute (sl, r); readyInstant.store (r.instant); readySlot.store (sl, std::memory_order_release); busy.store (false);
+            const int sl = freeSlot(); compute (sl, r); readyInstant.store (r.instant); readyGen.store (r.gen); readySlot.store (sl, std::memory_order_release); busy.store (false);
         }
     }
     void stopWorker() { if (worker.joinable()) { quit.store (true); cv.notify_one(); worker.join(); } }
-    std::atomic<bool> sync { true }, busy { false }, readyInstant { false }; int L = 0, B = 0, K = 0, NF = 0, head = 0, pos = 0, fade = 0, fpos = 0, mode[kSlots] = { 1, 1, 1 }; double fs = 48000;
+    std::atomic<bool> sync { true }, busy { false }, readyInstant { false }; std::atomic<unsigned> readyGen { 0 };
+    bool chained = false; int sinceEnd = 1000000, L = 0, B = 0, K = 0, NF = 0, head = 0, pos = 0, done = 0, fcur = 0, ffrom = -1, ffpos = 0, flen = 512, mode[kSlots] = { 1, 1, 1 }; unsigned mask[kSlots] = {}, outMc = 0, outMf = 0, reqGen = 0, appliedGen = 0; double fs = 48000;
     std::atomic<int> cur { 0 }, fadeFrom { -1 }, readySlot { -1 }, tbMid { 1 }; int tbBack = 0, tbFront = 2; std::atomic<bool> quit { false };
-    std::thread worker; std::mutex mx; std::condition_variable cv; Req tb[3]; SecSet setsBuf[kMaxBands];
-    Fft fL, fB; std::vector<double> win, mat, inL, inR, outL, outR; std::vector<Cpx> tmp, fdl, fdr, acc, acc2, hb = std::vector<Cpx> (1); std::vector<Cpx> Hp[kSlots], Hq[kSlots];
+    std::thread worker; std::mutex mx; std::condition_variable cv; Req tb[3];
+    std::vector<float> cache[kMaxBands]; BandParams cacheP[kMaxBands]; double cacheG[kMaxBands] = {}; bool cacheOk[kMaxBands] = {};
+    Fft fL, fB; std::vector<double> win, mat, inL, inR, outL, outR, outW, outFL, outFR; std::vector<Cpx> tmp, fdl, fdr, accA, accB, xcur, hb; std::vector<Cpx> Hp[kSlots], Hq[kSlots];
 };
 
 // ritardo stereo di n campioni (anello), in place
@@ -684,7 +711,9 @@ public:
         lin.reset();   // ferma il thread di progetto e libera la memoria del modo precedente
         if (phaseMode == 1 && fs > 0) { lin = std::make_unique<LinPhase>(); lin->configure (LinPhase::firLen (phaseRes, fs), fs); lin->setSync (linSync); const int la = lin->latency(); dlyDry.setup (la); dlyRaw.setup (la); dlySc.setup (la); }
         else { dlyDry.setup (0); dlyRaw.setup (0); dlySc.setup (0); }
-        linDirty = true; linOnce = false; outG = outG1 = 0; for (auto& b : st) std::memset (b.z, 0, sizeof (b.z));
+        linDirty = true; linOnce = false; outG = outG1 = 0; for (auto& b : st) { std::memset (b.z, 0, sizeof (b.z)); std::memset (b.sz, 0, sizeof (b.sz)); b.flen = 0; }
+        for (auto& o : old) o.active = false;   // nessuna copia in dissolvenza sopravvive al cambio di modo (revisione esterna: +10 dB al ritorno)
+        kW.assign ((size_t) N, 1.0); kMc.assign ((size_t) N, 0u); kMf.assign ((size_t) N, 0u); sxL.assign ((size_t) N, 0.0); sxR.assign ((size_t) N, 0.0); sxM.assign ((size_t) N, 0.0); sxS.assign ((size_t) N, 0.0); kk.assign ((size_t) N, 0.0); kxL.assign ((size_t) N, 0.0); kxR.assign ((size_t) N, 0.0); fxL.assign ((size_t) N, 0.0); fxR.assign ((size_t) N, 0.0); tgL.assign ((size_t) N, 0.0); tgR.assign ((size_t) N, 0.0);
     }
     void setPhaseConfig (int mode, int res) { phaseMode = mode == 1 ? 1 : 0; phaseRes = std::clamp (res, 0, LinPhase::kRes - 1); }   // solo memorizza: prepare() poi alloca
     int latencySamples() const { return phaseMode == 1 && lin ? lin->latency() : 0; }
@@ -752,6 +781,8 @@ private:
         SvfSet rcS, rdS; bool svf = false;    // 0.5.0: durante i salti grandi la banda gira come SVF (parametri e incrementi qui), poi torna biquad
         bool detInit = false;                 // primo frame dopo l'attivazione: il detector parte dal livello misurato (niente salita da -120 dB)
         double thrS = -24;                    // soglia levigata (10 ms): automazione della soglia senza gradini di guadagno
+        double sz[2][kMaxSecs * 2] = {};      // Linear Phase: stato della banda statica nella catena del detector
+        bool linTail = false;                 // Linear Phase: la banda ha suonato come biquad; la sua coda va finita prima di fermarla
         int fpos = 0, flen = 0; double w0 = 1;   // dissolvenza: in entrata (banda nuova) o in uscita (copia in old[])
     };
     struct SoloState { int id = -1; BandParams src; BandCoefs c, tgt; double z[2][kMaxSecs * 2] = {}; int place = 0; };
@@ -802,6 +833,19 @@ private:
     }
     // stesse operazioni, due canali nello stesso ciclo (due catene di dipendenza indipendenti: circa il doppio del throughput, risultato identico bit per bit)
     static void run2 (const BandCoefs& c, double* zl, double* zr, double* xl, double* xr, int n) {
+#if defined(__GNUC__) || defined(__clang__)
+        // 0.6.0: L e R in un vettore di due double (SSE2 / NEON): stesse operazioni, stesso ordine, nessuna FMA (-ffp-contract=off) -> risultato identico al bit, meta delle istruzioni
+        typedef double V2 __attribute__ ((vector_size (16)));
+        for (int k = 0; k < c.n; ++k) {
+            const Coef& q = c.c[k]; const V2 b0 = { q.b0, q.b0 }, b1 = { q.b1, q.b1 }, b2 = { q.b2, q.b2 }, a1 = { q.a1, q.a1 }, a2 = { q.a2, q.a2 };
+            V2 z1 = { zl[2 * k], zr[2 * k] }, z2 = { zl[2 * k + 1], zr[2 * k + 1] };
+            for (int i = 0; i < n; ++i) {
+                const V2 x = { xl[i], xr[i] }, y = b0 * x + z1;
+                z1 = b1 * x - a1 * y + z2; z2 = b2 * x - a2 * y; xl[i] = y[0]; xr[i] = y[1];
+            }
+            zl[2 * k] = z1[0]; zl[2 * k + 1] = z2[0]; zr[2 * k] = z1[1]; zr[2 * k + 1] = z2[1];
+        }
+#else
         for (int k = 0; k < c.n; ++k) {
             const Coef& q = c.c[k]; const double b0 = q.b0, b1 = q.b1, b2 = q.b2, a1 = q.a1, a2 = q.a2;
             double l1 = zl[2 * k], l2 = zl[2 * k + 1], r1 = zr[2 * k], r2 = zr[2 * k + 1];
@@ -811,6 +855,31 @@ private:
             }
             zl[2 * k] = l1; zl[2 * k + 1] = l2; zr[2 * k] = r1; zr[2 * k + 1] = r2;
         }
+#endif
+    }
+    bool simpleStereo (int b) const { const BandState& s = st[b]; return s.active && ! s.dynOn && s.flen == 0 && ! old[b].active && s.rpos >= kRamp && ! s.svf && s.p.place == Stereo && s.tgt.n > 0; }
+    static constexpr int kCasMax = 64; const Coef* csC[kCasMax] = {}; double* csZl[kCasMax] = {}; double* csZr[kCasMax] = {};
+    // cascata a fronte d'onda: al passo t la sezione j elabora il campione t - j. Le sezioni di un passo sono indipendenti (parallelismo per la CPU);
+    // ogni sezione fa le stesse operazioni nello stesso ordine di run2: risultato identico al bit
+    void runCascade2 (int m, double* xl, double* xr, int n) {
+        if (m == 0) return;
+#if defined(__GNUC__) || defined(__clang__)
+        typedef double V2 __attribute__ ((vector_size (16)));
+        V2 B0[kCasMax], B1[kCasMax], B2[kCasMax], A1[kCasMax], A2[kCasMax], Z1[kCasMax], Z2[kCasMax], Cr[kCasMax];
+        for (int j = 0; j < m; ++j) { const Coef& q = *csC[j]; B0[j] = V2 { q.b0, q.b0 }; B1[j] = V2 { q.b1, q.b1 }; B2[j] = V2 { q.b2, q.b2 }; A1[j] = V2 { q.a1, q.a1 }; A2[j] = V2 { q.a2, q.a2 };
+            Z1[j] = V2 { csZl[j][0], csZr[j][0] }; Z2[j] = V2 { csZl[j][1], csZr[j][1] }; Cr[j] = V2 { 0, 0 }; }
+        for (int t = 0; t < n + m - 1; ++t) {
+            const int jHi = std::min (m - 1, t), jLo = std::max (0, t - n + 1);
+            for (int j = jHi; j >= jLo; --j) { const int i = t - j; const V2 x = j == 0 ? V2 { xl[i], xr[i] } : Cr[j];
+                const V2 y = B0[j] * x + Z1[j]; Z1[j] = B1[j] * x - A1[j] * y + Z2[j]; Z2[j] = B2[j] * x - A2[j] * y;
+                if (j == m - 1) { xl[i] = y[0]; xr[i] = y[1]; } else Cr[j + 1] = y; } }
+        for (int j = 0; j < m; ++j) { csZl[j][0] = Z1[j][0]; csZr[j][0] = Z1[j][1]; csZl[j][1] = Z2[j][0]; csZr[j][1] = Z2[j][1]; }
+#else
+        for (int j = 0; j < m; ++j) { const Coef& q = *csC[j]; double l1 = csZl[j][0], l2 = csZl[j][1], r1 = csZr[j][0], r2 = csZr[j][1];
+            for (int i = 0; i < n; ++i) { const double xa = xl[i], xb = xr[i], ya = q.b0 * xa + l1, yb = q.b0 * xb + r1;
+                l1 = q.b1 * xa - q.a1 * ya + l2; r1 = q.b1 * xb - q.a1 * yb + r2; l2 = q.b2 * xa - q.a2 * ya; r2 = q.b2 * xb - q.a2 * yb; xl[i] = ya; xr[i] = yb; }
+            csZl[j][0] = l1; csZl[j][1] = l2; csZr[j][0] = r1; csZr[j][1] = r2; }
+#endif
     }
     static void runLerp2 (const BandCoefs& c0, const BandCoefs& c1, double* zl, double* zr, double* xl, double* xr, int i0, int i1) {
         const double len = i1 - i0;
@@ -941,6 +1010,7 @@ private:
     }
     void fadeOut (int i) {   // la banda attuale continua a suonare in old[i] e sfuma a zero in 15 ms
         if (! primed) { old[i].active = false; return; }
+        if (linActive() && ! iirOnly (st[i]) && (lin->maskNow() >> i & 1u)) { old[i].active = false; return; }   // Linear Phase: banda statica nel FIR, la dissolvenza la fa il FIR
         const BandState& s = st[i]; const double w = s.flen > 0 ? fadeW ((double) s.fpos / s.flen) : 1.0;
         old[i] = s; old[i].w0 = w; old[i].fpos = 0; old[i].flen = fadeLen; old[i].active = true;
     }
@@ -966,6 +1036,10 @@ private:
         const int place = s.p.place; const bool ms = (place == Mid || place == Side) && ! msReady;
         if (ms) for (int i = 0; i < n; ++i) { M[(size_t) i] = 0.5 * (L[(size_t) i] + R[(size_t) i]); S[(size_t) i] = 0.5 * (L[(size_t) i] - R[(size_t) i]); }
         double* ch[2]; double* sc[2]; const bool useSC = s.dynOn && s.p.sc && haveSC; const int nc = chans (place, ch, sc, useSC);
+        double* sd[2] = { nullptr, nullptr }; const bool useSide = s.dynOn && ! useSC && sideOn;   // Linear Phase: detector sulla catena delle bande precedenti
+        if (useSide) { switch (place) { case Left: sd[0] = sxL.data(); break; case Right: sd[0] = sxR.data(); break;
+                case Mid: case Side: for (int i = 0; i < n; ++i) { sxM[(size_t) i] = 0.5 * (sxL[(size_t) i] + sxR[(size_t) i]); sxS[(size_t) i] = 0.5 * (sxL[(size_t) i] - sxR[(size_t) i]); } sd[0] = place == Mid ? sxM.data() : sxS.data(); break;
+                default: sd[0] = sxL.data(); sd[1] = sxR.data(); } }
         if (! s.dynOn) {
             int m = 0;   // rampa di lunghezza fissa (indipendente dal blocco), poi coefficienti fermi
             if (s.rpos < kRamp) { const int k = std::min (n, kRamp - s.rpos);
@@ -982,7 +1056,7 @@ private:
                 if (s.phase == 0) s.fr0 = s.cur;                    // inizio frame: rampa da cur a tgt (tgt deciso alla fine del frame precedente)
                 const int i1 = std::min (n, i0 + (F - s.phase));
                 for (int c = 0; c < nc; ++c) {                     // detector: somma dei quadrati e picco del frame
-                    const double* x = useSC ? sc[c] : ch[c]; double z1 = s.dz[c][0], z2 = s.dz[c][1], a2s = s.acc2[c], pk = s.pk[c];
+                    const double* x = useSC ? sc[c] : useSide ? sd[c] : ch[c]; double z1 = s.dz[c][0], z2 = s.dz[c][1], a2s = s.acc2[c], pk = s.pk[c];
                     for (int i = i0; i < i1; ++i) { const double xi = x[i], y = q.b0 * xi + z1; z1 = q.b1 * xi - q.a1 * y + z2; z2 = q.b2 * xi - q.a2 * y; a2s += y * y; const double ay = std::abs (y); if (ay > pk) pk = ay; }
                     s.dz[c][0] = z1; s.dz[c][1] = z2; s.acc2[c] = a2s; s.pk[c] = pk;
                 }
@@ -1014,10 +1088,10 @@ private:
             inG = gi; inG1 = gi1; }
         const bool linOn = phaseMode == 1 && lin && lin->ready();
         if (linOn) {   // 0.6.0 Linear Phase: dry (bypass) e copia per il solo ritardati come il FIR; le bande statiche sono nel FIR
-            if (linDirty && (absPos % (unsigned long long) kSettleTick == 0 || ! linOnce)) { linDesign (! linOnce); linDirty = false; linOnce = true; }
+            if (linDirty && (absPos % (unsigned long long) linInterval() == 0 || ! linOnce)) { linDesign (! linOnce); linDirty = false; linOnce = true; }
             dlyDry.process (dL.data(), dR.data(), n);
             for (int i = 0; i < n; ++i) { rL[(size_t) i] = L[(size_t) i]; rR[(size_t) i] = R[(size_t) i]; } dlyRaw.process (rL.data(), rR.data(), n);
-            lin->process (L.data(), R.data(), n); }
+            lin->process (L.data(), R.data(), n, kW.data(), kMc.data(), kMf.data(), fxL.data(), fxR.data()); }
         const bool haveSC = scL != nullptr && scR != nullptr;
         if (haveSC) { for (int i = 0; i < n; ++i) { double l = scL[i], r = scR[i]; if (! (std::abs (l) <= kMaxIn)) l = 0; if (! (std::abs (r) <= kMaxIn)) r = 0; sL[(size_t) i] = l; sR[(size_t) i] = r; }
             if (linOn) dlySc.process (sL.data(), sR.data(), n);
@@ -1052,15 +1126,21 @@ private:
         }
         int settleBudget = absPos % (unsigned long long) kSettleTick == 0 ? kSettlePerChunk : 0;   // al massimo 2 progetti precisi ogni 512 campioni: dopo un cambio di preset le 32 bande si assestano in 16 passi, non tutte insieme
         for (int b = 0; b < kMaxBands; ++b) {   // bande ferme da 50 ms: progetto preciso (interpolato dal veloce lungo il blocco)
-            BandState& s = st[b]; if (! s.active || s.precise || (linOn && ! s.dynOn)) continue;
+            BandState& s = st[b]; if (! s.active || s.precise || (linOn && ! iirOnly (s))) continue;
             s.quiet += n; if (s.quiet < settleLen || settleBudget <= 0) continue; --settleBudget;
             BandCoefs nc; designBand (s.p, s.g, grid, nc, true, ! s.dynOn); s.precise = true;
             if (s.dynOn) { ++s.dynGen; s.dynC[0] = nc.c[0]; s.dynValid[0] = s.dynGen; dynTarget (s, s.delta, s.tgt); } else { if (nc.n != s.tgt.n) matchSecs (s, nc); startRamp (s, nc); }
         }
         bool msLive = false;   // bande Mid/Side consecutive (senza dissolvenze in corso): una sola conversione L/R -> M/S e ritorno
+        if (linOn) { linBands (n, haveSC); goto bandsDone; }
         for (int b = 0; b < kMaxBands; ++b) {
             if (! st[b].active && ! old[b].active) continue;
-            if (linOn && ! (st[b].active && st[b].dynOn) && ! (old[b].active && old[b].dynOn)) continue;   // statica: e nel FIR
+            if (simpleStereo (b)) {   // 0.6.0: bande statiche Stereo ferme consecutive -> una sola cascata a fronte d'onda (sezioni indipendenti in parallelo, stesso risultato al bit)
+                if (msLive) { for (int i = 0; i < n; ++i) { L[(size_t) i] = M[(size_t) i] + S[(size_t) i]; R[(size_t) i] = M[(size_t) i] - S[(size_t) i]; } msLive = false; }
+                int m = 0; int b2 = b;
+                for (; b2 < kMaxBands; ++b2) { if (! st[b2].active && ! old[b2].active) continue; if (! simpleStereo (b2)) break;
+                    BandState& q = st[b2]; for (int k = 0; k < q.tgt.n && m < kCasMax; ++k) { csC[m] = &q.tgt.c[k]; csZl[m] = &q.z[0][2 * k]; csZr[m] = &q.z[1][2 * k]; ++m; } if (m >= kCasMax - kMaxSecs) { ++b2; break; } }
+                runCascade2 (m, L.data(), R.data(), n); b = b2 - 1; continue; }
             const BandState& s = st[b]; const bool msBand = s.active && s.flen == 0 && ! old[b].active && (s.p.place == Mid || s.p.place == Side);
             if (msBand) {
                 if (! msLive) { for (int i = 0; i < n; ++i) { M[(size_t) i] = 0.5 * (L[(size_t) i] + R[(size_t) i]); S[(size_t) i] = 0.5 * (L[(size_t) i] - R[(size_t) i]); } msLive = true; }
@@ -1071,6 +1151,7 @@ private:
             }
         }
         if (msLive) for (int i = 0; i < n; ++i) { L[(size_t) i] = M[(size_t) i] + S[(size_t) i]; R[(size_t) i] = M[(size_t) i] - S[(size_t) i]; }
+      bandsDone:
         if (soloRun) {
             const double tgt = soloOn ? 1.0 : 0.0, stp = primed ? 1.0 / fadeLen : 1.0; double w = soloW;
             for (int i = 0; i < n; ++i) {
@@ -1088,6 +1169,9 @@ private:
         if (chm != lastChm) {   // cambio di Character: il nuovo modo parte pulito, gira 15 ms a vuoto (i filtri dell'oversampling si caricano: senza, transiente a -62 dB misurato) e poi si dissolve sul vecchio in 15 ms
             if (chm) { osm[chm][0].reset(); osm[chm][1].reset(); std::memset (dcm[chm], 0, sizeof (dcm[chm])); }
             chPrev = lastChm; chPos = primed ? 0 : 2 * fadeLen; lastChm = chm; }
+        if (g == tg && g1 == tg && pa == tA && pa1 == tA && pb == tB && pb1 == tB && pa == 1.0 && pb == 1.0 && by == 0.0 && bt == 0.0 && po == 0.0 && tP == 0.0 && chm == 0 && chPos >= 2 * fadeLen) {
+            for (int i = 0; i < n; ++i) { Lio[i] = (float) (L[(size_t) i] * g); Rio[i] = (float) (R[(size_t) i] * g); }   // 0.6.0: tutto a regime (stesso risultato al bit del ciclo completo, senza i suoi passi)
+            return; }
         for (int i = 0; i < n; ++i) {
             g1 += (tg - g1) * ga; g += (g1 - g) * ga; if (mute && g < 1e-7) g = g1 = 0; pa1 += (tA - pa1) * ga; pa += (pa1 - pa) * ga; pb1 += (tB - pb1) * ga; pb += (pb1 - pb) * ga;
             by = bt > by ? std::min (bt, by + stp) : std::max (bt, by - stp); po = tP > po ? std::min (tP, po + stp) : std::max (tP, po - stp);
@@ -1117,11 +1201,60 @@ private:
     }
     double fs = 48000; int N = 512; Grid grid; Global glob;
     std::vector<double> L, R, M, S, dL, dR, sL, sR, sM, sS, xL, xR, oL, oR, pL, pR;
+    static bool iirOnly (const BandState& s) { return s.dynOn || s.p.type == AllPass; }   // in Linear Phase restano biquad: dinamiche e All Pass (fase, non modulo)
+    // intervallo tra due progetti Linear Phase: 512 campioni fino a FIR di 8192, poi L/16 (circa 85 ms a Maximum a ogni fs). In offline ogni progetto costa fino a 0,1 s
+    // a 192 kHz Maximum: ogni 512 campioni il rendering era 34 volte piu lento del tempo reale (revisione esterna); ora tempo reale e offline seguono l'automazione allo stesso passo
+    int linInterval() const { return lin ? std::max (kSettleTick, lin->firLength() / 16) : kSettleTick; }
+    bool linActive() const { return phaseMode == 1 && lin && lin->ready(); }
     void linDesign (bool instant) {   // bande attive statiche, nell'ordine dell'indice
-        BandParams p[kMaxBands]; double g[kMaxBands]; int nb = 0;
-        for (int b = 0; b < kMaxBands; ++b) { const BandState& s = st[b]; if (! s.active || s.dynOn) continue; p[nb] = s.p; g[nb] = s.g; ++nb; }
-        lin->request (p, g, nb, instant); }
-    std::unique_ptr<LinPhase> lin; bool linSync = true; Delay2 dlyDry, dlyRaw, dlySc; std::vector<double> rL, rR; int phaseMode = 0, phaseRes = 1; bool linDirty = true, linOnce = false;
+        BandParams p[kMaxBands]; double g[kMaxBands]; int ix[kMaxBands], nb = 0;
+        for (int b = 0; b < kMaxBands; ++b) { const BandState& s = st[b]; if (! s.active || iirOnly (s)) continue; ix[nb] = b; p[nb] = s.p; g[nb] = s.g; ++nb; }
+        lin->request (ix, p, g, nb, instant); }
+    // banda statica applicata a due segnali secondo la collocazione, con il suo stato (catena del detector in Linear Phase)
+    void staticOn (BandState& s, double* a, double* b, int n) {
+        switch (s.p.place) {
+            case Left: run (s.tgt, s.sz[0], a, n); break; case Right: run (s.tgt, s.sz[1], b, n); break;
+            case Mid: case Side: { for (int i = 0; i < n; ++i) { sxM[(size_t) i] = 0.5 * (a[i] + b[i]); sxS[(size_t) i] = 0.5 * (a[i] - b[i]); }
+                run (s.tgt, s.sz[0], s.p.place == Mid ? sxM.data() : sxS.data(), n); for (int i = 0; i < n; ++i) { a[i] = sxM[(size_t) i] + sxS[(size_t) i]; b[i] = sxM[(size_t) i] - sxS[(size_t) i]; } break; }
+            default: run2 (s.tgt, s.sz[0], s.sz[1], a, b, n); }
+    }
+    // Linear Phase: il FIR ha gia applicato le bande statiche. Qui le bande biquad (dinamiche, All Pass) e, mentre il FIR non le contiene ancora o non piu,
+    // le statiche nuove o in transizione. Peso di ogni banda per campione: k = w * (non nel FIR nuovo) + (1 - w) * (non nel FIR vecchio), w = dissolvenza del FIR.
+    // Il detector di una banda dinamica legge l'ingresso (ritardato) passato dalle sole bande statiche di indice minore, come in Zero Latency.
+    void linBands (int n, bool haveSC) {
+        // l'uscita del FIR e x = c + f: c = w * FIR nuovo, f = (1 - w) * FIR vecchio (f = 0 fuori dalle dissolvenze).
+        // Ogni banda agisce solo sulla parte che non la contiene gia: bersaglio t = (non nel nuovo ? c : 0) + (non nel vecchio ? f : 0); x <- x - t + banda(t).
+        // (prima: la banda agiva su tutto x con un peso, e nel passaggio statica <-> dinamica veniva applicata due volte: +12 dB, revisione esterna; poi +3,9 dB)
+        bool needSide = false; for (int b = 0; b < kMaxBands; ++b) if (st[b].active && st[b].dynOn && ! (st[b].p.sc && haveSC)) needSide = true;
+        if (needSide) for (int i = 0; i < n; ++i) { sxL[(size_t) i] = rL[(size_t) i]; sxR[(size_t) i] = rR[(size_t) i]; }
+        sideOn = needSide;
+        for (int b = 0; b < kMaxBands; ++b) {
+            BandState& s = st[b]; BandState& o = old[b];
+            if (! s.active && ! o.active) continue;
+            const unsigned bit = 1u << b; bool any = false, whole = true;
+            for (int i = 0; i < n; ++i) { const bool lc = ! (kMc[(size_t) i] & bit), lf = ! (kMf[(size_t) i] & bit);
+                const double fl = fxL[(size_t) i], fr = fxR[(size_t) i], cl = L[(size_t) i] - fl, cr = R[(size_t) i] - fr;
+                tgL[(size_t) i] = (lc ? cl : 0.0) + (lf ? fl : 0.0); tgR[(size_t) i] = (lc ? cr : 0.0) + (lf ? fr : 0.0);
+                if (lc || lf) any = true; if (! (lc && lf)) whole = false; }
+            const bool runIt = any || iirOnly (s) || (o.active && iirOnly (o));
+            if (! runIt && s.linTail) {   // la banda e appena entrata nel FIR: la sua coda (stato del biquad) continua a suonare con ingresso nullo, poi si spegne
+                double mx = 0; for (int i = 0; i < n; ++i) { kxL[(size_t) i] = L[(size_t) i]; kxR[(size_t) i] = R[(size_t) i]; L[(size_t) i] = R[(size_t) i] = 0; }
+                bandStep (b, n, haveSC);
+                for (int i = 0; i < n; ++i) { mx = std::max ({ mx, std::abs (L[(size_t) i]), std::abs (R[(size_t) i]) }); L[(size_t) i] += kxL[(size_t) i]; R[(size_t) i] += kxR[(size_t) i]; }
+                if (mx < 1e-10) { s.linTail = false; std::memset (s.z, 0, sizeof (s.z)); } }
+            if (runIt) { s.linTail = true;
+                if (whole) bandStep (b, n, haveSC);   // la banda non e in nessuno dei due FIR: agisce su tutto
+                else { for (int i = 0; i < n; ++i) { kxL[(size_t) i] = L[(size_t) i] - tgL[(size_t) i]; kxR[(size_t) i] = R[(size_t) i] - tgR[(size_t) i]; L[(size_t) i] = tgL[(size_t) i]; R[(size_t) i] = tgR[(size_t) i]; }
+                    bandStep (b, n, haveSC);
+                    for (int i = 0; i < n; ++i) { const bool lc = ! (kMc[(size_t) i] & bit), lf = ! (kMf[(size_t) i] & bit);
+                        if (lf && ! lc) { fxL[(size_t) i] = L[(size_t) i]; fxR[(size_t) i] = R[(size_t) i]; }   // la banda ha agito solo sulla parte vecchia
+                        L[(size_t) i] += kxL[(size_t) i]; R[(size_t) i] += kxR[(size_t) i]; } }
+            }
+            if (needSide && s.active && ! iirOnly (s)) staticOn (s, sxL.data(), sxR.data(), n);   // la catena del detector avanza dopo la banda
+        }
+        sideOn = false;
+    }
+    std::unique_ptr<LinPhase> lin; bool linSync = true, sideOn = false; std::vector<double> kW, sxL, sxR, sxM, sxS, kk, kxL, kxR, fxL, fxR, tgL, tgR; std::vector<unsigned> kMc, kMf; Delay2 dlyDry, dlyRaw, dlySc; std::vector<double> rL, rR; int phaseMode = 0, phaseRes = 1; bool linDirty = true, linOnce = false;
     BandState st[kMaxBands], old[kMaxBands]; SoloState soloSt; double outG = 1, outG1 = 1, inG = 1, inG1 = 1, byp = 0, panA = 1, panB = 1, panA1 = 1, panB1 = 1, pol = 0, soloW = 0;
     Oversampled8x osm[3][2]; double dcm[3][4] = {}, aParam = 0.0645; int lastChm = 0, chPrev = 0, chPos = 1440, fadeLen = 720, settleLen = 2400; bool primed = false; unsigned long long absPos = 0;
 };
