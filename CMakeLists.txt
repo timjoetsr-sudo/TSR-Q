@@ -20,16 +20,17 @@ else()
   FetchContent_MakeAvailable(juce)
 endif()
 
-set(TSRQ_FORMATS VST3 Standalone)
+# Formati: solo VST3 e AAX (Pro Tools). AAX: JUCE 8 contiene gia l'AAX SDK di Avid
+# (modules/juce_audio_plugin_client/AAX/SDK); -DAAX_SDK_PATH=/percorso/aax-sdk per usarne un altro.
+# Su Linux l'AAX non esiste: solo VST3 (serve ai test nel cloud).
+set(TSRQ_FORMATS VST3)
 if(APPLE)
-  list(APPEND TSRQ_FORMATS AU)
-endif()
-# AAX (Pro Tools): serve l'AAX SDK di Avid (non incluso, si scarica dall'account sviluppatore Avid): -DAAX_SDK_PATH=/percorso/aax-sdk
-if(DEFINED AAX_SDK_PATH)
-  if(NOT EXISTS "${AAX_SDK_PATH}/Interfaces/AAX.h")
-    message(FATAL_ERROR "AAX_SDK_PATH non valido: manca ${AAX_SDK_PATH}/Interfaces/AAX.h")
+  if(DEFINED AAX_SDK_PATH)
+    if(NOT EXISTS "${AAX_SDK_PATH}/Interfaces/AAX.h")
+      message(FATAL_ERROR "AAX_SDK_PATH non valido: manca ${AAX_SDK_PATH}/Interfaces/AAX.h")
+    endif()
+    juce_set_aax_sdk_path("${AAX_SDK_PATH}")
   endif()
-  juce_set_aax_sdk_path("${AAX_SDK_PATH}")
   list(APPEND TSRQ_FORMATS AAX)
 endif()
 
