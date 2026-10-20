@@ -6,7 +6,7 @@
 html,body{height:100%}
 body{background:#0a0b0c;margin:0;display:flex;align-items:center;justify-content:center;overflow:auto;font-family:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
 #fit{position:relative;flex:none}
-#ed{position:absolute;left:0;top:0;width:1180px;height:542px;transform-origin:0 0;border:1px solid #cfccc5;border-radius:10px;box-sizing:border-box;overflow:hidden;
+#ed{position:absolute;left:0;top:0;width:1180px;height:706px;transform-origin:0 0;border:1px solid #cfccc5;border-radius:10px;box-sizing:border-box;overflow:hidden;
  background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0 1px,transparent 1px 3px),linear-gradient(180deg,#f7f6f3,#e6e4df);
  box-shadow:inset 0 1px 0 rgba(255,255,255,1),0 24px 60px rgba(0,0,0,.55)}
 #ed>*{position:absolute;box-sizing:border-box}
@@ -972,9 +972,9 @@ if (typeof module !== 'undefined') module.exports = TSRQ;
 </script>
 <script>'use strict';
 /* ====== TSR Q \u00b7 editor (riproduzione 1:1 dell'editor JUCE v0.1.0) ====== */
-const EW = 1180, EH = 542;
+const EW = 1180, EH = 706;   /* 0.6.1: proporzioni di Pro-Q 4 (misurate sulla schermata del Mac: contenuto 1903 x 1138 px Retina = 951 x 569 punti) */
 /* 0.6.0: display senza bordi laterali (come Pro-Q 4): il grafico va da bordo a bordo, sotto una barra con OUTPUT; meter OUT dentro il display, a destra */
-const LAY = { gx: 0, gy: 34, gw: EW, gh: 512, side: 26 };   /* gy 34: tutto il contenuto sale di 34 px (CSS margin-top) */   /* niente cornice in alto (c'e il bordo della finestra del Mac), sotto sottile come a sinistra (10 px) */
+const LAY = { gx: 0, gy: 34, gw: EW, gh: EH - 31, side: 34 };   /* barra in basso 31 px e striscia del meter 34 px: come Pro-Q 4 (50 / 1138 e 54 / 1903) */   /* gy 34: tutto il contenuto sale di 34 px (CSS margin-top) */   /* niente cornice in alto (c'e il bordo della finestra del Mac), sotto sottile come a sinistra (10 px) */
 const T0 = { panelTop: '#2c3035', panelBot: '#1b1e22', edge: '#3d434a', silver: '#c9ced6', ink: '#eef2f6', dim: '#8b939d', screen: '#0d1014', accent: '#ffd23f', dyn: '#5ac8fa', spec: '#9aa1aa', pInk: '#c9ced6', pDim: '#8b939d', logo: '#c9ced6', title: '#eef2f6', disInk: 'rgba(139,147,157,.4)',
   kArcBg: 'rgba(255,255,255,.15)', kArc: '#c9ced6', kBody0: '#6c737c', kBody1: '#23272c', kFace0: '#3a4048', kFace1: '#1a1d21', kRim: 'rgba(255,255,255,.19)', kInd: '#ffffff', kShadow: 'rgba(0,0,0,.55)', sep: 'rgba(255,255,255,.08)', name: 'PRECISION DYNAMIC EQ' };
 const C = Object.assign({}, T0, window.THEME || {});
@@ -1202,12 +1202,12 @@ function flush() { if (!dirty) return; dirty = false; autoGainDb = computeAuto()
 'use strict';
 /* ====== grafico EQ + analizzatore (porting di EqGraph) ====== */
 const graph = (() => {
-  const G = { primary: -1, sel: new Set(), fftOrder: 13, decay: 40, avg: 0.3, peakHold: false, freeze: false, showPre: true, showPost: true, showSC: false, rangeDb: 12, optDyn: true, anaRange: 90, tilt: 4.5, fLo: 10, fHi: 30000 };
+  const G = { primary: -1, sel: new Set(), fftOrder: 13, decay: 40, avg: 0.3, peakHold: false, freeze: false, showPre: true, showPost: true, showSC: false, rangeDb: 12, EQY0: 0.37346 * EH, EQH: 0.28120 * EH, optDyn: true, anaRange: 90, tilt: 4.5, fLo: 8.707, fHi: 35551 };   /* asse delle frequenze di Pro-Q 4: 20 Hz al 9,72 % della larghezza, una decade = 26,9 % */
   const SIDE = LAY.side; const PL = { x: 0, y: 10, w: GW - SIDE, h: GH - 10 - 22 };   // niente fascia a sinistra: la griglia parte dal bordo   // griglia fino in alto: logo, nome e tasti stanno dentro la griglia   // y 46: sopra c'\u00e8 la fascia con tasti e logo   // fasce laterali senza griglia: meter
   const fMax = () => Math.min(30000, fsNow() / 2);
-  const vLo = () => Math.max(10, G.fLo), vHi = () => Math.min(G.fHi, fMax());   /* vista: zoom/pan dell'asse delle frequenze */
+  const vLo = () => Math.max(5, G.fLo), vHi = () => G.fHi;   /* asse fisso come Pro-Q 4 (anche oltre Nyquist; le curve si fermano a fs/2) */   /* vista: zoom/pan dell'asse delle frequenze */
   const X = f => PL.x + Math.log(f / vLo()) / Math.log(vHi() / vLo()) * PL.w, Fx = x => vLo() * Math.pow(vHi() / vLo(), (x - PL.x) / PL.w);
-  const Y = db => PL.y + PL.h / 2 - db / G.rangeDb * PL.h / 2, Dy = y => (PL.y + PL.h / 2 - y) / (PL.h / 2) * G.rangeDb;
+  const Y = db => G.EQY0 - db / G.rangeDb * G.EQH, Dy = y => (G.EQY0 - y) / G.EQH * G.rangeDb;   /* 0.6.1: 0 dB al 37,3 % dell'altezza, +-scala = 28,1 % (Pro-Q 4) */
   const ANA_TOP = -38; const AY = d => PL.y + PL.h - (d + G.anaRange) / (G.anaRange + ANA_TOP) * PL.h;   /* 0.4.5: la scala finisce a -38 dB: lo spettro della musica occupa quasi tutta l'altezza */   /* range dell'analizzatore 60/90/120 dB, separato dal range EQ */
   let curves = new Array(NB).fill(null), keys = new Array(NB).fill(''), total = null, live = null, cols = null, colsFs = 0, deltas = new Float32Array(NB), rcurves = new Array(NB).fill(null), rkeys = new Array(NB).fill('');
   let specPre = null, specPost = null, peak = null, N = 0, win = null, tdPre = null, tdPost = null, re = null, im = null;
@@ -1246,7 +1246,7 @@ const graph = (() => {
   function lpCurve(fs, sc, W) { const F = cols.f, parts = [fs, sc, P.lpres | 0, W, cols.vk]; P.bands.forEach((b, i) => { if (b.used && !b.byp && !(b.dyn && canDyn(b.type)) && b.type !== 9) parts.push(i, b.type, b.freq, b.gain, b.q, b.slope, b.place); });
     const key = parts.join('|'); if (key !== lpKey) { lpKey = key; clearTimeout(lpTimer); lpTimer = setTimeout(() => lpCompute(fs, sc, F, key), 120); }
     return lpRes && lpRes.key === key && lpRes.out.length === W ? lpRes.out : null; }
-  function magDb(c, out) { const fs = fsNow(), F = cols.f; for (let i = 0; i < F.length; i++) out[i] = 10 * Math.log10(Math.max(TSRQ.digMag2(c, F[i], fs), 1e-12)); return out; }
+  function magDb(c, out) { const fs = fsNow(), F = cols.f, ny = fs / 2 * 0.999; for (let i = 0; i < F.length; i++) out[i] = 10 * Math.log10(Math.max(TSRQ.digMag2(c, Math.min(F[i], ny), fs), 1e-12)); return out; }
   function refresh() { columns(); const fs = fsNow(), sc = P.scale / 100, W = cols.f.length; let changed = false, anyDyn = false;
     for (let i = 0; i < NB; i++) { const b = P.bands[i], act = b.used && !b.byp; const k = act ? [b.type, b.freq, b.gain, b.q, b.slope, sc, fs, G.rangeDb].join('|') : '';
       if (k !== keys[i]) { keys[i] = k; changed = true; curves[i] = act ? magDb(TSRQ.designBand(engineBand(i), hasGain(b.type) ? b.gain * sc : 0, fs), new Float32Array(W)) : null; }
@@ -1299,7 +1299,7 @@ const graph = (() => {
   G.nodePos = nodePos;
   G.X = X; G.Fx = Fx; G.Y = Y; G.Dy = Dy; G.AY = AY; G.PL = PL;
   G._specPost = () => specPost;
-  G.view = () => ({ lo: vLo(), hi: vHi() }); G.setView = (lo, hi) => { const mx = fMax(); lo = clamp(lo, 10, mx / 1.5); hi = clamp(hi, lo * 1.5, mx); G.fLo = lo; G.fHi = hi >= mx * .999 ? 30000 : hi; };
+  G.view = () => ({ lo: vLo(), hi: vHi() }); G.setView = (lo, hi) => { const mx = fMax(); lo = clamp(lo, 10, mx / 1.5); hi = clamp(hi, lo * 1.5, mx); G.fLo = lo; G.fHi = hi >= mx * .999 ? 35551 : hi; };
   G.specDb = x => (N && playing && specPost) ? specY(G.showPost ? specPost : specPre, x) : null;   /* spettro (dB con inclinazione) per i picchi */
   const rangePos = i => { const b = P.bands[i], z = rcurves[i]; if (!z || !b.used || b.byp || !b.dyn || !canDyn(b.type)) return null; const x = X(Math.min(b.freq, fMax())), k = clamp(Math.round((x - PL.x) / PL.w * (z.length - 1)), 0, z.length - 1); return { x, y: Y(clamp(z[k], -G.rangeDb, G.rangeDb)) }; };
   G.rangePos = rangePos;
@@ -1315,7 +1315,7 @@ const graph = (() => {
     const stp = G.rangeDb <= 3 ? 1 : G.rangeDb <= 6 ? 2 : G.rangeDb <= 12 ? 3 : G.rangeDb <= 18 ? 6 : 10;
     g.font = `700 10px ${FONT}`; g.textBaseline = 'middle';
     for (let d = -G.rangeDb; d <= G.rangeDb; d += stp) { const y = Math.round(Y(d)) + .5; g.strokeStyle = hgr(d === 0 ? .32 : .11, d); g.beginPath(); g.moveTo(r.x, y); g.lineTo(r.x + r.w, y); g.stroke();
-      if (!(window.LOBE && Y(d) > LOBE.top - 6) && !(window.__kbOn && d === -G.rangeDb)) { const yr = d === G.rangeDb ? Y(d) + 8 : Y(d) - 7; if (yr > r.y + 60) { g.fillStyle = 'rgba(255,214,10,.8)'; g.textAlign = 'right'; g.fillText(d === 0 ? '0 dB' : (d > 0 ? '+' : '') + d, r.x + r.w - 4, yr); } /* numeri gialli sul bordo destro (il piu alto finirebbe sotto i tasti) */ } }
+      if (!(window.LOBE && Y(d) > LOBE.top - 6) && !(window.__kbOn && d === -G.rangeDb)) { const yr = Y(d) - 7; if (d !== G.rangeDb && yr > r.y + 60) {   /* come Pro-Q 4: il valore piu alto della scala non si scrive (lo spazio e del tasto della scala) */ g.fillStyle = 'rgba(255,214,10,.8)'; g.textAlign = 'right'; g.fillText(d === 0 ? '0 dB' : (d > 0 ? '+' : '') + d, r.x + r.w - 4, yr); } /* numeri gialli sul bordo destro (il piu alto finirebbe sotto i tasti) */ } }
     g.strokeStyle = vgr(.14); g.strokeRect(r.x + .5, r.y + .5, r.w - 1, r.h - 1);
     { const yg = g.createLinearGradient(0, r.y, 0, r.y + r.h); yg.addColorStop(0, 'rgba(79,209,255,.06)'); yg.addColorStop(.5, 'rgba(79,209,255,.01)'); yg.addColorStop(1, 'rgba(79,209,255,.045)'); g.fillStyle = yg; g.fillRect(r.x, r.y, r.w, r.h);
       const rg = g.createRadialGradient(r.x + r.w * .3, r.y + r.h * .35, 10, r.x + r.w * .3, r.y + r.h * .35, r.w * .6); rg.addColorStop(0, 'rgba(79,209,255,.05)'); rg.addColorStop(1, 'rgba(79,209,255,0)'); g.fillStyle = rg; g.fillRect(r.x, r.y, r.w, r.h); }   // sfumatura blu acqua non uniforme
@@ -1359,7 +1359,7 @@ const graph = (() => {
       g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(r.x, r.y, xa - r.x, r.h); g.fillRect(xb, r.y, r.x + r.w - xb, r.h);
       const zg = g.createLinearGradient(0, r.y, 0, r.y + r.h); zg.addColorStop(0, 'rgba(255,214,10,.14)'); zg.addColorStop(1, 'rgba(255,214,10,.04)'); g.fillStyle = zg; g.fillRect(xa, r.y, xb - xa, r.h);
       g.strokeStyle = '#FFD60A'; g.lineWidth = sd ? 2 : 1.4; for (const x of [xa, xb]) if (x > r.x + 1 && x < r.x + r.w - 1) { g.beginPath(); g.moveTo(x, r.y); g.lineTo(x, r.y + r.h); g.stroke(); }
-      if (sd && sd.dir) { const yy = r.y + r.h / 2, out = sd.dir > 0; g.fillStyle = '#FFD60A';
+      if (sd && sd.dir) { const yy = Y(0), out = sd.dir > 0; g.fillStyle = '#FFD60A';
         for (const [x, s] of [[xa, -1], [xb, 1]]) { if (x <= r.x + 1 || x >= r.x + r.w - 1) continue; const d = out ? s : -s, x0 = x + s * 6; g.beginPath(); g.moveTo(x0 + d * 10, yy); g.lineTo(x0, yy - 7); g.lineTo(x0, yy + 7); g.closePath(); g.fill(); }
         g.font = `700 10px ${FONT}`; g.textAlign = 'center'; g.fillText(out ? '\u25c0  ALLARGA  \u25b6' : '\u25b6  RESTRINGE  \u25c0', (xa + xb) / 2, r.y + 42); }
       g.font = `700 10px ${FONT}`; g.textAlign = 'center'; g.fillStyle = '#FFD60A'; g.fillText(fmtF(Math.max(10, f1)) + '  \u2013  ' + fmtF(Math.min(fMax(), f2)), (xa + xb) / 2, r.y + 26); }
@@ -1425,11 +1425,11 @@ const graph = (() => {
     if (down && Math.hypot(p.x - down.p.x, p.y - down.p.y) > 3) moved = true;
     if (rect) { rect.x1 = p.x; rect.y1 = p.y; const xa = Math.min(rect.x0, p.x), xb = Math.max(rect.x0, p.x), ya = Math.min(rect.y0, p.y), yb = Math.max(rect.y0, p.y); const s = new Set(rectKeep);
       P.bands.forEach((b, i) => { if (!b.used) return; const n = nodePos(i); if (n.x >= xa && n.x <= xb && n.y >= ya && n.y <= yb) s.add(i); }); G.sel = s; if (s.size && !s.has(G.primary)) { G.primary = [...s][0]; panelSync(); } return; }
-    if (rDrag) { let dy = p.y - rDrag.y; if (e.shiftKey) dy *= .1; const b = P.bands[rDrag.i]; b.range = Math.round(clamp(rDrag.r - dy / (PL.h / 2) * G.rangeDb / Math.max(.01, P.scale / 100), -24, 24) * 10) / 10; dirty = true; panelSync(); return; }
+    if (rDrag) { let dy = p.y - rDrag.y; if (e.shiftKey) dy *= .1; const b = P.bands[rDrag.i]; b.range = Math.round(clamp(rDrag.r - dy / G.EQH * G.rangeDb / Math.max(.01, P.scale / 100), -24, 24) * 10) / 10; dirty = true; panelSync(); return; }
     if (dragging) { if (!moved) return; let dx = p.x - down.p.x, dy = p.y - down.p.y; if (e.shiftKey) { dx *= .1; dy *= .1; }
       if (down.cmd) { /* Cmd+trascinamento verticale = Q (su = piu stretto) */ for (const d of dragStart) { const b = P.bands[d.i]; b.q = clamp(d.q * Math.pow(2, -dy / 120), .025, 40); } dirty = true; panelSync(); return; }
       if (e.altKey) { if (Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0; }
-      const ratio = Math.pow(vHi() / vLo(), dx / PL.w), ddb = -dy / (PL.h / 2) * G.rangeDb / Math.max(.01, P.scale / 100);
+      const ratio = Math.pow(vHi() / vLo(), dx / PL.w), ddb = -dy / G.EQH * G.rangeDb / Math.max(.01, P.scale / 100);
       for (const d of dragStart) { const b = P.bands[d.i]; b.freq = clamp(d.f * ratio, 10, 30000); if (hasGain(b.type)) b.gain = clamp(d.g + ddb, -30, 30); } dirty = true; return; }
     hover = hit(p); rHover = hover < 0 ? rHit(p) : -1; cv.style.cursor = rHover >= 0 ? 'ns-resize' : ''; grabF = -1; });
   cv.addEventListener('pointerup', e => { if (rDrag) { rDrag = null; commit(); down = null; return; } if (rect) { rect = null; if (!moved && !(e.metaKey || e.ctrlKey)) G.selectOnly(-1); down = null; return; }
@@ -2040,7 +2040,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
     const W = 360, x0 = q[0].x, x1 = q[q.length - 1].x; if (x1 - x0 < 6) { flash('linea troppo corta'); return; }
     const F = new Float64Array(W), T = new Float64Array(W); let j = 0;
     for (let k = 0; k < W; k++) { const x = x0 + (x1 - x0) * k / (W - 1); while (j < q.length - 2 && q[j + 1].x < x) j++; const a = q[j], b = q[j + 1], t = b.x > a.x ? clamp((x - a.x) / (b.x - a.x), 0, 1) : 0;
-      F[k] = G.Fx(x); T[k] = (PLy + PLh / 2 - (a.y + (b.y - a.y) * t)) / (PLh / 2) * G.rangeDb; }
+      F[k] = G.Fx(x); T[k] = (graph.EQY0 - (a.y + (b.y - a.y) * t)) / graph.EQH * G.rangeDb; }
     const free = P.bands.map((b, i) => b.used ? -1 : i).filter(i => i >= 0); if (!free.length) { flash('massimo 32 bande'); return; }
     const R = Float64Array.from(T), made = []; txn();
     for (let n = 0; n < Math.min(8, free.length); n++) { let k = 0; for (let i = 1; i < W; i++) if (Math.abs(R[i]) > Math.abs(R[k])) k = i;
@@ -2150,7 +2150,7 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
     sug = null; gw.style.cursor = ''; }, true);
   gw.addEventListener('pointermove', e => { if (!sdrag) return; e.stopPropagation(); const p = loc(e), b = P.bands[sdrag.i]; let dx = p.x - sdrag.x0, dy = p.y - sdrag.y0;
     if (!sdrag.moved && Math.hypot(dx, dy) < 3) return; sdrag.moved = true; if (e.shiftKey) { dx *= .1; dy *= .1; } const v = graph.view();
-    b.freq = clamp(sdrag.f0 * Math.pow(v.hi / v.lo, dx / PLw), 10, 30000); if (hasGain(b.type)) b.gain = Math.round(clamp(sdrag.g0 - dy / (PLh / 2) * graph.rangeDb / Math.max(.01, P.scale / 100), -30, 30) * 100) / 100; dirty = true; panelSync(); }, true);
+    b.freq = clamp(sdrag.f0 * Math.pow(v.hi / v.lo, dx / PLw), 10, 30000); if (hasGain(b.type)) b.gain = Math.round(clamp(sdrag.g0 - dy / graph.EQH * graph.rangeDb / Math.max(.01, P.scale / 100), -30, 30) * 100) / 100; dirty = true; panelSync(); }, true);
   const sEnd = e => { if (!sdrag) return; e.stopPropagation(); const m = sdrag.moved; sdrag = null; if (m) commit(); panelSync(); };
   gw.addEventListener('pointerup', sEnd, true); gw.addEventListener('pointercancel', sEnd, true);
   window.__tsrqSugDrag = () => sdrag;

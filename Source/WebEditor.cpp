@@ -45,9 +45,9 @@ TsrqWebEditor::TsrqWebEditor (TsrqProcessor& p) : AudioProcessorEditor (p), proc
     addAndMakeVisible (*web);
     web->goToURL (WebBrowserComponent::getResourceProviderRoot());
     setResizable (true, true);
-    setResizeLimits (708, 325, 2360, 1084);   // stesse proporzioni dell'interfaccia (1180 x 542): il display tocca il bordo della finestra
-    if (auto* c = getConstrainer()) c->setFixedAspectRatio (1180.0 / 542.0);
-    setSize (1180, 542);
+    setResizeLimits (571, 342, 1904, 1139);   // 0.6.1: proporzioni di Pro-Q 4 (1180 x 706 interne); da 0,6x a 2x
+    if (auto* c = getConstrainer()) c->setFixedAspectRatio (1180.0 / 706.0);
+    setSize (952, 569);   // grandezza di Pro-Q 4 misurata sul Mac di Tim (contenuto 1903 x 1138 px Retina)
     startTimerHz (60);
 }
 TsrqWebEditor::~TsrqWebEditor() { stopTimer(); endGesture(); }
