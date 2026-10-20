@@ -974,7 +974,7 @@ if (typeof module !== 'undefined') module.exports = TSRQ;
 /* ====== TSR Q \u00b7 editor (riproduzione 1:1 dell'editor JUCE v0.1.0) ====== */
 const EW = 1180, EH = 706;   /* 0.6.1: proporzioni di Pro-Q 4 (misurate sulla schermata del Mac: contenuto 1903 x 1138 px Retina = 951 x 569 punti) */
 /* 0.6.0: display senza bordi laterali (come Pro-Q 4): il grafico va da bordo a bordo, sotto una barra con OUTPUT; meter OUT dentro il display, a destra */
-const LAY = { gx: 0, gy: 34, gw: EW, gh: EH - 31, side: 34 };   /* barra in basso 31 px e striscia del meter 34 px: come Pro-Q 4 (50 / 1138 e 54 / 1903) */   /* gy 34: tutto il contenuto sale di 34 px (CSS margin-top) */   /* niente cornice in alto (c'e il bordo della finestra del Mac), sotto sottile come a sinistra (10 px) */
+const LAY = { gx: 0, gy: 34, gw: EW, gh: EH - 22, side: 34 };   /* barra in basso 22 px (0.6.1 prima: 31) */   /* barra in basso 31 px e striscia del meter 34 px: come Pro-Q 4 (50 / 1138 e 54 / 1903) */   /* gy 34: tutto il contenuto sale di 34 px (CSS margin-top) */   /* niente cornice in alto (c'e il bordo della finestra del Mac), sotto sottile come a sinistra (10 px) */
 const T0 = { panelTop: '#2c3035', panelBot: '#1b1e22', edge: '#3d434a', silver: '#c9ced6', ink: '#eef2f6', dim: '#8b939d', screen: '#0d1014', accent: '#ffd23f', dyn: '#5ac8fa', spec: '#9aa1aa', pInk: '#c9ced6', pDim: '#8b939d', logo: '#c9ced6', title: '#eef2f6', disInk: 'rgba(139,147,157,.4)',
   kArcBg: 'rgba(255,255,255,.15)', kArc: '#c9ced6', kBody0: '#6c737c', kBody1: '#23272c', kFace0: '#3a4048', kFace1: '#1a1d21', kRim: 'rgba(255,255,255,.19)', kInd: '#ffffff', kShadow: 'rgba(0,0,0,.55)', sep: 'rgba(255,255,255,.08)', name: 'PRECISION DYNAMIC EQ' };
 const C = Object.assign({}, T0, window.THEME || {});
@@ -1952,20 +1952,20 @@ window.__tsrq = { P: () => P, graph, play, engine: () => engineKind, meter: () =
 /* ====== knob INPUT tolto dall'interfaccia (il parametro resta, a 0 dB se non automatizzato) ====== */
 (() => { const KIN = knobs.find(k => k.name === 'INPUT'); if (!KIN) throw new Error('TSRQ: knob INPUT non trovato'); for (const e of [KIN.cv, KIN.lab, KIN.inp]) e.style.display = 'none'; })();
 
-/* ====== 0.6.0: OUTPUT nella barra in basso (display senza bordi laterali, come Pro-Q 4) ====== */
+/* ====== 0.6.1: OUTPUT nella barra in basso solo come numero (nessuna manopola): trascina su/giu, rotella, doppio clic = scrivi il valore ====== */
 (() => { const KO2 = knobs.find(k => k.name === 'OUTPUT'); if (!KO2) throw new Error('TSRQ: knob OUTPUT non trovato');
-  const BH = EH - LAY.gh, top = LAY.gy + LAY.gh, CWo = 92, CHo = BH, LWo = 62, x = EW - 12 - LWo - CWo;   // barra: da GH al fondo della finestra
-  KO2.x = x; KO2.y = top; KO2.cv.width = CWo * 2; KO2.cv.height = CHo * 2;
-  Object.assign(KO2.cv.style, { left: x + 'px', top: top + 'px', width: CWo + 'px', height: CHo + 'px' });
-  for (const e of [KO2.lab, KO2.inp]) Object.assign(e.style, { left: (x + CWo + 2) + 'px', top: (top + (CHo - 18) / 2) + 'px', width: LWo + 'px', height: '18px', textAlign: 'left' });
-  const compact = k => { const g = k.cv.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, CWo, CHo);
-    const cx = CWo - 14, cy = CHo / 2, R = 9, a0 = Math.PI * .75, a1 = Math.PI * 2.25, ang = a0 + k.toN(k.v) * (a1 - a0), az = a0 + k.toN(0) * (a1 - a0);
-    g.font = `700 10px ${FONT}`; g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillStyle = C.dim; g.fillText(k.name, cx - R - 8, cy + 1);
-    g.lineCap = 'round'; g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.10)'; g.beginPath(); g.arc(cx, cy, R, a0, a1); g.stroke();
-    g.strokeStyle = Math.abs(k.v) < 0.05 ? 'rgba(238,242,246,.35)' : C.ink; g.beginPath(); g.arc(cx, cy, R, Math.min(az, ang), Math.max(az, ang)); g.stroke();
-    g.fillStyle = C.ink; g.beginPath(); g.arc(cx + Math.cos(ang) * (R - 4), cy + Math.sin(ang) * (R - 4), 1.6, 0, 7); g.fill(); };
-  const prev = drawKnob; drawKnob = k => k === KO2 ? compact(k) : prev(k);
-  compact(KO2); panelSync(); })();
+  const BH = EH - LAY.gh, top = LAY.gy + LAY.gh, LWo = 70, x = EW - 12 - LWo;
+  KO2.cv.style.display = 'none';
+  for (const e of [KO2.lab, KO2.inp]) Object.assign(e.style, { left: x + 'px', top: (top + (BH - 18) / 2) + 'px', width: LWo + 'px', height: '18px', textAlign: 'right' });
+  const lab = KO2.lab; lab.style.cursor = 'ns-resize'; lab.style.touchAction = 'none'; lab.title = 'Output: trascina su/gi\u00f9 (Shift = fine), rotella, doppio clic per scrivere il valore';
+  let drag = null;
+  lab.addEventListener('pointerdown', e => { if (e.button !== 0) return; drag = { y: e.clientY, v: KO2.v, moved: false }; lab.setPointerCapture(e.pointerId); });
+  lab.addEventListener('pointermove', e => { if (!drag) return; const dy = drag.y - e.clientY; if (!drag.moved && Math.abs(dy) < 2) return; if (!drag.moved) { drag.moved = true; txn(); }
+    KO2.set(Math.round((drag.v + dy * (e.shiftKey ? 0.01 : 0.1)) * 100) / 100, true); });   /* 0,1 dB per pixel (Shift: 0,01) */
+  lab.addEventListener('pointerup', () => { if (drag && drag.moved) commit(); drag = null; });
+  lab.addEventListener('wheel', e => { e.preventDefault(); txn(); KO2.set(Math.round((KO2.v + (e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? 0.1 : 0.5)) * 100) / 100, true); commit(); }, { passive: false });
+  const prevDraw = drawKnob; drawKnob = k => { if (k === KO2) { KO2.lab.textContent = KO2.fmt ? KO2.fmt(KO2.v) : KO2.v.toFixed(1) + ' dB'; return; } prevDraw(k); };   /* niente manopola: solo il numero */
+  drawKnob (KO2); panelSync(); })();
 
 /* ====== 0.6.0: modo di elaborazione nella barra in basso (come Pro-Q 4): Zero Latency / Linear Phase + risoluzione ====== */
 (() => { const st = document.createElement('style');
