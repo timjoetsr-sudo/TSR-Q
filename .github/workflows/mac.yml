@@ -14,7 +14,7 @@ jobs:
         run: |
           curl -sL -o pv.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
           unzip -q pv.zip -d /Applications
-      - name: AAX SDK esterno (facoltativo: senza secret si usa quello contenuto in JUCE 8)
+      - name: "AAX SDK esterno (facoltativo, senza secret si usa quello contenuto in JUCE 8)"
         env:
           AAX_SDK_ZIP_URL: ${{ secrets.AAX_SDK_ZIP_URL }}
         run: |
